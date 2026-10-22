@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+# hq pre-push (architecture/hq-code-gate.md, Rule 10). Gates pushes to the REMOTE refs
+# refs/heads/main and refs/heads/wt/* (dispatch is on the remote ref, so `wt/x:main` is gated).
+#   base: main -> the remote sha <rsha> (it must already be local; an unknown or absent remote main
+#         blocks: fetch first; a non-fast-forward push that rewinds main blocks).
+#         wt/* -> merge-base(<lsha>, refs/remotes/origin/main) (an early signal only).
+#   The gate scripts and scope.conf run from the trusted tree (`git archive <src> tools/code-gate`),
+#   never from the pushed commits or the working tree, so a push cannot edit the gate that judges it.
+#   <src> is BASE for main pushes (BASE is the remote main tip); for wt/* it is the origin/main TIP, so a
+#   branch forked before a gate fix still runs the current gate. Scope and the diff still use BASE.
+#   One-time bootstrap: if base has no gate yet, the pushed head's copy runs (`CODE-GATE: BOOTSTRAP`).
+#   wt/*: run-mapped-tests.sh <base> <lsha>.  main: run-mapped-tests.sh, then check-review.sh.
+#   Tests run in a detached temp worktree of <lsha> (run-mapped-tests.sh), so HEAD and the working
+#   tree may differ from what is pushed.
+# Other refs and deletions pass. Any internal error blocks (fail closed).
+# Bypass flags (--no-verify, core.hooksPath override) are forbidden by Rule 10 and caught by
+# check-invariants 27/29 later. Do NOT add a bypass env var here.
+set -uo pipefail
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX
+ZERO=0000000000000000000000000000000000000000
+G=tools/code-gate
+GATES=""
+cleanup() { [ -z "$GATES" ] || rm -rf $GATES; return 0; }
+trap cleanup EXIT
+block() { echo "pre-push BLOCK: $1" >&2; exit 1; }
+root="$(git rev-parse --show-toplevel)" || block "not in a git repo"
+cd "$root" || block "cannot cd to $root"
+
+while read -r lref lsha rref rsha; do
+  [ -n "${rref:-}" ] || continue
+  case "$rref" in refs/heads/main|refs/heads/wt/*) ;; *) continue ;; esac
+  [ "$lsha" = "$ZERO" ] && continue                                   # deleting a branch
+  if [ "$rref" = refs/heads/main ]; then
+    [ "$rsha" != "$ZERO" ] || block "remote main does not exist; the gate never creates main"
+    git cat-file -e "$rsha^{commit}" 2>/dev/null || block "remote main $rsha not local; git fetch origin and retry"
+    git merge-base --is-ancestor "$rsha" "$lsha" ||
+      block "non-fast-forward push to main rewinds $rsha; main is integration-only (Rule 6)"
+    base="$rsha"
+  else
+    base="$(git merge-base "$lsha" refs/remotes/origin/main 2>/dev/null)" ||
+      block "no base for $rref (no merge-base with origin/main); fetch origin first."
+  fi
+  src="$base"
+  # wt/*: the gate scripts come from the origin/main tip (the merge-base may predate gate fixes); fall back
+  # to the merge-base when origin/main has no gate (bootstrap) or the ref is absent.
+  if [ "$rref" != refs/heads/main ] && git cat-file -e "refs/remotes/origin/main:$G/run-mapped-tests.sh" 2>/dev/null; then
+    src="refs/remotes/origin/main"
+  fi
+  if ! git cat-file -e "$src:$G/run-mapped-tests.sh" 2>/dev/null; then
+    src="$lsha"; echo "CODE-GATE: BOOTSTRAP base $base has no $G; running the pushed head's copy" >&2
+  fi
+  gate="$(mktemp -d)" || block "mktemp failed"; GATES="$GATES $gate"
+  # No pipe: bsdtar stops at the end-of-archive marker, so `git archive` piped into tar can die of SIGPIPE (rc 141
+  # under pipefail) after a complete extraction and falsely block the push.
+  git archive "$src" "$G" --output "$gate/gate.tar" || block "cannot archive $G from $src"
+  tar -xf "$gate/gate.tar" -C "$gate" || block "cannot extract $G from $src"
+  [ -f "$gate/$G/run-mapped-tests.sh" ] && [ -f "$gate/$G/check-review.sh" ] ||
+    block "no gate scripts at base $base or head $lsha"
+  bash "$gate/$G/run-mapped-tests.sh" "$base" "$lsha" </dev/null ||
+    block "code gate failed for $rref (see CODE-GATE line above)."
+  if [ "$rref" = refs/heads/main ]; then
+    bash "$gate/$G/check-review.sh" "$base" "$lsha" </dev/null ||
+      block "review gate failed for main (see CODE-REVIEW lines above)."
+  fi
+done
+exit 0

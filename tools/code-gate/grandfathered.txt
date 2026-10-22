@@ -1,0 +1,15 @@
+# Grandfathered in-scope files with no mapped test: the measured inventory at cutover
+# (run-mapped-tests.sh --inventory WORKTREE), no hand exclusions. Shrink-only (Rule 10).
+skills/network-check/scripts/check-network.sh
+skills/organizing-files/fileorg.py
+skills/organizing-files/workflows/organize-backlog-run.js
+skills/organizing-files/workflows/organize-backlog-scope.js
+tools/check-doc-length.sh
+tools/check-file-length.sh
+tools/check-holds.sh
+tools/container-exec/entrypoint.sh
+tools/container-exec/hqx-run.sh
+tools/git-hooks/post-commit
+tools/hooks/agent-spawn-notice.sh
+tools/hooks/subagent-role-banner.sh
+tools/hooks/tests/subagent-role-contract/run-fixtures.sh

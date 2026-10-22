@@ -1,0 +1,182 @@
+{
+  "crossSessionInbound": "accept",
+  "env": {
+    "ENABLE_TOOL_SEARCH": "true",
+    "CLAUDE_CODE_MAX_SUBAGENTS_PER_SESSION": "1000"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(xcrun simctl *)",
+      "Bash(xcrun *)",
+      "Bash(cp *)",
+      "Bash(mkdir *)",
+      "Bash(find *)",
+      "Bash(xcodebuild *)",
+      "Bash(pod install)",
+      "Bash(pod update)",
+      "Bash(fastlane *)",
+      "Bash(npx react-native *)",
+      "Bash(./gradlew *)",
+      "Bash(brew --prefix *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(shasum *)",
+      "Bash(wc *)",
+      "Bash(stat *)",
+      "Bash(lsof *)",
+      "Bash(plutil *)",
+      "Bash(gh pr merge *)",
+      "Bash(gh pr view *)",
+      "Bash(gh pr diff *)",
+      "Bash(gh pr list *)",
+      "Bash(gh pr checks *)",
+      "Bash(*git worktree*)",
+      "Bash(*git fetch*)",
+      "Bash(*git log*)",
+      "Bash(*git status*)",
+      "Bash(*git branch*)",
+      "Bash(*git show*)",
+      "Bash(*git diff*)",
+      "Bash(cd *)",
+      "Bash(eas build *)",
+      "Bash(eas submit *)",
+      "Bash(pnpm *)",
+      "Bash(npm *)",
+      "Bash(npx expo *)",
+      "Bash(npx eas *)",
+      "Bash(eas *)",
+      "Bash(gh pr create *)",
+      "Bash(gh pr comment *)",
+      "Bash(gh pr edit *)",
+      "Bash(gh pr ready *)",
+      "Bash(*git merge*)",
+      "Bash(*git push*)",
+      "Bash(*git add *)",
+      "Bash(*git commit*)",
+      "Bash(*git checkout*)",
+      "Bash(*git rev-parse*)",
+      "Bash(*git ls-remote*)",
+      "Bash(*git merge-base*)",
+      "Bash(*git check-ignore*)",
+      "Bash(*git cherry-pick*)",
+      "Bash(export *)",
+      "Bash(python3 *)",
+      "Bash(bash *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(grep *)",
+      "Bash(command grep *)",
+      "Bash(sed *)",
+      "Bash(diff *)",
+      "Bash(ps *)",
+      "Bash(date *)",
+      "Bash(echo *)",
+      "Bash(du *)",
+      "Bash(sleep *)",
+      "Bash(set *)",
+      "Bash(disown)",
+      "Bash(disown *)",
+      "Bash(*git add*)",
+      "Bash(JAVA_HOME=*)",
+      "Bash(test *)",
+      "Bash(true)",
+      "Bash(wait *)",
+      "Bash(wait)",
+      "Bash(/usr/bin/grep *)",
+      "Bash(awk *)",
+      "Bash(tr *)",
+      "Bash(sort *)",
+      "Bash(source *)",
+      "Bash(env -C *)",
+      "Bash(env * node_modules/.bin/expo start *)",
+      "Bash(sed -n *)",
+      "Bash(printf *)",
+      "Bash(md5 *)",
+      "Bash(*push origin main*)",
+      "Bash(ln -s $HOME/projects/agent-hq/skills/*)",
+      "Bash(ln -sfn $HOME/projects/agent-hq/skills/*)",
+      "Bash(ln -s $HOME/projects/agent-hq/agents/*)",
+      "Bash($HOME/projects/agent-hq/tools/check-invariants.sh)",
+      "Bash(sh -c 'cd $HOME/projects/agent-hq && tools/check-invariants.sh')",
+      "Bash(cat $HOME/.claude/sessions/*.json)",
+      "Bash(/bin/cat $HOME/.claude/sessions/*.json)"
+    ]
+  },
+  "skillOverrides": {
+    "superpowers:writing-plans": "off"
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/projects/agent-hq/tools/hooks/agent-spawn-notice.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/projects/agent-hq/tools/hooks/subagent-role-banner.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/bash $HOME/projects/agent-hq/tools/git-hooks/session-end-push-check.sh"
+          }
+        ]
+      }
+    ]
+  },
+  "enabledPlugins": {
+    "rust-analyzer-lsp@claude-plugins-official": true,
+    "superpowers@claude-plugins-official": true,
+    "warp@claude-code-warp": true,
+    "mattpocock-skills@mattpocock": true
+  },
+  "extraKnownMarketplaces": {
+    "claude-code-warp": {
+      "source": {
+        "source": "github",
+        "repo": "warpdotdev/claude-code-warp"
+      }
+    },
+    "mattpocock": {
+      "source": {
+        "source": "github",
+        "repo": "mattpocock/skills"
+      }
+    },
+    "cloudflare": {
+      "source": {
+        "source": "github",
+        "repo": "cloudflare/skills"
+      }
+    }
+  },
+  "effortLevel": "high",
+  "tui": "fullscreen",
+  "skipDangerousModePermissionPrompt": true,
+  "skipWorkflowUsageWarning": true,
+  "theme": "dark",
+  "autoMode": {
+    "allow": [
+      "$defaults"
+    ],
+    "environment": [
+      "$defaults"
+    ]
+  }
+}

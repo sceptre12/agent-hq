@@ -1,0 +1,54 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+
+# Editors / IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.obsidian/
+
+# Scratch / local-only notes (kept out of history by convention)
+*.local.md
+*.local.json
+/scratch/
+/.tmp/
+
+# Secrets — NEVER commit. hq holds context, not credentials.
+.env
+.env.*
+*.pem
+*.key
+secrets/
+
+# OS/tool noise
+Thumbs.db
+
+# agentmemory defense-in-depth — stores are OUTSIDE hq (ADR 0006: ~/.agentmemory/),
+# but these patterns protect against any future misconfiguration or path change.
+# /memory/** (not /memory/) is required for the !/memory/README.md negation to work.
+/memory/**
+!/memory/README.md
+
+# Defense-in-depth: no live database files anywhere in hq
+*.sqlite
+*.db
+*.db-wal
+*.db-shm
+
+# Runtime state must never enter this repo (memory lives in ~/.agentmemory; Serena never indexes hq)
+/data/
+/.serena/
+/plans/.wave-execution-state/
+/tools/.sim-leases/
+
+# Python bytecode caches (test-run residue in shared checkouts; T-20261007-222)
+__pycache__/
+*.pyc
+
+# Vendored deps (agent-topology)
+tools/agent-topology/node_modules/

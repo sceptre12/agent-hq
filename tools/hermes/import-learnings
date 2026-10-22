@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# tools/hermes/import-learnings — thin shim; the logic is import_learnings.py (run isolated: python -I).
+# The script directory is resolved through symlinks, so a symlink to this shim works.
+exec python3 -I "$(python3 -I -c 'import os,sys;print(os.path.dirname(os.path.realpath(sys.argv[1])))' "${BASH_SOURCE[0]}")/import_learnings.py" "$@"

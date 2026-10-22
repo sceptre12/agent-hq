@@ -1,0 +1,50 @@
+# tools/hermes/digest-set.txt — the Hermes hq digest file set (architecture/hermes-agent.md §7).
+# Data only: build-digest.sh and verify-digest.sh read this file; the list lives nowhere else.
+#   group <n> <title>               index section n (the §7 order)
+#   include <n> <glob>              tracked regular files matching <glob> belong to group n; a path takes
+#                                   the FIRST include line it matches; files in a line sort LC_ALL=C
+#   exclude <glob> [unless <glob>]  drop matching paths (case-insensitive), except those matching `unless`
+# Globs: `*` and `?` stay inside one path segment, `**` crosses `/` (`**/` may match nothing).
+# Symlinks and submodules are never selected (regular blobs 100644/100755 only).
+group 1 Rules and standards
+include 1 CLAUDE.md
+include 1 config/CLAUDE.md
+include 1 STANDARDS.md
+include 1 INVARIANTS.md
+include 1 STANDING-HOLDS.md
+include 1 README.md
+group 2 Decisions (ADR number order)
+include 2 decisions/**
+group 3 Architecture
+include 3 architecture/**
+group 4 Learnings
+include 4 learnings/**
+group 5 Projects
+include 5 projects/**
+group 6 Retros
+include 6 retros/**
+group 7 Skills (SKILL.md as documents only)
+include 7 skills/*/SKILL.md
+group 8 Tool docs
+include 8 tools/**/*.md
+group 9 Dispatch plans (plans/*/*.md, depth 1)
+include 9 plans/*/*.md
+# Exclusions (architecture/hermes-agent.md §7 "Exclusions (and why)"; tools/hermes/README.md).
+exclude config/** unless config/CLAUDE.md
+exclude plans/**/evidence/**
+exclude plans/*/*/**
+exclude references/**
+exclude tools/** unless tools/**/*.md
+exclude inbox/**
+exclude memory/**
+exclude **/node_modules/**
+exclude **/*.env
+exclude **/.env
+exclude **/.env.*
+exclude **/*.pem
+exclude **/*.key
+exclude **/secrets/**
+exclude **/token
+exclude **/token/**
+exclude **/credentials*
+exclude **/credentials*/**

@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# hq pre-commit (ADR 0007). Blocks staged secrets/runtime; runs memory-safety subset.
+# Bypass (rare, author-owned): git commit --no-verify
+set -uo pipefail
+# EXPORT is load-bearing: check-invariants.sh falls back to $HOME/projects/agent-hq when HQ
+# is not in its environment. Unexported, every worktree commit had the invariant subset
+# (incl. the ADR 0029 doc-length gate) silently measure MAIN's checkout instead of the
+# tree being committed — and ADR 0017 makes worktrees mandatory for all hq work.
+export HQ="$(git rev-parse --show-toplevel)"
+staged="$(git diff --cached --name-only)"
+block(){ echo "pre-commit BLOCK: $1" >&2; exit 1; }
+# (a) secret filenames
+s="$(printf '%s\n' "$staged" | grep -iE '(^|/)(\.env(\..*)?|.*\.pem|.*\.key)$|(^|/)secrets/' || true)"
+[ -n "$s" ] && block "secret-bearing filename staged (.env/.pem/.key/secrets/). Unstage it."
+# (b) runtime state, case-insensitive like (a)
+s="$(printf '%s\n' "$staged" | grep -iE '(^|/)(data/|\.serena/)|\.(sqlite|db|db-wal|db-shm)$' || true)"
+[ -n "$s" ] && block "runtime state staged (data/.serena/*.sqlite/*.db). See ADR 0006."
+# memory/: only README.md permitted
+s="$(printf '%s\n' "$staged" | grep -E '^memory/' | grep -vE '^memory/README\.md$' || true)"
+[ -n "$s" ] && block "only memory/README.md may be committed (ADR 0006)."
+# (c) secret material (high-precision only). Read the WHOLE diff into a variable, then scan it: `grep -q` exits at
+# the first match, git diff gets SIGPIPE, and pipefail makes the pipeline 141 so `&& block` never ran. --text makes
+# git diff show binary files' content too (otherwise "Binary files differ" hides a key). A failing git diff or a
+# grep error (rc >= 2) blocks: never `|| true`, which read a scan failure as "no secrets".
+diff="$(git diff --cached -U0 --text)" || block "cannot read the staged diff for the secret scan (fail closed)."
+s="$(printf '%s\n' "$diff" | grep -E '^\+.*(-----BEGIN [A-Z ]*PRIVATE KEY-----|AKIA[0-9A-Z]{16}|sk-ant-(oat|ort|api)[0-9]{2}-)')"; rc=$?
+[ "$rc" -le 1 ] || block "secret scan failed (grep rc $rc; fail closed)."
+[ -n "$s" ] && block "private-key / AWS-key / Anthropic-token material in staged diff."
+# (d) memory-safety + doc-length invariant subset (FAIL lines go to stderr, not hidden)
+"$HQ/tools/check-invariants.sh" --fast >/dev/null \
+  || block "invariant subset failed (see FAIL line above). Run: tools/check-invariants.sh
+  If it is check 25 (doc length): the remedy is to SPLIT the doc into cross-referenced
+  parts — that needs no approval and is always available (ADR 0029 Clause 3/4). Do NOT
+  add a .doc-length-allowlist entry and do NOT --no-verify: crossing the ~500-line cap
+  requires the owner's explicit approval, for every file, however old or well-reasoned.
+  If splitting is genuinely non-trivial, STOP and ask — that is a blocked gate."
+exit 0

@@ -1,0 +1,3 @@
+# Lifecycle-script allow-list for the first-download scan (architecture/permission-tiers-02.md §3, step 3).
+# Owner-ruled entries only, one `name@version` per line. Created empty in P1.
+# Created 2026-10-14.

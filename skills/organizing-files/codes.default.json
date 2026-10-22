@@ -1,0 +1,18 @@
+{
+  "FIN": {"name": "Finance", "keywords": ["invoice", "tax", "bank", "statement", "retirement", "401k", "budget", "receipt", "payment"], "extensions": []},
+  "HSE": {"name": "House", "keywords": ["mortgage", "lease", "rent", "utility", "repair", "renovation", "property", "hoa"], "extensions": []},
+  "PPL": {"name": "People", "keywords": ["contact", "letter", "birthday", "wedding", "invitation"], "extensions": []},
+  "WRK": {"name": "Work", "keywords": ["resume", "employment", "offer", "payroll", "salary", "employer", "timesheet"], "extensions": []},
+  "DIV": {"name": "Divorce", "keywords": ["divorce", "custody", "settlement", "alimony", "mediation", "parenting-plan"], "extensions": []},
+  "LGL": {"name": "Legal", "keywords": ["contract", "legal", "attorney", "court", "notary", "agreement", "affidavit"], "extensions": []},
+  "HLT": {"name": "Health", "keywords": ["medical", "doctor", "prescription", "health", "dental", "vaccine", "lab-result"], "extensions": []},
+  "EDU": {"name": "Education", "keywords": ["school", "course", "certificate", "diploma", "transcript", "tuition", "syllabus"], "extensions": []},
+  "GOV": {"name": "Government", "keywords": ["passport", "visa", "license", "permit", "registration", "census"], "extensions": []},
+  "AUT": {"name": "Auto", "keywords": ["car", "vehicle", "auto", "odometer", "vin", "smog"], "extensions": []},
+  "PET": {"name": "Pets", "keywords": ["pet", "vet", "veterinary", "adoption", "microchip", "kennel"], "extensions": []},
+  "ENT": {"name": "Entertainment", "keywords": ["movie", "music", "concert", "game", "playlist"], "extensions": ["mp3", "mp4", "mov", "m4a"]},
+  "REF": {"name": "Reference", "keywords": ["manual", "guide", "reference", "howto", "datasheet", "specification"], "extensions": ["epub", "mobi"]},
+  "PRS": {"name": "Personal", "keywords": ["journal", "diary", "personal", "resolution", "memoir"], "extensions": []},
+  "AST": {"name": "Assets", "keywords": ["asset", "inventory", "appraisal", "valuation", "warranty", "serial-number"], "extensions": []},
+  "TRV": {"name": "Travel", "keywords": ["travel", "trip", "flight", "itinerary", "hotel", "boarding", "booking"], "extensions": []}
+}

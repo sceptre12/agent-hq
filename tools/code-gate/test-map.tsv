@@ -1,0 +1,52 @@
+# hq code-gate test map: <source-or-glob><TAB><test>[<TAB>timeout=<seconds>]. Rows are sorted (LC_ALL=C) and unique.
+# Lines starting with # and blank lines are ignored. The optional third column sets that TEST's time limit in
+# seconds (positive integer; default 120); when several rows name the same test the largest value wins, and the
+# CODE_GATE_TIMEOUT environment variable, if set, overrides every map value. See run-mapped-tests.sh / cg_timeout_for.
+
+tools/check-invariants.sh	tools/test_check-invariants.sh
+tools/code-gate/check-review.sh	tools/code-gate/test_check-review.sh
+tools/code-gate/gate-invariants.sh	tools/test_check-invariants.sh
+tools/code-gate/grandfathered.txt	tools/code-gate/test_run-mapped-tests.sh
+tools/code-gate/grandfathered.txt	tools/code-gate/test_scope.sh
+tools/code-gate/lib.sh	tools/code-gate/test_check-review.sh
+tools/code-gate/lib.sh	tools/code-gate/test_run-mapped-features.sh
+tools/code-gate/lib.sh	tools/code-gate/test_run-mapped-tests.sh
+tools/code-gate/lib.sh	tools/code-gate/test_scope.sh
+tools/code-gate/lib.sh	tools/test_check-invariants.sh
+tools/code-gate/run-mapped-tests.sh	tools/code-gate/test_run-mapped-features.sh	timeout=240
+tools/code-gate/run-mapped-tests.sh	tools/code-gate/test_run-mapped-tests.sh	timeout=600
+tools/code-gate/run-mapped-tests.sh	tools/code-gate/test_scope.sh
+tools/code-gate/scope.conf	tools/code-gate/test_run-mapped-tests.sh
+tools/code-gate/scope.conf	tools/code-gate/test_scope.sh
+tools/code-gate/test-map.tsv	tools/code-gate/test_run-mapped-tests.sh
+tools/code-gate/test-map.tsv	tools/code-gate/test_scope.sh
+tools/git-hooks/pre-commit	tools/git-hooks/test_pre-commit.sh
+tools/git-hooks/pre-push	tools/code-gate/test_pre-push.sh
+tools/git-hooks/session-end-push-check.sh	tools/git-hooks/test_session-end-push-check.sh
+tools/hermes/backup-hermes.sh	tools/hermes/test_backup-hermes-2.sh
+tools/hermes/backup-hermes.sh	tools/hermes/test_backup-hermes-3.sh
+tools/hermes/backup-hermes.sh	tools/hermes/test_backup-hermes-5.sh
+tools/hermes/build-digest.sh	tools/hermes/test_build-digest.sh
+tools/hermes/digest-set.txt	tools/hermes/test_build-digest.sh
+tools/hermes/il_describe.py	tools/hermes/test_import-learnings.sh
+tools/hermes/il_describe.py	tools/hermes/test_verify-import.sh
+tools/hermes/il_guard.py	tools/hermes/test_import-learnings.sh
+tools/hermes/il_guard.py	tools/hermes/test_verify-import-bundled.sh
+tools/hermes/il_guard.py	tools/hermes/test_verify-import.sh
+tools/hermes/il_write.py	tools/hermes/test_import-learnings.sh
+tools/hermes/il_write.py	tools/hermes/test_verify-import.sh
+tools/hermes/import-learnings	tools/hermes/test_import-learnings.sh
+tools/hermes/import_learnings.py	tools/hermes/test_import-learnings.sh
+tools/hermes/import_learnings.py	tools/hermes/test_verify-import.sh
+tools/hermes/restore-hermes.sh	tools/hermes/test_backup-hermes-2.sh
+tools/hermes/restore-hermes.sh	tools/hermes/test_backup-hermes-3.sh
+tools/hermes/restore-hermes.sh	tools/hermes/test_backup-hermes-5.sh
+tools/hermes/verify-digest.sh	tools/hermes/test_build-digest.sh
+tools/hermes/verify-import	tools/hermes/test_verify-import.sh
+tools/hermes/verify_bundled.py	tools/hermes/test_verify-import-bundled.sh
+tools/hermes/verify_fm.py	tools/hermes/test_verify-import.sh
+tools/hermes/verify_import.py	tools/hermes/test_verify-import-bundled.sh
+tools/hermes/verify_import.py	tools/hermes/test_verify-import.sh
+tools/hermes/verify_scan.py	tools/hermes/test_verify-import-bundled.sh
+tools/hermes/verify_scan.py	tools/hermes/test_verify-import.sh
+tools/tree-eq-check.sh	tools/test_tree-eq-check.sh

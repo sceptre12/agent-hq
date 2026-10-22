@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  DRAFT LaunchAgent for the Hermes backup agent (row 6). NOT installed; the owner installs it (README, "Backup and
+  restore (row 6)"). Copy to a path outside hq, replace every __PLACEHOLDER__, then `plutil -lint` it:
+    __HQ__           absolute path of the hq checkout that holds tools/hermes/backup-hermes.sh
+    __HERMES_HOME__  absolute path of the Hermes home to back up (READ-ONLY source)
+    __BACKUP_ROOT__  absolute path of the backup directory, OUTSIDE the Hermes home and not under ~/claude-profiles/hermes
+    __HOME__         absolute path of the owner's home (logs go to __HOME__/Library/Logs/)
+  Runs daily at 03:17 local time; RunAtLoad is false. Keeping 7 generations is a brain default under R-q, owner may veto.
+  As shipped (without the allow-live flag) the job exits 3 EVERY day while the gateway holds state.db; only err.log shows it.
+  Owner choice at install: boot the gateway out around the run, or add the allow-live argument (LIVE COPY caveats
+  in the README). Needs python3 and lsof on launchd's default PATH.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.hq.hermes-backup</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>__HQ__/tools/hermes/backup-hermes.sh</string>
+    <string>--src</string>
+    <string>__HERMES_HOME__</string>
+    <string>--dest</string>
+    <string>__BACKUP_ROOT__</string>
+    <string>--keep</string>
+    <string>7</string>
+  </array>
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>3</integer>
+    <key>Minute</key>
+    <integer>17</integer>
+  </dict>
+  <key>RunAtLoad</key>
+  <false/>
+  <key>StandardOutPath</key>
+  <string>__HOME__/Library/Logs/hermes-backup.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>__HOME__/Library/Logs/hermes-backup.err.log</string>
+</dict>
+</plist>

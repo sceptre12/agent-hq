@@ -1,0 +1,17 @@
+{
+  "session_id": "34f87b6f-c3f7-4bdd-b0b6-7b227cc15917",
+  "transcript_path": "$HOME/.claude/projects/-private-tmp-claude-501--Users-owner-projects-84f8c8d6-466e-49e6-8c58-7a6fd0341618-scratchpad-spike-hooks/34f87b6f-c3f7-4bdd-b0b6-7b227cc15917.jsonl",
+  "cwd": "/private/tmp/claude-501/-Users-owner-projects/84f8c8d6-466e-49e6-8c58-7a6fd0341618/scratchpad/spike-hooks",
+  "prompt_id": "599c1018-c91e-4317-909e-9e931360f859",
+  "permission_mode": "default",
+  "agent_id": "a2126c93e3eb73613",
+  "agent_type": "general-purpose",
+  "hook_event_name": "PreToolUse",
+  "tool_name": "Agent",
+  "tool_input": {
+    "description": "Quote SPIKE-BANNER lines and report DONE-INNER",
+    "prompt": "Quote verbatim every line in your context containing SPIKE-BANNER, then reply DONE-INNER.",
+    "model": "haiku"
+  },
+  "tool_use_id": "toolu_01Bm2wuv6W8BiZarEZPtwf9s"
+}

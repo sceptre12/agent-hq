@@ -6,7 +6,7 @@ unversioned in `~/.claude/`. Authored here, installed by symlink — the same pa
 
 | File | Installed at | Holds |
 |------|--------------|-------|
-| `CLAUDE.md` | `~/.claude/CLAUDE.md` | Global Rules 1–7 + User Preferences |
+| `CLAUDE.md` | `~/.claude/CLAUDE.md` | Global Rules 1–7, 9–13 |
 | `settings.json` | `~/.claude/settings.json` | model, env, hooks, plugins, TUI prefs |
 
 ## Install (fresh clone / second machine)

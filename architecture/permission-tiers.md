@@ -277,6 +277,5 @@ bypass disclaimer (R5 — only measurable interactively).
 ## Dispatch notes
 
 Plan: `plans/permission-tiers.md`. Rule 10 applies to `cprof.zsh`, `cprof-checks.zsh`,
-`tools/trust/*.sh`. `tools/check-holds.sh --scan`: "names no held ticket" ×3 (2026-10-12; re-run
-at each integration). Learnings from this work go to Hermes per hq `CLAUDE.md:37`, not
+`tools/trust/*.sh`. Learnings from this work go to Hermes per hq `CLAUDE.md:37`, not
 `learnings/`.

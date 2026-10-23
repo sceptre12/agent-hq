@@ -6,7 +6,6 @@ skills/organizing-files/workflows/organize-backlog-run.js
 skills/organizing-files/workflows/organize-backlog-scope.js
 tools/check-doc-length.sh
 tools/check-file-length.sh
-tools/check-holds.sh
 tools/container-exec/entrypoint.sh
 tools/container-exec/hqx-run.sh
 tools/git-hooks/post-commit

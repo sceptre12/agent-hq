@@ -155,7 +155,7 @@ resolved, per `shared/open-questions.md`).
 
 ## SETTLED DECISIONS (ratified this session — record, do not reopen)
 
-- Deploys as a **sibling repo** `~/projects/swarm-communication-layer` — code never
+- Deploys as a **sibling repo** `~/projects/agent-hq/tools/swarm-communication-layer` — code never
   lives in hq (ADR 0010).
 - Bind host becomes **env-driven `BIND_HOST`**, defaulting `127.0.0.1` — a one-line
   `server.js` change (swap the literal at line 228) plus a `config.js` entry.

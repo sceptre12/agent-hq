@@ -52,3 +52,8 @@ __pycache__/
 
 # Vendored deps (agent-topology)
 tools/agent-topology/node_modules/
+# Vendored swarm bus (tools/swarm-communication-layer): runtime state and deps never tracked
+tools/swarm-communication-layer/node_modules/
+tools/swarm-communication-layer/data/
+tools/swarm-communication-layer/logs/
+tools/swarm-communication-layer/.env

@@ -31,7 +31,7 @@ a local fallback file when Turso is down, then sync on reconnect (see step 2).
    for one shared app vs. several session-suffixed apps — do not assume per-session
    isolation is live without checking.
    - **Shared/single-instance mode** (confirm via `pm2 list`): `DATA_DIR` defaults to
-     `./data` inside the bus repo (e.g. `~/projects/swarm-communication-layer/data`) and
+     `./data` inside the bus repo (e.g. `~/projects/agent-hq/tools/swarm-communication-layer/data`) and
      `APP_NAME` is the shared name shown by `pm2 list`. Never delete or casually reload
      this instance — it may be serving other sessions (see Red flags and step 9).
    - **Per-session mode** (only if `pm2 list` shows a session-suffixed app for *your*
@@ -41,7 +41,7 @@ a local fallback file when Turso is down, then sync on reconnect (see step 2).
    **Warning — native MCP tools are unsafe for per-session mode.** If `mcp__swarm-bus__*`
    tools appear directly available in your toolset (registered via this repo's `.mcp.json`,
    which is loaded automatically when a session's cwd is inside
-   `~/projects/swarm-communication-layer`), do NOT use them for per-session or concurrent
+   `~/projects/agent-hq/tools/swarm-communication-layer`), do NOT use them for per-session or concurrent
    work. `.mcp.json` hardcodes `http://127.0.0.1:7777/mcp` unconditionally — it has no
    awareness of `$DATA_DIR` or which port your session's instance actually bound. Using it
    in a concurrent multi-session context will silently connect you to whatever instance
@@ -79,9 +79,9 @@ a local fallback file when Turso is down, then sync on reconnect (see step 2).
    than continuing to send/read messages against a mismatched instance.
 
 3. **Orchestrator-only: bring the bus up if it's down**, from inside the bus repo
-   (default `~/projects/swarm-communication-layer`, or wherever it's cloned locally):
+   (default `~/projects/agent-hq/tools/swarm-communication-layer`, or wherever it's cloned locally):
    ```bash
-   cd ~/projects/swarm-communication-layer   # or your local clone of the bus repo
+   cd ~/projects/agent-hq/tools/swarm-communication-layer   # or your local clone of the bus repo
    DATA_DIR="${DATA_DIR:-./data}" APP_NAME="${APP_NAME:-swarm-mcp}" NODE_ENV=production \
      pm2 start ecosystem.config.cjs
    TRIES=0

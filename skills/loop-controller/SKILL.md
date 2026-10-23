@@ -82,7 +82,7 @@ Establish this before doing anything else — it decides every dispatch call bel
        '[:lower:]' | cut -c1-4)"`. Pass it as `run_id` to every sub-agent.
 
 3. **Bootstrap the bus.** Source nvm, resolve `pm2`, set `DATA_DIR=/tmp/${SESSION_ID}`
-   and `APP_NAME=swarm-mcp-${SESSION_ID}`, `cd ~/projects/swarm-communication-layer`, and
+   and `APP_NAME=swarm-mcp-${SESSION_ID}`, `cd ~/projects/agent-hq/tools/swarm-communication-layer`, and
    start it: `DATA_DIR="${DATA_DIR}" APP_NAME="${APP_NAME}" pm2 start ecosystem.config.cjs`.
    Poll for `${DATA_DIR}/port` (max 30 × 0.3s = 9s) — `EXIT_ERROR(BUS_START_FAILED)` if
    absent. Then **sample `/health` 2-3 times**, requiring every response to show

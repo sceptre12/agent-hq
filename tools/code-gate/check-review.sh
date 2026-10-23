@@ -3,7 +3,7 @@
 # Walks `git rev-list --first-parent <base>..<head>`. Every commit whose diff vs its first parent
 # touches in-scope files (scope from <base>; head only while base predates the gate) must pass
 # cg_review_commit (lib.sh): a 2-parent merge with a `Code-Gate-PR: #N` trailer; no evil merge (every
-# in-scope path the merge brings in is in the PR's diff and equals <c>^2); PR N on <owner>/hq
+# in-scope path the merge brings in is in the PR's diff and equals <c>^2); PR N on sceptre12/agent-hq
 # with base main, state OPEN|MERGED, headRefOid == <c>^2; and a last marker
 #   CODE-GATE-REVIEW: PASS head=<c>^2 blocking=0 medium=0
 # pre-push runs THIS script from base's tree (git archive; main pushes only), never the pushed copy. The repo is

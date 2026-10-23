@@ -50,10 +50,10 @@ Thumbs.db
 __pycache__/
 *.pyc
 
-# Vendored deps (agent-topology)
-tools/agent-topology/node_modules/
-# Vendored swarm bus (tools/swarm-communication-layer): runtime state and deps never tracked
-tools/swarm-communication-layer/node_modules/
+# Vendored JS deps are never tracked
+node_modules/
+
+# Vendored swarm bus (tools/swarm-communication-layer): runtime state never tracked
 tools/swarm-communication-layer/data/
 tools/swarm-communication-layer/logs/
 tools/swarm-communication-layer/.env

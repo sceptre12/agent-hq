@@ -7,7 +7,7 @@
 CG_ZERO=0000000000000000000000000000000000000000
 CG_DIR=tools/code-gate
 CG_EMPTY_TREE=4b825dc642cb6eb9a060e54bf8d69288fbee4904
-CG_REPO="<owner>/hq"   # hardcoded on purpose: no env override (Fable T2 ruling, item 5)
+CG_REPO="sceptre12/agent-hq"   # hardcoded on purpose: no env override (Fable T2 ruling, item 5)
 
 cg_cat() { if [ "$1" = WORKTREE ]; then cat -- "$2" 2>/dev/null; else git show "$1:$2" 2>/dev/null; fi; }
 cg_has() { if [ "$1" = WORKTREE ]; then [ -f "$2" ]; else git cat-file -e "$1:$2" 2>/dev/null; fi; }

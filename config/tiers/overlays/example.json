@@ -1,0 +1,16 @@
+{
+  "_overlay": "example",
+  "_source": "architecture/permission-tiers-02.md §1 E12 + overlay-allowances bullet; provenance for E12: ~/claude-profiles/<brain-profile>/config/settings.json:155-156",
+  "_note": "Worked example. The `pod install` exemption (E7 footnote) is NOT included: overlay semantics are deny set-union, so an overlay cannot remove a base deny. An exemption would need a different tier fragment - owner decision.",
+  "permissions": {
+    "deny": [
+      "mcp__supabase",
+      "Bash(supabase *)"
+    ]
+  },
+  "sandbox": {
+    "network": {
+      "allowMachLookup": true
+    }
+  }
+}

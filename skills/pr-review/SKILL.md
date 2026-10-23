@@ -135,7 +135,7 @@ SESSION_ID="swarm-${SESSION_NAME}-$(date +%Y%m%d)-${SESSION_UUID}"
 DATA_DIR="/tmp/${SESSION_ID}"
 APP_NAME="swarm-mcp-${SESSION_ID}"
 mkdir -p "${DATA_DIR}/logs"
-cd ~/projects/swarm-communication-layer || { echo "ERROR: sibling repo not found at ~/projects/swarm-communication-layer"; exit 1; }
+cd ~/projects/agent-hq/tools/swarm-communication-layer || { echo "ERROR: sibling repo not found at ~/projects/agent-hq/tools/swarm-communication-layer"; exit 1; }
 export NVM_DIR="$HOME/.nvm"; [ -s "${NVM_DIR}/nvm.sh" ] && source "${NVM_DIR}/nvm.sh" && nvm use --lts > /dev/null 2>&1
 DATA_DIR="${DATA_DIR}" APP_NAME="${APP_NAME}" NODE_ENV=production "$PM2" start ecosystem.config.cjs
 TRIES=0

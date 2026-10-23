@@ -40,7 +40,7 @@ Every load-bearing external fact below was verified by a command run while autho
 | STANDARDS §7: "Code repos are **siblings** under `~/projects/`, never nested inside `hq`" | `STANDARDS.md:82-86` |
 | ADR 0010 restates the same for the bus: "code repos never live inside hq" | `decisions/0010-...md`, Targets clause |
 | …but hq **already contains** a tracked multi-file Node codebase | `git ls-files plans/<project>/harness` → **25 tracked files** (`harness.js`, `lib/*.js`, `package-lock.json`, a `test/` dir) |
-| The existing swarm bus has **no** agents/registry/role/spawn/hop/envelope/heartbeat concept | `command grep -rinE 'agents\|registry\|spawn\|role\|hop_count\|envelope\|heartbeat\|whoami' --include='*.js' --include='*.sql' src schema.sql` in `~/projects/swarm-communication-layer` → **3 incidental hits**, none structural ("Register a new session", "response envelope" = instance-identity, "agents may generate offline" comment). Positive control: 13 `src/*.js` files match `message`. |
+| The existing swarm bus has **no** agents/registry/role/spawn/hop/envelope/heartbeat concept | `command grep -rinE 'agents\|registry\|spawn\|role\|hop_count\|envelope\|heartbeat\|whoami' --include='*.js' --include='*.sql' src schema.sql` in `~/projects/agent-hq/tools/swarm-communication-layer` → **3 incidental hits**, none structural ("Register a new session", "response envelope" = instance-identity, "agents may generate offline" comment). Positive control: 13 `src/*.js` files match `message`. |
 | No prior art for this spec anywhere in hq | `command grep -rilE 'agent-topology\|spawn_agent\|registry_write\|write asymmetry\|hop_count\|router protocol' --include='*.md' .` in hq → **0 hits**. Positive controls on the same corpus: `router` → **183** files, `registry` → **53** files. |
 | The bus resolves caller identity from a **self-reported** parameter | `src/tools/send_message.js` `SendMessageSchema`: `from_agent: z.string({required_error:'from_agent is required'})`; `src/server.js:47` `sessionIdGenerator: undefined // stateless mode`; no `headers`/`_meta`/`clientInfo` extraction anywhere in `src/mcp-server.js`, `src/request-tracker.js`, `src/server.js` |
 
@@ -48,7 +48,7 @@ Every load-bearing external fact below was verified by a command run while autho
 
 **Verdict: COMPLEMENTS, with one overlapping edge.** [MINE]
 
-The swarm-communication-layer bus (`~/projects/swarm-communication-layer`, design record
+The swarm-communication-layer bus (`~/projects/agent-hq/tools/swarm-communication-layer`, design record
 `architecture/swarm-communication-layer.md`, skill `skills/swarm-communication/`) is a
 **transport**: `messages` / `message_receipts` / `sessions` tables and 5 tools
 (`send_message`, `read_messages`, `broadcast`, `start_session`, `end_session`). Its schema

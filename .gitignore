@@ -50,5 +50,5 @@ Thumbs.db
 __pycache__/
 *.pyc
 
-# Vendored deps (agent-topology)
-tools/agent-topology/node_modules/
+# Vendored JS deps are never tracked
+node_modules/

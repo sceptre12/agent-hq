@@ -32,7 +32,9 @@ tools/git-hooks/pre-push	tools/code-gate/test_pre-push.sh
 tools/git-hooks/session-end-push-check.sh	tools/git-hooks/test_session-end-push-check.sh
 tools/hermes/backup-hermes.sh	tools/hermes/test_backup-hermes-2.sh
 tools/hermes/backup-hermes.sh	tools/hermes/test_backup-hermes-3.sh
+tools/hermes/backup-hermes.sh	tools/hermes/test_backup-hermes-4.sh
 tools/hermes/backup-hermes.sh	tools/hermes/test_backup-hermes-5.sh
+tools/hermes/backup-hermes.sh	tools/hermes/test_backup-hermes.sh
 tools/hermes/build-digest.sh	tools/hermes/test_build-digest.sh
 tools/hermes/digest-set.txt	tools/hermes/test_build-digest.sh
 tools/hermes/il_describe.py	tools/hermes/test_import-learnings.sh
@@ -47,7 +49,9 @@ tools/hermes/import_learnings.py	tools/hermes/test_import-learnings.sh
 tools/hermes/import_learnings.py	tools/hermes/test_verify-import.sh
 tools/hermes/restore-hermes.sh	tools/hermes/test_backup-hermes-2.sh
 tools/hermes/restore-hermes.sh	tools/hermes/test_backup-hermes-3.sh
+tools/hermes/restore-hermes.sh	tools/hermes/test_backup-hermes-4.sh
 tools/hermes/restore-hermes.sh	tools/hermes/test_backup-hermes-5.sh
+tools/hermes/restore-hermes.sh	tools/hermes/test_backup-hermes.sh
 tools/hermes/verify-digest.sh	tools/hermes/test_build-digest.sh
 tools/hermes/verify-import	tools/hermes/test_verify-import.sh
 tools/hermes/verify_bundled.py	tools/hermes/test_verify-import-bundled.sh

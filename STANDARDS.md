@@ -11,36 +11,17 @@ earning its keep, delete it.
 - **Capture at the moment of insight.** A decision or lesson written later is usually
   lost. Cheap-to-add entries beat perfect ones.
 
-## 2. Adding a project
-
-1. Copy `projects/_TEMPLATE.md` to `projects/<project-slug>.md`.
-2. Fill in at least: purpose, repo location, status, architecture summary.
-3. Commit: `add: project context — <project-slug>`.
-
-That's it. A project record can start as a stub and grow.
-
 ## 3. Naming
 
-- **Project records:** `projects/<slug>.md`, slug is `kebab-case` (e.g. `dev-toolkit.md`).
-- **ADRs:** `decisions/NNNN-<kebab-title>.md`, zero-padded 4-digit sequence
-  (e.g. `0001-use-includeif-for-git-identity.md`). Numbers never reused.
 - **Learnings:** live in Hermes, recorded and asked through its API door (recipe: `tools/brain/templates/member-CLAUDE.md` (Memory section)).
   hq keeps tools (`architecture/hermes-agent-memory.md` §1). The existing
   `learnings/<topic>/YYYY-MM-DD-<kebab-title>.md` files stay in hq until the owner-gated removal.
-- **Retros:** existing `retros/YYYY-MM-DD-<scope>.md` files stay in hq until the same owner-gated removal.
-- **References:** `references/<source>/...` mirroring the source's own structure.
-- **Plans:** `plans/<slug>.md`, one per multi-session initiative; carries a live status table (`plans/README.md`).
-  A plan that would exceed the doc-length default (§13) is authored as a **directory** instead:
-  `plans/<slug>/00-overview.md` (goal, constraints, task index) + `plans/<slug>/tasks/NN-<task>.md`
-  (one file per task or coherent group); small plans stay single-file. Wave bundles are always
-  siblings — `plans/<slug>-waves/` — never nested inside the plan directory (ADR 0021).
 - **Skills:** `skills/<name>/SKILL.md`, authored per `tools/skill-authoring.md`, installed by symlink into `~/.claude/skills/<name>` (ADR 0009).
 
 ## 4. Document format
 
 - Every doc starts with an H1 title and, where useful, a one-line summary.
 - Prefer short sections and tables over prose walls.
-- Templates live as `_TEMPLATE.md` in each dir. Copy, don't edit the template.
 - Dates are ISO `YYYY-MM-DD`. Status values: `active` | `paused` | `archived` | `idea`.
 - Split any doc that trends past ~500 lines into numbered parts (e.g. `doc-01.md`, `doc-02.md`) with an index file — **except plans**, which split by task into the §3 directory form instead. Keeps files agent-ingestible. Enforced for non-skill docs per §13 (ADR 0021).
 
@@ -74,13 +55,6 @@ ceremony — not enforced. **Structural safety is enforced minimally** (ADR 0007
 invariant subset; a `post-commit` hook nudges when commits are unpushed. Install once:
 `git -C ~/projects/agent-hq config core.hooksPath tools/git-hooks`.
 
-## 6. The learning loop (how knowledge compounds)
-
-A retro surfaces insights → promote durable ones into `decisions/` (if they change how
-we do things) or into Hermes via its API door (if they're reusable knowledge; recipe:
-`tools/brain/templates/member-CLAUDE.md`, Memory section). Project records link to the
-decisions/learnings that shaped them. See Hermes skill `learnings/learnings-methodology` (was learnings/METHODOLOGY.md) for the full method.
-
 ## 7. Where real code lives
 
 Code repos are **siblings** under `~/projects/`, never nested inside `hq`. `hq` links to
@@ -99,9 +73,6 @@ Then, in order:
 2. **Write learnings** — anything surprising, a gotcha, a pattern that worked: tell Hermes
    through the API door (recipe: `tools/brain/templates/member-CLAUDE.md` (Memory section)), not a new `learnings/` file. The existing
    `learnings/` and `retros/` files remain in hq until the owner-gated removal.
-3. **Log a decision** — if you made a durable architectural or tooling choice, add an ADR
-   in `decisions/`. Link it from the relevant project record.
-4. **Clear the inbox** — promote or delete anything in `inbox/` that has a real home now.
 5. (Optional) **Check INVARIANTS** — run through `INVARIANTS.md`; fix any failures before committing.
 6. (Optional) **Update Serena notes** — if in a code repo session, check whether `.serena/memories/` notes need updating for architectural changes.
 7. **PUSH** — `git push` to the private GitHub remote. Every commit batch must be published. This is the backup mechanism (no Time Machine; see ADR 0006).
@@ -112,64 +83,6 @@ Hermes skill `learnings/learnings-methodology` (was learnings/METHODOLOGY.md) fo
 
 The ritual is intentionally MINIMAL — no morning review, no evening check-in, just this
 one end-of-session step. If it starts feeling heavy, cut it further.
-
-## 9. Prefix freeze
-
-Claude Code caches the prefix (CLAUDE.md files + MCP tool definitions) across turns.
-Any change to a cached file busts the cache. Keep the prefix stable.
-
-**CLAUDE.md rules:**
-- Root `~/projects/CLAUDE.md` ≤ 15 lines; hq `CLAUDE.md` ≤ ~60 lines.
-- No dates, timestamps, or session-volatile content in any CLAUDE.md file.
-- Never-in-CLAUDE.md: agentmemory output, session dumps, anything changing > once/month.
-- Add to CLAUDE.md only at Compound time, never inline during a session.
-- Stable ordering; no churn (every reorder busts the cache).
-
-**MCP surface:**
-- Frozen list is `tools/mcp-frozen-list.md` — the authoritative record.
-- No new MCP server without an ADR or ADR addendum.
-- Measure before trimming (see ADR 0004 + tools/cache-verification-runbook.md).
-
-See ADR 0004 for full rationale and change-control rules.
-
-## 10. Memory ownership
-
-One owner per fact. No mirroring. See ADR 0003 for the full ownership table and ADR 0006
-for physical store locations.
-
-**Physical store rules:**
-1. Both agentmemory stores live at `~/.agentmemory/{personal,work}/` — OUTSIDE hq and
-   outside any repo working tree. hq/memory/ contains only `README.md`.
-2. Everything under `memory/` except `README.md` is git-ignored. Never `git add -f`
-   anything under `memory/`. The stores are never committed, never pushed.
-3. Namespace selection is automatic and remote-URL-keyed: patterns matching `<work-remote-pattern>` → work; else personal; non-repo dirs → personal. If identity and store
-   ever disagree, stop and fix before continuing the session.
-4. agentmemory stores are DISPOSABLE recall. Durable knowledge is promoted via Compound
-   (human-rewritten). Loss = lose nuance, not decisions. Backup = git push of hq.
-5. Never run `git clean -x` or `git clean -dx` inside hq — would delete git-ignored
-   files (including any optional symlinks under memory/).
-6. hq-internal work (repo merges, config/settings changes, ADRs, tooling fixes) never
-   goes into Linear, even to enter a project's execution queue — it stays tracked in
-   hq's own files/conventions (plans, decision docs, memory). Linear ticketing (create
-   one if none exists, per the "all ticketed work" policy) applies only to product/
-   project work in the tracked app repos. (Owner ruling, 2026-09-08.)
-
-## 11. Retrieval order
-
-Three lanes — choose by target:
-
-1. **Grep the library (hq + x-context-docs)** — for hq decisions, learnings, standards,
-   references. Grep first; read the matched slice only. Never read CATALOG.md whole.
-   x-context-docs is grep-only; never Serena-index it.
-
-2. **Serena** — for code-repo orientation only. Never point Serena at hq or x-context-docs.
-   Per-repo notes (`.serena/memories/`) stay in that repo; hq projects/ link to them.
-
-3. **agentmemory recall** — automatic; its hooks provide recall context. Not a search
-   tool for hq content.
-
-**Decision rule:** looking for a decision/learning/standard → lane 1. Orienting in a
-code repo → lane 2. Cross-session recall → lane 3 (automatic).
 
 ## 12. Source file length
 
@@ -223,24 +136,3 @@ code repo → lane 2. Cross-session recall → lane 3 (automatic).
 - Not currently wired into any script or invariant — compliance depends on whoever assembles gate
   evidence remembering the second command and recording the seed. See ADR 0030 and
   Hermes skill `learnings/enforcement-gates` (was learnings/enforcement-gates.md)'s 2026-08-18 entry for the tooling gap this leaves open.
-
-## 15. Standing holds (ADR 0036)
-
-- An **owner ruling that binds a named ticket or artifact indefinitely** goes in the root
-  `STANDING-HOLDS.md` register, in addition to wherever it was ratified. The register is an
-  index — it never supersedes, reworders, or retires the source record.
-- **Why a register and not a cross-link:** a hold recorded only inside the campaign that produced
-  it is invisible to the next campaign, which has no reason to read another campaign's plan tree.
-  Cross-links only work on whoever reads the doc holding the link.
-- **Plan-authoring obligation (Rule 5, both steps).** Before an architecture record or dispatch
-  plan schedules work, run `tools/check-holds.sh --scan <doc>`; it lists every held ticket the
-  doc names. For each: cite the hold in the doc, or drop the ticket. Then add the doc to the
-  register's *Bound planning surfaces* list.
-- **Enforced** by INVARIANTS.md check 26 on every commit: each bound surface must exist and cite
-  `STANDING-HOLDS`. The check proves citation, not obedience — a per-wave read of the HELD table
-  before dispatch is the other half, and it is not optional.
-- **Discharging** a hold takes a fresh owner ruling, recorded the same way it was created. Rows
-  move to *Discharged / historical*; they are never deleted. Time passing, a campaign ending, and
-  "the reason probably no longer applies" are not discharges.
-- General practice constraints and campaign mechanics do **not** belong here — they stay in the
-  campaign's own ruleset, or graduate to an ADR.

@@ -15,6 +15,9 @@ context so any project can be picked back up quickly, and so lessons compound ov
 
 | Dir           | Purpose (one line)                                                        |
 |---------------|---------------------------------------------------------------------------|
+| `agents/`     | Agent definitions (topology workers).                                     |
+| `config/`     | Global Claude rules, settings and permission tiers.                       |
+| `skills/`     | Skills installed into `~/.claude/skills` by symlink.                      |
 | `tools/`      | Standards-as-tools: how-to setups (e.g. git identity auto-switch).        |
 
 ## How to use it (the 30-second version)

@@ -15,8 +15,11 @@ for all projects under `~/projects/`; code repos are siblings at `~/projects/<re
 
 ```
 hq/
+├── agents/         agent definitions (topology workers)
 ├── architecture/   one design record per system/skill — the WHAT/WHY layer (ADR 0011)
-├── tools/          how-to setups and machine-level standards
+├── config/         global Claude rules, settings and permission tiers
+├── skills/         skills installed into ~/.claude/skills by symlink
+└── tools/          how-to setups and machine-level standards
 ```
 
 ## Core standards (brief)

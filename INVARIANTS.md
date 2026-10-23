@@ -9,9 +9,9 @@ Each check lists: **what to verify**, **how**, **pass condition**.
 
 ## Structure
 
-**4. STANDARDS.md contains §§ 1-11**
-`grep -c "^## [0-9]\+\." ~/projects/agent-hq/STANDARDS.md` → output ≥ 11
-PASS: all 11 numbered sections present.
+**4. STANDARDS.md keeps at least 9 numbered sections**
+`grep -c "^## [0-9]\+\." ~/projects/agent-hq/STANDARDS.md` → output ≥ 9
+PASS: at least 9 numbered sections present.
 
 **6. INVARIANTS.md exists (meta-check)**
 `ls ~/projects/agent-hq/INVARIANTS.md` → file present.

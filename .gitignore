@@ -49,3 +49,6 @@ Thumbs.db
 # Python bytecode caches (test-run residue in shared checkouts; T-20261007-222)
 __pycache__/
 *.pyc
+
+# Vendored JS deps are never tracked
+node_modules/

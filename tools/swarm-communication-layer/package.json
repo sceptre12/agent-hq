@@ -1,0 +1,24 @@
+{
+  "name": "swarm-communication-layer",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "MCP server acting as a pub/sub message bus for multi-agent swarms",
+  "main": "src/server.js",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "pm2:start": "pm2 start ecosystem.config.cjs",
+    "pm2:reload": "pm2 reload swarm-mcp",
+    "pm2:stop": "pm2 stop swarm-mcp"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@tursodatabase/database": "^0.2.0",
+    "get-port": "^7.0.0",
+    "p-queue": "^8.0.1",
+    "pino": "^9.0.0",
+    "zod": "^3.23.0"
+  }
+}

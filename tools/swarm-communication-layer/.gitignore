@@ -1,0 +1,23 @@
+node_modules/
+
+# Runtime state — swarm bus DB, WAL, resolved-port file, fallback buffer, and
+# inter-agent message content. Never published. src/server.js recreates
+# DATA_DIR (mkdirSync recursive) at startup, so a fresh clone needs nothing here.
+data/
+
+# Local env — .env.example is the tracked template
+.env
+.env.*
+!.env.example
+
+# Logs (legacy top-level dir + any stray log files)
+logs/
+*.log
+
+# Process/runtime artifacts
+*.pid
+*.pid.lock
+*.seed
+
+.serena/
+.DS_Store

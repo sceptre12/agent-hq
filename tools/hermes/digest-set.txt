@@ -11,6 +11,7 @@ include 1 CLAUDE.md
 include 1 config/CLAUDE.md
 include 1 STANDARDS.md
 include 1 INVARIANTS.md
+include 1 STANDING-HOLDS.md
 include 1 README.md
 group 2 Decisions (ADR number order)
 include 2 decisions/**

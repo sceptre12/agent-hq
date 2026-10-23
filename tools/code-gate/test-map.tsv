@@ -4,6 +4,13 @@
 # CODE_GATE_TIMEOUT environment variable, if set, overrides every map value. See run-mapped-tests.sh / cg_timeout_for.
 
 tools/check-invariants.sh	tools/test_check-invariants.sh
+tools/claude-profile/cprof-checks.zsh	tools/claude-profile/test_cprof-checks.zsh
+tools/claude-profile/cprof-checks.zsh	tools/claude-profile/test_cprof-link.zsh
+tools/claude-profile/cprof-checks.zsh	tools/claude-profile/test_cprof.zsh
+tools/claude-profile/cprof-link.zsh	tools/claude-profile/test_cprof-link.zsh
+tools/claude-profile/cprof-tiers.zsh	tools/claude-profile/test_cprof.zsh
+tools/claude-profile/cprof.zsh	tools/claude-profile/test_cprof-link.zsh
+tools/claude-profile/cprof.zsh	tools/claude-profile/test_cprof.zsh
 tools/code-gate/check-review.sh	tools/code-gate/test_check-review.sh
 tools/code-gate/gate-invariants.sh	tools/test_check-invariants.sh
 tools/code-gate/grandfathered.txt	tools/code-gate/test_run-mapped-tests.sh
@@ -49,4 +56,6 @@ tools/hermes/verify_import.py	tools/hermes/test_verify-import-bundled.sh
 tools/hermes/verify_import.py	tools/hermes/test_verify-import.sh
 tools/hermes/verify_scan.py	tools/hermes/test_verify-import-bundled.sh
 tools/hermes/verify_scan.py	tools/hermes/test_verify-import.sh
+tools/lib/preflight-lib.sh	tools/test_parallel-preflight.sh
+tools/parallel-preflight.sh	tools/test_parallel-preflight.sh
 tools/tree-eq-check.sh	tools/test_tree-eq-check.sh

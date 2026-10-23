@@ -11,7 +11,7 @@ run its mapped tests, enforced by a git `pre-push` hook plus three invariants th
 - `core.hooksPath` is `tools/git-hooks`, a RELATIVE path (ADR 0007), and `extensions.worktreeConfig` is unset, so all
   worktrees share it and a worktree runs ITS OWN branch's copy of the hooks. A branch that adds `pre-push` gates its own push.
 - Before D1 there was no `pre-push` or `pre-merge-commit` hook. `--no-verify` and `-c core.hooksPath=` bypass hooks.
-- `origin` is `<owner>/hq` (private). hq had never had a PR. Branch protection returns 403 on this plan, so GitHub
+- `origin` is `sceptre12/agent-hq` (private). hq had never had a PR. Branch protection returns 403 on this plan, so GitHub
   cannot be the enforcement point and no GitHub-side merge is allowed.
 - Integration is a local `git merge wt/<slug>` then a push of `main` (Rule 6).
 - `pr-review` takes `REPO` + `PR_NUMBER` but never posts a PR comment and exits 0 offline, so the marker (§4) is posted by
@@ -77,7 +77,7 @@ A test file (`test_*`, `*.test.*`, or any map test column) runs itself when chan
 - `COUNT-MISMATCH` (as of PR #24, pending merge) the number of tests run differs from the de-duplicated mapped count; see below.
 Order: `DIFF-FAIL` fires at the first diff (before the map check), at the gate-config `--name-only` diff, and again at the per-file list; then the map check runs, then `GRANDFATHER-GROWTH`, then the per-file blocks. Before the first `STALE-MAP` line one
 `STALE-MAP-DIAG: rev=<rev> rows=<map rows> entries=<tree entries> ulimit_n=.. ulimit_u=..` line goes to stderr only, never the verdict.
-**As of PR #24 (<owner>/hq, head 1020fbf; pending merge, T-159; origin/main's `run-mapped-tests.sh` does not yet contain it):**
+**As of PR #24 (sceptre12/agent-hq, head 1020fbf; pending merge, T-159; origin/main's `run-mapped-tests.sh` does not yet contain it):**
 - Runner contract: each mapped test runs with stdin from `/dev/null` (`( exec "./$t" ) </dev/null`), so a test that reads stdin cannot eat the test list.
 - Before the verdict the runner compares `n_run` with the de-duplicated mapped count `m`. If `n_run != m` it prints `CODE-GATE: BLOCK n_run=<k> mapped=<m>`
   and the block `COUNT-MISMATCH:n_run=<k>,mapped=<m>`, and the gate FAILs.
@@ -91,7 +91,7 @@ If the diff succeeded and nothing in scope changed, the verdict is `CODE-GATE: P
 in-scope files:
 - (a) it is a 2-parent `--no-ff` merge with a `Code-Gate-PR: #N` trailer;
 - (rule 8) every in-scope path in `<c>^1..<c>` is in the PR's diff `<c>^1...<c>^2` and is identical to `<c>^2` (mode included);
-- (b) `gh pr view N --repo <owner>/hq` (hardcoded, no override) shows `baseRefName` main, `state` OPEN or MERGED,
+- (b) `gh pr view N --repo sceptre12/agent-hq` (hardcoded, no override) shows `baseRefName` main, `state` OPEN or MERGED,
   and `headRefOid` == `<c>^2`;
 - (c) the LAST marker for that head is `CODE-GATE-REVIEW: PASS head=<c>^2 blocking=0 medium=0`.
 Any `gh`/`jq` failure fails closed, as does a dying commit walk: `git rev-list --first-parent <base>..<head>` is captured first and a failure prints `DIFF-FAIL: git rev-list ... failed` and FAILs; a failed `git diff`/temp file inside `cg_review_commit` is `DIFF-FAIL` (rc 2). Known edge: if main and the branch both touched one in-scope file, rule 8 fails; rebase first.
@@ -112,8 +112,8 @@ scope: push them separately.
 
 ## 5. PR flow for a code work unit
 1. Worktree `~/projects/agent-hq-worktrees/<slug>` on `wt/<slug>` (absolute path, never `git -C` nesting). Write code + tests + map rows; commit.
-2. `git push -u origin wt/<slug>` (pre-push runs the mapped tests). 3. `gh pr create --repo <owner>/hq --base main --head wt/<slug>`.
-4. Orchestrator runs `pr-review` (REPO=`<owner>/hq`); fixes loop back to step 2 until 0 Blocking / 0 Medium.
+2. `git push -u origin wt/<slug>` (pre-push runs the mapped tests). 3. `gh pr create --repo sceptre12/agent-hq --base main --head wt/<slug>`.
+4. Orchestrator runs `pr-review` (REPO=`sceptre12/agent-hq`); fixes loop back to step 2 until 0 Blocking / 0 Medium.
 5. Orchestrator (never the author) posts the marker with `gh pr comment N --body "CODE-GATE-REVIEW: PASS head=<sha> blocking=0 medium=0"`.
 6. In the main checkout: `git merge --no-ff wt/<slug>` with trailer `Code-Gate-PR: #N`, then `git push origin main` (hook runs tests + check-review).
 7. Remove the worktree, keep the branch. Whether GitHub then shows the PR MERGED is unverified (D5).

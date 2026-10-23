@@ -117,8 +117,8 @@ fi
 
 # --- 4/4b. Ports 8081 + 11001: free (lanes bind 11100-11179 via 11100 + (TICKET % 80); Expo default 11001) ---
 # FALSIFIED 2026-08-26. lsof -nP -iTCP:8081 -sTCP:LISTEN returns no listener at all
-# (control: 50 host-wide LISTEN rows); buzz-relay is buzz's health port and only
-# binds while buzz runs. 8081 free is the healthy state — lanes bind 11100+(TICKET%80).
+# (control: 50 host-wide LISTEN rows); <project>-relay is <project>'s health port and only
+# binds while <project> runs. 8081 free is the healthy state — lanes bind 11100+(TICKET%80).
 # 11001 is the current Expo default (RCT_METRO_PORT): once committed, a fallen-back
 # `expo start` lands there instead of 8081, so both ports need the same trap.
 # Any listener on either = an expo start that skipped its assigned port. Deliberately
@@ -148,7 +148,7 @@ T4B="0 listeners (current Expo default — any listener is a bare expo start tha
 # positive control: confirm lsof can see *some* TCP listener before trusting an
 # empty result on 8081/11001.
 lsof_any="$(lsof -nP -iTCP -sTCP:LISTEN +c 0 2>/dev/null | command grep -c '(LISTEN)')"
-port_trap_probe 8081 BUZZ_RELAY_8081 "$T4"
+port_trap_probe 8081 RELAY_8081 "$T4"
 port_trap_probe 11001 EXPO_DEFAULT_11001 "$T4B"
 
 # --- 5. Disk headroom on / ---------------------------------------------------

@@ -23,7 +23,8 @@ run its mapped tests, enforced by a git `pre-push` hook plus three invariants th
   pr-review additionally tests should be written for it so that the merge to main in the future for changes to that
   specific fiel runs those tests"
 - **Scope:** shell/zsh/python/js executables, hooks, tools. Excluded: Markdown, ADRs, learnings, SKILL.md prose,
-  `config/settings.json`, `plans/**`.
+  `config/settings.json`, `plans/**`, and the vendored swarm bus `tools/swarm-communication-layer/**` (owner ruling
+  2026-10-22: "no need to review something thats already stable").
 - **Review:** push the `wt/` branch, open a PR, run `pr-review`; merge only at 0 Blocking / 0 Medium.
 - **Tests:** every in-scope file has tests in the versioned map; the hook runs them and blocks on failure; an unmapped
   changed file blocks.

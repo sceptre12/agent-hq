@@ -64,7 +64,7 @@
 
 ## Rule 10 — hq Code Ships Through PR Review and Mapped Tests
 - Owner, 2026-10-01 (verbatim): "Any code thats getting created to be pushed to hq main must go through a round of pr-review additionally tests should be written for it so that the merge to main in the future for changes to that specific fiel runs those tests"
-- **Scope:** executable files in hq — shell/zsh/python/js scripts, hooks and tools (e.g. `tools/**`, `*.sh`, `*.zsh`, `*.py`, `*.js`). Markdown docs, ADRs, learnings, SKILL.md prose, `config/settings.json` and `plans/**` evidence scripts are excluded. *(owner ruling 2026-10-01)*
+- **Scope:** executable files in hq — shell/zsh/python/js scripts, hooks and tools (e.g. `tools/**`, `*.sh`, `*.zsh`, `*.py`, `*.js`). Markdown docs, ADRs, learnings, SKILL.md prose, `config/settings.json` and `plans/**` evidence scripts are excluded. *(owner ruling 2026-10-01)* The vendored swarm bus (`tools/swarm-communication-layer/**`) is also excluded. *(owner ruling 2026-10-22, verbatim: "no need to review something thats already stable")*
 - **Review:** a work unit that changes in-scope code pushes its `wt/` branch, opens a GitHub PR, and runs the `pr-review` skill on it; it may merge only at 0 Blocking / 0 Medium. Doc-only work keeps the local-merge flow (Rule 6).
 - **Tests:** every in-scope file has its test(s) in a versioned file→test map; a git hook installed via `core.hooksPath` runs the mapped tests for each changed file and blocks the push on failure. A changed in-scope file with no mapped test blocks the push.
 - **Existing untested code:** editing a grandfathered (untested) file requires writing its test in the same change; the grandfather list may only shrink.

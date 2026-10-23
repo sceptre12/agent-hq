@@ -47,6 +47,7 @@ for row in "a.sh 100644 yes" "x/y/b.py 100644 yes" "c.js 100644 yes" "d.zsh 1006
            "skills/s/bin/tool 100755 yes" "tools/hook 100644 no" "README.md 100644 no" "docs/a.md 100644 no" \
            "tools/data.json 100644 no" "plans/p/q.sh 100644 no" "plans/p/q.sh 100755 no" \
            "config/settings.json 100644 no" "config/settings.json 100755 no" "plans/deep/er/x.py 100644 no" \
+           "tools/swarm-communication-layer/src/server.js 100644 no" "tools/swarm-communication-layer/ecosystem.config.cjs 100755 no" \
            "tools/code-gate/scope.conf 100644 yes" "tools/code-gate/test-map.tsv 100644 yes" \
            "tools/code-gate/grandfathered.txt 100644 yes"; do
   set -- $row; eq "scope $1 mode $2" "$(inscope "$1" "$2")" "$3"

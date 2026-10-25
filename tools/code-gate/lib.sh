@@ -64,7 +64,7 @@ cg_in_scope() {
 cg_changed() {
   local f=$1 meta path m t
   shift
-  t="$(mktemp)" || return 2
+  t="$(mktemp "${TMPDIR:-/tmp}/lib.XXXXXX")" || return 2
   trap 'rm -f "$t"; trap - RETURN' RETURN   # temp removed on every return path (it lives in $TMPDIR)
   git diff --raw -z --no-abbrev --no-renames --diff-filter="$f" "$@" -- >"$t" || return 2
   while IFS= read -r -d '' meta && IFS= read -r -d '' path; do
@@ -222,7 +222,7 @@ cg_review_commit() {
   pr="$(git log -1 --format=%B "$c" -- | sed -nE 's/^Code-Gate-PR: #([0-9]+)[[:space:]]*$/\1/p' | tail -1)"
   [ -n "$pr" ] || { echo "$short: missing 'Code-Gate-PR: #N' trailer"; return 1; }
   sha2="$(git rev-parse "$c^2")"
-  recs="$(mktemp)" || { echo "$short: cannot create a temp file (fail closed)"; return 2; }
+  recs="$(mktemp "${TMPDIR:-/tmp}/lib.XXXXXX")" || { echo "$short: cannot create a temp file (fail closed)"; return 2; }
   cg_changed ACMRD "$c^1" "$c" | cg_scoped >"$recs" || { rm -f "$recs"; echo "$short: DIFF-FAIL listing the changed files (git diff failed, fail closed)"; return 2; }
   # Read via fd 9; the cleanup trap closes fd 9 and removes $recs on EVERY return path.
   trap 'exec 9<&-; rm -f "$recs"; trap - RETURN' RETURN

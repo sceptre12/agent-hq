@@ -3,6 +3,8 @@
 # seconds (positive integer; default 120); when several rows name the same test the largest value wins, and the
 # CODE_GATE_TIMEOUT environment variable, if set, overrides every map value. See run-mapped-tests.sh / cg_timeout_for.
 
+tools/check-doc-length.sh	tools/test_check-doc-length.sh
+tools/check-file-length.sh	tools/test_check-file-length.sh
 tools/check-invariants.sh	tools/test_check-invariants.sh
 tools/claude-profile/cprof-checks.zsh	tools/claude-profile/test_cprof-checks.zsh
 tools/claude-profile/cprof-checks.zsh	tools/claude-profile/test_cprof-link.zsh

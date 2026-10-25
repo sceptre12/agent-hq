@@ -42,8 +42,8 @@ fi
 TARGET_DIR="$(cd "$TARGET_DIR" && pwd)"
 
 ALLOWLIST_FILE="$TARGET_DIR/.file-length-allowlist"
-ALLOWLIST_TMP="$(mktemp)"
-VIOLATIONS_TMP="$(mktemp)"
+ALLOWLIST_TMP="$(mktemp "${TMPDIR:-/tmp}/check-file-length.XXXXXX")"
+VIOLATIONS_TMP="$(mktemp "${TMPDIR:-/tmp}/check-file-length.XXXXXX")"
 trap 'rm -f "$ALLOWLIST_TMP" "$VIOLATIONS_TMP"' EXIT
 
 # --- Parse the allowlist (fail closed on a path with no reason) ---------

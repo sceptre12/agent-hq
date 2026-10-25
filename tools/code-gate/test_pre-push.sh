@@ -8,7 +8,7 @@
 set -uo pipefail
 unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX
 REAL="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-ROOT="$(mktemp -d)"; trap 'rm -rf "$ROOT"' EXIT
+ROOT="$(mktemp -d "${TMPDIR:-/tmp}/test_pre-push.XXXXXX")"; trap 'rm -rf "$ROOT"' EXIT
 export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null   # hermetic: no user hooks/config
 passed=0; failed=0; NFX=0
 pass() { echo "PASS: $1"; passed=$((passed + 1)); }
@@ -181,12 +181,12 @@ has "tag-shadow: verdict" "$pout" "CODE-GATE: PASS n_run=1"
 # SIGPIPE class: `git archive | tar -x` under pipefail can return 141 after a complete extraction (bsdtar stops
 # at the end-of-archive marker). The hook extracts without a pipe; pin the text and run the hook's own lines.
 HOOK="$REAL/tools/git-hooks/pre-push"
-EXTRACT="$(sed -n '/gate="\$(mktemp -d)"/,/\[ -f "\$gate\/\$G\/run-mapped-tests.sh" \]/p' "$HOOK" | sed '1d;$d' | grep -v '^ *#')"
+EXTRACT="$(sed -n '/gate="\$(mktemp -d /,/\[ -f "\$gate\/\$G\/run-mapped-tests.sh" \]/p' "$HOOK" | sed '1d;$d' | grep -v '^ *#')"
 hasnt "extract-no-pipe: no | in the extraction block" "${EXTRACT//||/}" "|"; has "extract-no-pipe: uses --output" "$EXTRACT" "--output"
 SB="$(git -C "$REAL" merge-base HEAD origin/main 2>/dev/null || git -C "$REAL" rev-parse HEAD)"
 runext() { # runext <iterations> — the hook's extraction lines under pipefail, counted by rc
   local i n=0; for ((i = 0; i < $1; i++)); do
-    bash -c 'set -uo pipefail; cd "$1"; src="$2"; G=tools/code-gate; gate="$(mktemp -d)"; block() { echo "BLOCK: $1" >&2; rm -rf "$gate"; exit 1; }
+    bash -c 'set -uo pipefail; cd "$1"; src="$2"; G=tools/code-gate; gate="$(mktemp -d "${TMPDIR:-/tmp}/test_pre-push.XXXXXX")"; block() { echo "BLOCK: $1" >&2; rm -rf "$gate"; exit 1; }
       '"$EXTRACT"'
       r=0; [ -f "$gate/$G/run-mapped-tests.sh" ] && [ -f "$gate/$G/check-review.sh" ] || r=2; rm -rf "$gate"; exit $r' _ "$REAL" "$SB" 2>/dev/null || n=$((n + 1))
   done; echo "$n"
@@ -195,7 +195,7 @@ eq "extract-under-pipefail-real-base: rc 0, gate scripts present" "$(runext 1)" 
 # NON-DETERMINISTIC old-form count: informational only (printed, not asserted) because the SIGPIPE race
 # depends on scheduling and the tar implementation; the assertion is that the new form never fails.
 old=0; for ((i = 0; i < 20; i++)); do
-  d="$(mktemp -d)"; (set -uo pipefail; git -C "$REAL" archive "$SB" tools/code-gate | tar -x -C "$d") 2>/dev/null || old=$((old + 1)); rm -rf "$d"
+  d="$(mktemp -d "${TMPDIR:-/tmp}/test_pre-push.XXXXXX")"; (set -uo pipefail; git -C "$REAL" archive "$SB" tools/code-gate | tar -x -C "$d") 2>/dev/null || old=$((old + 1)); rm -rf "$d"
 done
 echo "INFO: old-pipe-form-flake-class (NON-DETERMINISTIC): old form returned nonzero in $old/20 runs"
 eq "old-pipe-form-flake-class: new form fails 0/20 times" "$(runext 20)" 0

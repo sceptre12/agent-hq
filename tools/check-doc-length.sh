@@ -89,12 +89,12 @@ fi
 TARGET_DIR="$(cd "$TARGET_DIR" && pwd)"
 
 ALLOWLIST_FILE="$TARGET_DIR/.doc-length-allowlist"
-ALLOWLIST_TMP="$(mktemp)"
-VIOLATIONS_TMP="$(mktemp)"
-ALLOWED_OVER_TMP="$(mktemp)"
-FILELIST_TMP="$(mktemp)"
-WC_TMP="$(mktemp)"
-BYTES_OVER_TMP="$(mktemp)"
+ALLOWLIST_TMP="$(mktemp "${TMPDIR:-/tmp}/check-doc-length.XXXXXX")"
+VIOLATIONS_TMP="$(mktemp "${TMPDIR:-/tmp}/check-doc-length.XXXXXX")"
+ALLOWED_OVER_TMP="$(mktemp "${TMPDIR:-/tmp}/check-doc-length.XXXXXX")"
+FILELIST_TMP="$(mktemp "${TMPDIR:-/tmp}/check-doc-length.XXXXXX")"
+WC_TMP="$(mktemp "${TMPDIR:-/tmp}/check-doc-length.XXXXXX")"
+BYTES_OVER_TMP="$(mktemp "${TMPDIR:-/tmp}/check-doc-length.XXXXXX")"
 trap 'rm -f "$ALLOWLIST_TMP" "$VIOLATIONS_TMP" "$ALLOWED_OVER_TMP" "$FILELIST_TMP" "$WC_TMP" "$BYTES_OVER_TMP"' EXIT
 
 # --- Parse the allowlist (fail closed on a path with no reason) ---------

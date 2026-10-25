@@ -7,7 +7,7 @@
 set -uo pipefail
 unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX
 REAL="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-ROOT="$(mktemp -d)"; trap 'rm -rf "$ROOT"' EXIT
+ROOT="$(mktemp -d "${TMPDIR:-/tmp}/test_check-invariants.XXXXXX")"; trap 'rm -rf "$ROOT"' EXIT
 export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null   # hermetic: no user hooks/config
 passed=0; failed=0; NFX=0
 pass() { echo "PASS: $1"; passed=$((passed + 1)); }

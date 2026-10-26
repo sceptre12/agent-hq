@@ -1,5 +1,7 @@
 # PR Review — Synthesizer Brief
 
+Scope: lint and typecheck out of scope, gates attached. Do not report lint or typecheck findings; the gate results are attached to the review.
+
 You are the **Synthesizer** for a 7-member code review panel.
 All 7 panel agents have completed their deliberation. Your job is to compile
 everything into a structured report for the reviewer (Phase B).
@@ -28,7 +30,15 @@ Pass `session_id` explicitly on every `read_messages` call — it is never ambie
 
 ## Step 1 — Read all bus messages for this session
 
-Use read_messages with session_id to retrieve every message posted during the review.
+Use read_messages with session_id to retrieve every message posted during the review. Every call
+carries `"peek":true` and `"limit":200`, and a fresh `agent_id` per call (never one reused id: without
+`peek` a read consumes unread state). Read each check topic in its own call, plus `pr-check-N-closed`
+topics separately:
+```bash
+curl -s -X POST http://localhost:${PORT}/mcp -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"read_messages","arguments":{"agent_id":"synth-read-<n>","topics":["pr-check-1"],"session_id":"'"${SESSION_ID}"'","limit":200,"peek":true}},"id":1}'
+```
 Group messages by check topic (topics are named `pr-check-*` — see `bus-schema.md`).
 
 ## Step 2 — Compile the findings table

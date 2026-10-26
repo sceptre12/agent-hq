@@ -69,6 +69,24 @@ out="$(printf '%s' "$(j bad GET)" | "${GUARD}" "${P}" "${TOOL}" "${ROOT}/ro/dir/
 mkdir -p "${ROOT}/rolog"; chmod 555 "${ROOT}/rolog"
 out="$(printf '%s' "$(j bad GET)" | "${GUARD}" "${P}" "${TOOL}" "${ROOT}/rolog/sub/log" 2>&1 >/dev/null)"; rc=$?; eq "unwritable log still exit 2" "${rc}" 2; chmod 755 "${ROOT}/rolog"
 
+# R1-1: closed tool_input key set (ASSUMPTION UNTIL P0, fixture keys); keyword scan still covers the whole input
+call "${P}" "$(j get_versions GET ',"path":"/x","params":{"limit":5,"env":"dev2"}')"; eq "closed-set keys path+params: exit 0" "${rc}" 0
+call "${P}" "$(j get_versions GET ',"operationId":"setFlag"')"; eq "extra tool_input key: exit 2" "${rc}" 2; has "extra key reason" "${err}" "outside the closed set"
+call "${P}" "$(j get_versions GET ',"params":{"q":{"op":"x"}}')"; eq "non-scalar params value: exit 2" "${rc}" 2
+call "${P}" "$(j get_versions GET ',"path":["/x"]')"; eq "non-string path: exit 2" "${rc}" 2
+call "${P}" "$(j get_versions GET ',"params":{"action":"Promote"}')"; eq "keyword inside params: exit 2" "${rc}" 2; has "keyword reason" "${err}" "deploy, promote or rollback"
+call "${P}" "$(j get_versions GET ',"path":"/x/ROLL\u0412ACK"')"; eq "non-ASCII lookalike: exit 2" "${rc}" 2; has "non-ASCII reason" "${err}" "non-ASCII"
+# R1-12: read_ops anchored at the direct child of zephyr:; ambiguity refused
+NE="${ROOT}/nested.md"; printf 'zephyr:\n  other:\n    read_ops: [setFlag]\n' >"${NE}"
+call "${NE}" "$(j setFlag GET)"; eq "nested read_ops not honoured: exit 2" "${rc}" 2
+NE2="${ROOT}/nested2.md"; printf 'zephyr:\n  read_ops: [get_versions]\n  other:\n    read_ops: [setFlag]\n' >"${NE2}"
+call "${NE2}" "$(j setFlag GET)"; eq "nested read_ops beside direct one: exit 2" "${rc}" 2
+call "${NE2}" "$(j get_versions GET)"; eq "direct read_ops beside nested one: exit 0" "${rc}" 0
+DU="${ROOT}/dup.md"; printf 'zephyr:\n  read_ops: [get_versions]\n  read_ops: [setFlag]\n' >"${DU}"
+call "${DU}" "$(j get_versions GET)"; eq "duplicate read_ops key: exit 2" "${rc}" 2; has "ambiguous reason" "${err}" "ambiguous"
+DZ="${ROOT}/dupz.md"; printf 'zephyr:\n  read_ops: [get_versions]\nzephyr:\n  read_ops: [setFlag]\n' >"${DZ}"
+call "${DZ}" "$(j get_versions GET)"; eq "duplicate zephyr key: exit 2" "${rc}" 2
+
 # check-zephyr-disallowed.sh: one pass and one fail fixture, plus list forms and exceptions
 A="${ROOT}/agents-pass"; mkdir -p "${A}"
 printf -- '---\nname: a\ndisallowedTools: %s, Other\n---\nbody\n' "${TOOL}" >"${A}/a.md"

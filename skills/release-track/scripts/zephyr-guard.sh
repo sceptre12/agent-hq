@@ -9,7 +9,9 @@
 #          the log defaults to ${RUN_HOME}/pm/zephyr-refusals.log. The tool name is a parameter,
 #          never hard-coded (profile key zephyr.execute_tool, unmeasured, verify at move).
 # Input shape: ASSUMPTION UNTIL P0 (one function, extract_call): tool_name, tool_input.operation (string),
-#          tool_input.method (string). An input without those fields is refused (fail closed).
+#          tool_input.method (string), optional tool_input.path (string) and tool_input.params (flat object of
+#          scalars). An input without operation/method, with any other tool_input key, with a non-scalar value
+#          or with a non-ASCII character is refused (fail closed). P0 replaces the key set with the measured one.
 # Exit:    0 allow; 2 refuse (one reason line on stderr, one line appended to the refusal log).
 set -u
 
@@ -36,11 +38,15 @@ refuse() { # refuse <reason> — log (best effort), one stderr line, exit 2
 }
 
 # extract_call: stdin JSON -> three lines: operation, method, lowercase flattened tool_input text.
-# ASSUMPTION UNTIL P0: field names operation/method. Non-string fields or a wrong tool_name print nothing.
+# ASSUMPTION UNTIL P0: the closed tool_input key set KEYS below (operation, method required; path, params
+# optional). Until P0 measures the real shape, any key outside KEYS is an open bypass, so it is refused.
+# Exit: 0 ok; 1 unparsable or wrong tool / missing field; 3 key outside KEYS or non-scalar value; 4 non-ASCII.
 extract_call() {
   python3 -I -c '
 import json, sys
 tool = sys.argv[1]
+KEYS = {"operation", "method", "path", "params"}   # ASSUMPTION UNTIL P0 (closed set)
+SCALAR = (str, int, float, bool, type(None))
 try:
     d = json.loads(sys.stdin.read())
     if not isinstance(d, dict) or d.get("tool_name") != tool:
@@ -51,6 +57,15 @@ try:
     op, me = ti.get("operation"), ti.get("method")
     if not isinstance(op, str) or not isinstance(me, str):
         sys.exit(1)
+    if set(ti) - KEYS:
+        sys.exit(3)
+    if "path" in ti and not isinstance(ti["path"], str):
+        sys.exit(3)
+    if "params" in ti and (not isinstance(ti["params"], dict)
+                           or not all(isinstance(v, SCALAR) for v in ti["params"].values())):
+        sys.exit(3)
+    if any(ord(c) > 127 for c in json.dumps(ti, ensure_ascii=False)):
+        sys.exit(4)
     flat = json.dumps(ti, sort_keys=True).lower()
     for s in (op, me, flat):
         print(s.replace("\n", " ").replace("\r", " "))
@@ -62,20 +77,27 @@ except Exception:
 }
 
 # read_ops_list: print zephyr.read_ops entries one per line (block list or inline [a, b]).
+# read_ops counts only as a direct child of the top-level zephyr: key (the first child line's indent);
+# a nested read_ops is ignored. Ambiguity (two top-level zephyr: keys or two direct read_ops keys) exits 3.
 read_ops_list() {
   awk '
     function clean(s) { sub(/[[:space:]]+#.*$/, "", s); gsub(/^[[:space:]]+|[[:space:]]+$/, "", s)
       gsub(/^["\047]|["\047]$/, "", s); return s }
-    /^[^[:space:]#]/ { inz = ($(0) ~ /^zephyr:[[:space:]]*(#.*)?$/); inl = 0; next }
-    inz && /^[[:space:]]+read_ops:/ {
-      r = $(0); sub(/^[[:space:]]+read_ops:[[:space:]]*/, "", r)
+    function ind(s) { match(s, /[^ \t]/); return RSTART - 1 }
+    BEGIN { zc = 0; rc = 0 }
+    /^[^[:space:]#]/ { inz = ($(0) ~ /^zephyr:[[:space:]]*(#.*)?$/); if (inz) zc++; inl = 0; cind = -1; next }
+    !inz { next }
+    /^[[:space:]]*(#.*)?$/ { next }
+    cind < 0 { cind = ind($(0)) }
+    ind($(0)) == cind && /^[[:space:]]+read_ops:/ {
+      rc++; inl = 0; r = $(0); sub(/^[[:space:]]+read_ops:[[:space:]]*/, "", r)
       if (r ~ /^\[/) { sub(/^\[/, "", r); sub(/\].*$/, "", r); n = split(r, a, ",")
         for (i = 1; i <= n; i++) { v = clean(a[i]); if (v != "") print v } }
       else { inl = 1 }
       next }
-    inz && inl && /^[[:space:]]*-[[:space:]]+/ { r = $(0); sub(/^[[:space:]]*-[[:space:]]+/, "", r); v = clean(r); if (v != "") print v; next }
-    inz && inl && /^[[:space:]]*(#.*)?$/ { next }
-    inz && inl { inl = 0 }
+    inl && /^[[:space:]]*-[[:space:]]+/ { r = $(0); sub(/^[[:space:]]*-[[:space:]]+/, "", r); v = clean(r); if (v != "") print v; next }
+    inl { inl = 0 }
+    END { if (zc > 1 || rc > 1) exit 3 }
   ' "${1}"
 }
 
@@ -87,13 +109,19 @@ command -v python3 >/dev/null 2>&1 || refuse "python3 unavailable"
 
 INPUT="$(cat 2>/dev/null)" || refuse "stdin unreadable"
 [ -n "${INPUT}" ] || refuse "empty stdin"
-CALL="$(printf '%s' "${INPUT}" | extract_call)" || refuse "unparsable input or unknown tool shape"
+CALL="$(printf '%s' "${INPUT}" | extract_call)"; XRC=$?
+case "${XRC}" in
+  0) ;;
+  3) refuse "tool_input key outside the closed set or non-scalar value (assumption until P0)" ;;
+  4) refuse "non-ASCII character in tool_input" ;;
+  *) refuse "unparsable input or unknown tool shape" ;;
+esac
 OP="$(printf '%s\n' "${CALL}" | sed -n 1p)"
 METHOD="$(printf '%s\n' "${CALL}" | sed -n 2p)"
 TEXT="$(printf '%s\n' "${CALL}" | sed -n 3p)"
 [ -n "${OP}" ] || refuse "empty operation"
 
-OPS="$(read_ops_list "${PROFILE}")" || refuse "profile unparsable"
+OPS="$(read_ops_list "${PROFILE}")" || refuse "profile unparsable or zephyr.read_ops ambiguous"
 [ -n "${OPS}" ] || refuse "zephyr.read_ops missing or empty"
 
 # Second check first: non-GET, or any mention of deploy/promote/rollback, is refused even if allowlisted.

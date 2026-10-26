@@ -75,6 +75,13 @@ under_roots() { # abs path -> 0 when its realpath is strictly under RUN_HOME or 
   return 1
 }
 abs_nodots() { case $1 in /*) ;; *) return 1 ;; esac; [[ $1 != */../* && $1 != */.. ]]; }
+canon_path() { # label path -> exit 2 naming the rule unless the path is canonical (PR #11 M1: audit derives
+  case $2 in   # bus.endpoint from ${h%/*}, so a trailing /, a /. component or // would audit a live bus GHOST)
+    */) die "$1 must not end in / (trailing-slash rule)" ;;
+    *//*) die "$1 must not contain // (double-slash rule)" ;;
+    */./*|*/.) die "$1 must not contain a /. component (dot-component rule)" ;;
+  esac
+}
 
 check_kind() { case $KINDS in *" $1 "*) ;; *) die "unknown kind: $1" ;; esac; }
 
@@ -83,11 +90,13 @@ check_handle() { # kind handle (full grammar, register only)
   case $k in
     tmpdir|file|clone|bus)
       abs_nodots "$h" || die "$k handle must be an absolute path without .."
+      canon_path "$k handle" "$h"
       under_roots "$h" || die "$k handle is outside RUN_HOME and WORKTREE_BASE" ;;
     branch|tag)
       re='^(/[^#@]+)#([^#@[:space:]]+)@([^#@[:space:]]+)$'
       [[ $h =~ $re ]] || die "bad $k handle (<repo>#<ref>@<base>)"
       abs_nodots "${BASH_REMATCH[1]}" || die "bad $k repo path"
+      canon_path "$k repo path" "${BASH_REMATCH[1]}"
       if [ "$k" = tag ]; then [ "${BASH_REMATCH[3]}" = "-" ] || die "tag base must be -"
       else [ "${BASH_REMATCH[3]}" != "-" ] || die "branch base must not be -"; fi ;;
     worktree)
@@ -95,6 +104,7 @@ check_handle() { # kind handle (full grammar, register only)
       [[ $h =~ $re ]] || die "bad worktree handle (<path>#<repo>@<base>)"
       abs_nodots "${BASH_REMATCH[2]}" || die "bad worktree repo path"
       abs_nodots "${BASH_REMATCH[1]}" || die "worktree path must be absolute without .."
+      canon_path "worktree repo path" "${BASH_REMATCH[2]}"; canon_path "worktree path" "${BASH_REMATCH[1]}"
       under_roots "${BASH_REMATCH[1]}" || die "worktree path is outside RUN_HOME and WORKTREE_BASE" ;;
     process) [[ $h =~ ^[1-9][0-9]*$ ]] || die "process handle must be a pid" ;;
     port)

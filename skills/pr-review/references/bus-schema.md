@@ -91,7 +91,7 @@ read, `limit` 200, and one topic per call:
 
 `{"name":"read_messages","arguments":{"session_id":"<SESSION_ID>","agent_id":"<fresh-id>","topics":["pr-check-1"],"limit":200,"peek":true}}`
 
-Seats read with their own agent-id, also `peek:true` and `limit` 200. Without `peek` a read consumes the
+Seats read with their own agent-id (harmless under `peek:true`, which never consumes unread state), also `limit` 200 and one topic per call. Without `peek` a read consumes the
 unread state.
 
 ## Session Isolation

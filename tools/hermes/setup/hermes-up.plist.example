@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Hermes gateway LaunchAgent template. NOT installed; the owner installs it. Copy to ~/Library/LaunchAgents/<label>.plist,
+  replace every placeholder, then `plutil -lint` it:
+    __LABEL__  launchd label, for example local.<owner>.hermes-up
+    __HOME__   absolute path of the owner's home (launchd does not expand $HOME or ~)
+  The bundled Python directory in PATH (python-3.14.7+20260901-darwin-arm64) is the installer's interpreter for the
+  pinned Hermes commit; change it if the installer's directory name differs. Source and notes: tools/hermes/setup/README.md.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>__LABEL__</string>
+  <key>ProgramArguments</key>
+  <array><string>__HOME__/claude-profiles/hermes/bin/hermes-gw</string></array>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key>
+  <dict><key>SuccessfulExit</key><false/></dict>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>HERMES_HOME</key><string>__HOME__/claude-profiles/hermes/h1-home</string>
+    <key>PATH</key><string>__HOME__/claude-profiles/hermes/h1-home/tools/python-3.14.7+20260901-darwin-arm64/bin:/usr/bin:/bin</string>
+    <key>HOME</key><string>__HOME__</string>
+  </dict>
+  <key>StandardOutPath</key><string>__HOME__/claude-profiles/hermes/h1-home/logs/gateway.out.log</string>
+  <key>StandardErrorPath</key><string>__HOME__/claude-profiles/hermes/h1-home/logs/gateway.err.log</string>
+</dict>
+</plist>

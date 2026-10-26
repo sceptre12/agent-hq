@@ -45,6 +45,8 @@ case "${1:-}" in
     ;;
   c)
     if ! git rev-parse --verify -q refs/remotes/origin/main >/dev/null; then no "no origin/main ref to audit"; exit 1; fi
+    # A shallow clone cuts the history at a boundary commit that looks parentless: fail closed rather than exempt it.
+    if [ "$(git rev-parse --is-shallow-repository 2>/dev/null)" = true ]; then no "origin/main: shallow clone, cannot audit history"; exit 1; fi
     # The first first-parent commit that brought scope.conf in (cheap path-limited log); the walk
     # starts there and never skips afterwards.
     first="$(git log --first-parent --reverse --format=%H refs/remotes/origin/main -- "$CG_DIR/scope.conf")" ||
@@ -57,10 +59,15 @@ case "${1:-}" in
       if [ "$started" = 0 ]; then [ "$c" = "$first" ] || continue; started=1; fi
       git cat-file -e "$c:$CG_DIR/scope.conf" 2>/dev/null ||
         { no "origin/main commit $c: gate config removed ($CG_DIR/scope.conf absent)"; continue; }
-      p1="$(git rev-parse -q --verify "$c^1" 2>/dev/null)" || p1=""
-      srev="$c"; [ -n "$p1" ] && cg_has "$p1" "$CG_DIR/scope.conf" && srev="$p1"
+      par="$(git rev-list --parents -n1 "$c" 2>/dev/null)" && case "$par" in "$c"|"$c "*) ;; *) false ;; esac ||
+        { no "origin/main commit $c: cannot determine parents (cannot audit)"; continue; }
+      # Exempt only a commit with zero parents per `git rev-list --parents` (the repository bootstrap root, nothing to
+      # merge from), and only in a non-shallow repository (checked above). Every other commit is audited.
+      [ "$par" != "$c" ] || continue
+      p1="${par#* }"; p1="${p1%% *}"
+      srev="$c"; cg_has "$p1" "$CG_DIR/scope.conf" && srev="$p1"
       cg_scope_load "$srev" || { no "origin/main commit $c: gate config removed (unusable scope.conf at $srev)"; continue; }
-      chg="$(cg_changed ACMRD "${p1:-$CG_EMPTY_TREE}" "$c" | cg_scoped | tr '\0' '\n')" ||
+      chg="$(cg_changed ACMRD "$p1" "$c" | cg_scoped | tr '\0' '\n')" ||
         { no "origin/main commit $c: DIFF-FAIL (git diff failed, cannot audit)"; continue; }
       [ -n "$chg" ] || continue
       why="$(cg_review_commit "$c")"; r=$?

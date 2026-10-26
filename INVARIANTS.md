@@ -120,6 +120,7 @@ PASS: from the first first-parent commit on `origin/main` whose tree has `tools/
 commit touching in-scope files (scope read from its FIRST PARENT) is a 2-parent merge with a
 `Code-Gate-PR: #N` trailer, no evil merge, PR N on main with head == `^2` and a clean marker, checked
 via `gh`. A `gh` failure FAILs "cannot audit" (fail closed). FAILs when `origin/main` is absent.
+A commit with zero parents per `git rev-list --parents` (the repository bootstrap root) is exempt, but only in a non-shallow repository: a shallow clone FAILs "cannot audit", and a failure to read a commit's parents FAILs "cannot audit"; every later first-parent commit is audited as before.
 
 ---
 

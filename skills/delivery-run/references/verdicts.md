@@ -16,9 +16,11 @@ Act only on a post that meets all of these:
 1. The post is **bare JSON**. "`UNIT-VERDICT:`" is the prose name and never a text prefix.
 2. It has exactly the four keys `{"unit","verdict","head","reason"}` (no extra key).
 3. `unit` matches `^[ui][0-9]+$`, `head` matches `^[0-9a-f]{40}$`, and `verdict` and `reason` satisfy the matrix below.
-4. Its `from_agent` is registered in **this invocation's** `dispatch/<invocation>.jsonl` with role `worker`, and the record's `unit` equals that line's `unit`.
+4. Its `from_agent` is registered in **this invocation's** `dispatch/<invocation>.jsonl` with role `worker` or `gate`, and the record's `unit` equals that line's `unit` (AM-5 queue row (28): "UNIT-VERDICT filter accepts worker and gate records").
 
-Anything else is logged and ignored: gate verdicts `{"agent_id","verdict","rationale"}`, posts from earlier invocations, and unregistered senders. The controller's step 8 final result is also logged, and its arrival is noted as the end of the invocation.
+Per unit the lead acts on the **latest** accepted record; the `PASS` head check below compares the worktree HEAD with that record's `head`, never with an older record's.
+
+Anything else is logged and ignored: gate verdicts `{"agent_id","verdict","rationale"}` (they fail step 2), posts from earlier invocations, other roles, and unregistered senders. The controller's step 8 final result is also logged, and its arrival is noted as the end of the invocation.
 
 ### Verdict-reason matrix (C2)
 
@@ -41,7 +43,7 @@ A pair outside the matrix fails filter step 3.
    - for `i<N>`, append `u<N> <head>` to `substate.md` `integrated` (the `INTEGRATED:` entry, D1.1; one record per merged unit, A.3);
    - release the unit's lane lease if it was the lane's last work_item in the invocation;
    - below 3 live agents, run the drift and creep check (below).
-4. **Head mismatch** (step 1 fails: `u<N>` HEAD differs, or an `i<N>` `head` is not an ancestor): the post is incomplete. It is never accepted, the row is not freed on it, and nothing is appended. The unit is re-gated under its fix loop. The controller's `step_complete` gate reads the record and the branch at `head` (R-2), and the lead takes no action of its own on the controller. **Two consecutive mismatches on one unit** are a stop row for that unit. The lead counts them from the topic itself (two mismatching records for the unit with no accepted record between them), so the count survives a resume. On the second one, pause the unit as for `ESCALATE` (escalation record holding both records and the observed head), keep its dependents unreleased, and run the rest of the sub-task on.
+4. **Head mismatch** (step 1 fails: `u<N>` HEAD differs, or an `i<N>` `head` is not an ancestor): the post is incomplete. It is never accepted, the row is not freed on it, and nothing is appended. The unit is re-gated under its fix loop. The controller's `step_complete` gate reads the record and the branch at `head` (R-2), and the lead takes no action of its own on the controller. **Two consecutive mismatches on one unit** are a stop row for that unit. The lead counts them from the topic itself (two mismatching records for the unit with no accepted record between them), so the count survives a resume. On the second one, pause the unit as for `ESCALATE`, reason `human-step` (proposed CV6, owner answer O8; escalation record holding both records and the observed head), keep its dependents unreleased, and run the rest of the sub-task on.
 5. If step 2 fails while the head matches, handle it like a mismatch: the post is not accepted and the unit is re-gated.
 
 ### `ROLLED`
@@ -49,7 +51,7 @@ A pair outside the matrix fails filter step 3.
 - The unit is a failed gate on the controller side: its dependents stay unreleased (C2 controller side, ADR 0054 A5).
 - Wait until the live invocation returns (one live invocation per sub-task), then run a **fresh invocation** with `tier_override <unit>=<tier>` one tier up (C1.1). The controller resumes at the unpassed items from its checkpoint. Alternatively, mark the unit blocked and escalate. The lead decides: tier-up fits a capability cause (`budget`, `merge-conflict`); blocked plus an escalation fits a cause outside the agent (`lane-unavailable`, `env-bug`).
 - "One tier up" is one above the highest tier recorded for the unit in `dispatch/*.jsonl`, so it survives a `TaskStop` or a resume (CV7). A drained `fix-loop-cap-exhausted` escalation for a unit the lead tiers up (Integrator `merge-conflict` included) is closed resolved-by-lead (below, proposed CV34).
-- **Never a third attempt at the top tier.** The lead counts a unit's earlier attempts per tier from the `dispatch/*.jsonl` lines of that unit. If two top-tier attempts are already recorded, the unit is blocked and escalated with `tier-exhausted`.
+- **Never a third attempt at the top tier.** The lead counts a unit's earlier attempts per tier from the `dispatch/*.jsonl` lines of that unit with `role` `worker` only (proposed CV7, owner answer O8). If two top-tier attempts are already recorded, the unit is blocked and escalated with `tier-exhausted`.
 - The fixer one-MODEL-step rule (ADR 0014 T1, D2.1 `tier` row) belongs to the review loops and does not change this handling (AM4-3).
 
 ### `ESCALATE`

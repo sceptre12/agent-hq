@@ -4,6 +4,6 @@
 #   OR the command contains "cd <path>" resolving under either (Rule 6 worktree coverage).
 # match_cmd: substring the launch command must contain (case-sensitive).
 # ports: comma-separated; a range ("8100-8179") is checked at its FIRST port only.
-# Every row here is derived from an existing tools/ports.tsv row or a verified file:line —
-# see plans/port-clash-precheck.md P1 for the citation of each.
+# Every row added here must derive from an existing tools/ports.tsv row or a verified file:line
+# (the hq rows were cited in hq plans/port-clash-precheck.md P1, an hq-only record not mirrored here).
 # No rows ship in agent-hq: the work environment fills its own rows at the move (literal --port / PORT= / docker -p ports are still checked).

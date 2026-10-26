@@ -18,7 +18,7 @@
 # bypassing it — defeating the entire point. Every pattern below is POSIX ERE (`-E`), and a literal
 # tab is written with bash ANSI-C quoting (`$'\t'`), never `\t` inside a regular string.
 #
-# RANGES ARE EXPANDED NUMERICALLY, NOT TEXT-MATCHED (architecture SS8.6): the biggest claims are
+# RANGES ARE EXPANDED NUMERICALLY, NOT TEXT-MATCHED (architecture SS8 item 2): the biggest claims are
 # ranges (`9000-9999`, `11100-11179`), and `command grep -E '^9500\b'` never matches a row whose port
 # field is `9000-9999` — port_matches() below does an integer bounds comparison instead.
 #
@@ -30,20 +30,24 @@
 # claim about the world, whereas an unparseable row supports no verdict about any port at all, so
 # "free" must not be reachable. Skipping it is what this replaces — a blank port field used to
 # `continue` silently out of both the check and the audit, and reached --audit's CONFLICT dedup.
+# Live truth fails closed too: a missing or failing lsof exits 3, never FREE (tools/lib/port-check-lib.sh).
+# --claim refuses (exit 3) any field holding a control character, an empty field, or a non-port
+# container_port, before anything is written, so one bad claim cannot poison the shared registry.
 #
 # MODES
 #   port-check.sh <port>                          registry + lsof lookup for one host port
 #   port-check.sh --claim <port> <bind> <container_port> <service> <project> <status> <source> <note>
 #                 [--force]                        re-check, then append exactly one TSV line
-#   port-check.sh --audit                          classify non-released rows: MATCH / GHOST /
-#                                                  SQUATTER / CONFLICT
+#   port-check.sh --audit                          classify active rows against lsof: MATCH / GHOST
+#                                                  (live rows), SQUATTER, CONFLICT
 #
 # EXIT CODES
 #   0  check: free (no registry hit, nothing listening) | claim: appended | audit: no findings
 #   1  check: taken (registry and/or lsof agree) | claim: refused on a non-forced conflict | audit:
 #      at least one GHOST/SQUATTER/CONFLICT found
 #   2  check/claim: registry vs lsof DISAGREE (staleness signal — hard stop, never a warning)
-#   3  usage error, or the registry is unusable (missing / empty / unreadable / malformed row)
+#   3  usage error, a refused --claim field, the registry is unusable (missing / empty / unreadable /
+#      malformed row), lsof is missing or failed, or --audit could not create its temp file
 #
 # ENV (test injection only — never point this at the real registry from a test)
 #   PORT_REGISTRY_FILE   default: <this script's dir>/ports.tsv
@@ -55,6 +59,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REGISTRY_FILE="${PORT_REGISTRY_FILE:-${SCRIPT_DIR}/ports.tsv}"
+# shellcheck source=lib/port-check-lib.sh
+. "${SCRIPT_DIR}/lib/port-check-lib.sh" || { echo "FAIL: cannot load ${SCRIPT_DIR}/lib/port-check-lib.sh — failing closed." >&2; exit 3; }
 
 EXIT_FREE=0; EXIT_TAKEN=1        # see EXIT CODES in the header
 EXIT_DISAGREE=2; EXIT_ERROR=3
@@ -71,32 +77,6 @@ usage() {
   printf '%s\n' "USAGE:" "  port-check.sh <port>" \
     "  port-check.sh --claim <port> <bind> <container_port> <service> <project> <status> <source> <note> [--force]" \
     "  port-check.sh --audit" >&2
-}
-
-validate_port() {
-  if ! [[ "${1}" =~ ^[0-9]+$ ]] || [ "${1}" -lt 1 ] || [ "${1}" -gt 65535 ]; then
-    echo "FAIL: '${1}' is not a valid TCP port (1-65535)." >&2
-    return "${EXIT_ERROR}"
-  fi
-  return "${EXIT_FREE}"
-}
-
-# port_matches <candidate-port> <registry-port-field> — the field is an exact port ("9000") or a
-# numeric range ("9000-9999"), expanded by integer comparison per architecture SS8.6, never text.
-port_matches() {
-  local candidate="$1" field="$2"
-  case "${field}" in
-    *-*)
-      local lo="${field%%-*}" hi="${field##*-}"
-      if [[ "${lo}" =~ ^[0-9]+$ ]] && [[ "${hi}" =~ ^[0-9]+$ ]]; then
-        [ "${candidate}" -ge "${lo}" ] && [ "${candidate}" -le "${hi}" ]; return $?
-      fi
-      return 1
-      ;;
-    *)
-      [ "${candidate}" = "${field}" ]
-      ;;
-  esac
 }
 
 # load_registry — existence + positive-control read + validate_rows. Fails closed rather than
@@ -143,12 +123,6 @@ active_rows() {
     END { for (i=1;i<=NR;i++) if (s[i]!="released" && !(k[i] in r && r[k[i]]>i)) print l[i] }' || true
 }
 
-# live_listen_ports — every host port currently in LISTEN state, one per line, deduped+sorted.
-live_listen_ports() {
-  lsof -nP -iTCP -sTCP:LISTEN 2>/dev/null | tail -n +2 | awk '{print $9}' \
-    | sed -E 's/.*:([0-9]+)$/\1/' | command grep -E '^[0-9]+$' | sort -un || true
-}
-
 # cmd_check <port> — registry lookup (host-side and, informationally, container-side) + lsof.
 cmd_check() {
   local port="$1"
@@ -169,15 +143,18 @@ cmd_check() {
     fi
   done < <(active_rows)
 
-  local live_hit=0 lsof_out=""
-  if lsof_out="$(lsof -nP -iTCP:"${port}" -sTCP:LISTEN 2>/dev/null)"; then
-    live_hit=1
-  fi
+  local live_hit=0 lsof_rc=0
+  lsof_port "${port}" || lsof_rc=$?
+  case "${lsof_rc}" in
+    0) live_hit=1 ;;
+    1) ;;
+    *) return "${EXIT_ERROR}" ;;   # lsof missing/failed: no verdict, never FREE (lib FAIL line on stderr)
+  esac
 
   echo "port-check: ${port}"
   if [ "${host_hit}" -eq 1 ]; then echo "registry (host-side): HIT${host_report}"; else echo "registry (host-side): no row"; fi
   if [ -n "${container_report}" ]; then echo "registry (container-side, informational only):${container_report}"; fi
-  if [ "${live_hit}" -eq 1 ]; then echo "lsof: LISTENING"; echo "${lsof_out}"; else echo "lsof: nothing listening"; fi
+  if [ "${live_hit}" -eq 1 ]; then echo "lsof: LISTENING"; echo "${LSOF_OUT}"; else echo "lsof: nothing listening"; fi
 
   if [ "${live_hit}" -eq 1 ] && [ "${host_hit}" -eq 1 ]; then
     echo "RESULT: TAKEN (registry and lsof agree)"; return "${EXIT_TAKEN}"
@@ -206,6 +183,7 @@ cmd_claim() {
   local c_port="$1" c_bind="$2" c_cport="$3" c_service="$4" c_project="$5" c_status="$6" c_source="$7" c_note="$8"
 
   validate_port "${c_port}" || return $?
+  validate_claim_fields "$@" || return $?
   if ! [[ "${c_status}" =~ ${STATUS_ENUM_RE} ]]; then
     echo "FAIL: status '${c_status}' is not in architecture SS2.1's closed enum — refusing to append a row that would fail every later read closed." >&2
     return "${EXIT_ERROR}"
@@ -234,11 +212,13 @@ cmd_claim() {
   return "${EXIT_FREE}"
 }
 
-# cmd_audit — classify every non-released row against live truth (architecture SS5.1).
+# cmd_audit — active rows vs live truth (architecture SS5.1): live rows MATCH/GHOST, unaccounted
+# listeners SQUATTER, duplicate active ports CONFLICT.
 cmd_audit() {
   load_registry || return $?
-  AUDIT_TMP="$(mktemp "${TMPDIR:-/tmp}/port-check.XXXXXX")"
-  live_listen_ports > "${AUDIT_TMP}"
+  AUDIT_TMP="$(mktemp "${TMPDIR:-/tmp}/port-check.XXXXXX")" || {
+    echo "FAIL: --audit could not create a temp file under ${TMPDIR:-/tmp} — failing closed." >&2; return "${EXIT_ERROR}"; }
+  live_listen_ports > "${AUDIT_TMP}" || return "${EXIT_ERROR}"
 
   local problems=0
 

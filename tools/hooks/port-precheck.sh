@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # tools/hooks/port-precheck.sh — PreToolUse(Bash) port-clash pre-launch check.
 #
-# WHY THIS EXISTS: plans/port-clash-precheck.md. A launch command (docker compose up, expo start,
+# WHY THIS EXISTS (design: hq plans/port-clash-precheck.md, an hq-only record not mirrored here). A launch command (docker compose up, expo start,
 # supabase start, ...) can silently collide with a port another app already holds. This hook
 # looks the launch command up in tools/app-ports.tsv and, ONLY when something is genuinely
 # listening on a resolved port right now, halts with permissionDecision "ask" naming the holder —
@@ -10,11 +10,11 @@
 # Provenance: ported from hq tools/hooks/port-precheck.sh. Ported into agent-hq 2026-10-26 (delivery workflow, port guard). plans/ and tools/app-ports.tsv citations name hq records.
 #
 # THE DECISION PATH IS `lsof` DIRECTLY — NEVER `port-check.sh`'s EXIT CODE (Fable ratification,
-# ADR 0014 T5, binding change 1, 2026-09-05). Measured: all 19 rows in tools/ports.tsv that a
-# launch would plausibly hit return NON-ZERO from port-check.sh — 7 exit 2 (GHOST: registry says
-# live, lsof shows nothing) and 12 exit 1 (the registry row records the LAUNCHING APP'S OWN
-# claim, so restarting your own service always reads "taken"). A port-check.sh-driven decision
-# would therefore fire on effectively 100% of launches. `lsof -nP -iTCP:<port> -sTCP:LISTEN` is
+# ADR 0014 T5, binding change 1, 2026-09-05). Measured in hq against hq's own registry (not this
+# repo's tools/ports.tsv): every row a launch would plausibly hit returned NON-ZERO from
+# port-check.sh — exit 2 (GHOST: registry says live, lsof shows nothing) or exit 1 (the row records
+# the LAUNCHING APP'S OWN claim, so restarting your own service always reads "taken"). A
+# port-check.sh-driven decision would therefore fire on effectively every launch. `lsof -nP -iTCP:<port> -sTCP:LISTEN` is
 # the one signal this hook trusts to decide; port-check.sh is called AFTER that decision is
 # already made, only to name the holder for the human, and its exit code is discarded.
 #

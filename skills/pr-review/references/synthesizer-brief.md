@@ -7,6 +7,7 @@ All 7 panel agents have completed their deliberation. Your job is to compile
 everything into a structured report for the reviewer (Phase B).
 
 session_id: ${SESSION_ID}
+data_dir: ${DATA_DIR}
 repo: ${REPO}
 pr_number: ${PR_NUMBER}
 # local-diff mode: instead of repo/pr_number you get repo_dir, base_ref, head_ref, head_sha;
@@ -32,8 +33,10 @@ Pass `session_id` explicitly on every `read_messages` call — it is never ambie
 
 Use read_messages with session_id to retrieve every message posted during the review. Every call
 carries `"peek":true` and `"limit":200`, and a fresh `agent_id` per call (never one reused id: without
-`peek` a read consumes unread state). Read each check topic in its own call, plus `pr-check-N-closed`
-topics separately:
+`peek` a read consumes unread state). Read each of the 10 check topics in its own call
+(`pr-check-cold-read`, `pr-check-1` to `pr-check-9`), then each closed topic in its own call
+(`pr-check-cold-read-closed`, `pr-check-1-closed` to `pr-check-9-closed`). A read that returns 200
+messages may be truncated: say so in the confidence notes. Example:
 ```bash
 curl -s -X POST http://localhost:${PORT}/mcp -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
@@ -73,8 +76,8 @@ Your prompt includes a `timed_out_checks` field — a structured object with per
 - `timed_out_checks.gate2` — agent IDs that timed out in Phase 2 (did not signal PHASE2_DONE)
 
 Interpret as follows:
-- An agent in `gate1` only → completed Phase 2 despite missing Phase 1 signal; mark findings **WAVE 1 UNRESOLVED**
-- An agent in `gate2` only → Phase 2 timed out (no deliberation posted); mark findings **WAVE 2 UNRESOLVED**
+- An agent in `gate1` only → completed Phase 2 despite missing Phase 1 signal; mark findings **PHASE 1 UNRESOLVED**
+- An agent in `gate2` only → Phase 2 timed out (no deliberation posted); mark findings **PHASE 2 UNRESOLVED**
 - An agent in both `gate1` and `gate2` → both phases timed out; mark findings **FULLY UNRESOLVED**
 
 For any check whose Responsible agent appears in either list, mark every finding row in the

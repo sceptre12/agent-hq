@@ -1,7 +1,8 @@
 # PR Review — Roles subset (D12): remap procedure and refusal
 
-Status in this version: **refused**. Step 0 rejects any `ROLES` list of fewer than 7 seats with
-`INPUT-ERROR ROLES enum`. Every `pr-review` runs the 7 seats of `agent-roles.md`. The refusal is
+Status in this version: **refused**. Unset `ROLES` means all 7 seats. A set `ROLES` must equal the set
+of the 7 ids of `agent-roles.md` (any order, each once); Step 0 rejects anything else (fewer, more,
+unknown ids, duplicates, empty) with `INPUT-ERROR ROLES enum`. Every `pr-review` runs the 7 seats of `agent-roles.md`. The refusal is
 unconditional: there is no switch. Enabling a smaller roster is an INTERFACES amendment (the D2.3
 `pr-review` row, "seat count 7 until the D12 remap and probe are recorded") plus a change to this
 skill, never a variable set by a caller.

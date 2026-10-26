@@ -44,3 +44,10 @@ unhandled edge cases not currently exercised.
 - `references/agent-briefs.md` — Phase 1 and Phase 2 brief templates with posting protocol and shell injection guard
 - `references/agent-roles.md` — per-role RACI assignments (Responsible, Consulted, Accountable)
 - `references/synthesizer-brief.md` — synthesizer instructions for Phase B report; `timed_out_checks` is `{ gate1: [...], gate2: [...] }`
+- `references/roles-subset.md` — `ROLES` refusal and the D12 remap procedure
+- `references/local-diff-mode.md` — local-diff mode inputs and read-only rules
+- `references/bus-start-standalone.md` — Step 1 and Step 9 scripts with `RUN_HOME` unset
+- `references/bus-start-run.md` — Step 1, the Step 2 diff path and Step 9 inside a run (port guard)
+- `references/diff-fetch.md` — Step 2 scripts (pr mode, local-diff mode) and network-unavailable handling
+- `references/review-record.md` — Step 8 `RECORD_PATH` writer (lines 1-2, A.6)
+- `references/step0-inputs.md` — Step 0 input table (rule and `INPUT-ERROR` reason per field)

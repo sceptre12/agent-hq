@@ -1,4 +1,4 @@
-# Step 0: input validation (INTERFACES part D1, D2.1, D2.2 row 4)
+# Step 0: input validation (INTERFACES 1.3.0 part D1, D2.1, D2.2 row 4; AM-1, AM-3)
 
 Inputs are passed as `NAME=value` arguments. `DELIVERY_ROOT` is the environment variable only.
 Check in this order. Print one line per failing field, then stop. Do not ask, do not retry.
@@ -15,8 +15,11 @@ Line form: `INPUT-ERROR <NAME> <reason>`, reason one of `missing|enum|path|unset
 | 7 | `CONTENTION` | `none` or `contested` | `... CONTENTION missing` / `... CONTENTION enum` |
 | 8 | `NOVELTY` | `known` or `novel` | `... NOVELTY missing` / `... NOVELTY enum` |
 | 9 | `SECURITY_AUDIT` | `guidance` or `full`; required, no default | `... SECURITY_AUDIT missing` / `... SECURITY_AUDIT enum` |
+| 10 | `ORCHESTRATOR_TIER` | `design`, `execute`, `verify` or `mechanical` (D2.1 `tier`; the caller passes `state.md` `orchestrator_tier`, part A.2, AM-3 errata (g)); required, no default | `... ORCHESTRATOR_TIER missing` / `... ORCHESTRATOR_TIER enum` |
 
 Rules:
+- Every input is required like every NEW-skill input (task spec 16 RESOLVED Q2; INTERFACES D2.2
+  transport "every caller passes them"); `SECURITY_AUDIT` and `ORCHESTRATOR_TIER` have no default.
 - `SLUG` is minted by the caller (`<subtask|run>-<kind>-<n>`). Validate it, never mint or repair it.
 - A bad value is `enum` (the example `STAKES=maybe` prints exactly `INPUT-ERROR STAKES enum`).
 - Collect every failing field from the table, print them in table order, then stop. When all

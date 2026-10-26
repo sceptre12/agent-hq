@@ -7,8 +7,7 @@
 - **Governing intent (relayed, not witnessed):** owner 2026-10-02, "do not restrict agents from have
   nest sub agents. We just need agents to be aware of if they are a sub agent." Awareness only.
 - **Ground truth re-read by the ratifier:** S0 `FINDINGS.md` + `payloads.log` (claude 2.1.287), the S0
-  transcript dir, hooks.md and sub-agents.md (summarising fetch via WebFetch, 2026-10-02), ADRs 0014
-  (+Addendum 1), 0021, 0029, 0037, `agents/topology-worker.md`, `config/settings.json` hooks block,
+  transcript dir, hooks.md and sub-agents.md (summarising fetch via WebFetch, 2026-10-02), ADRs 0014, 0021, 0029, 0037, `agents/topology-worker.md`, `config/settings.json` hooks block,
   `config/CLAUDE.md` Rules 2 and 9, memory notes `hq-main-push-grant-2026-09-17`,
   `no-large-state-log-files`, `cleanup-worktrees-keep-branches`, `scratchpad-shared-between-agents`.
 

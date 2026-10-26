@@ -13,7 +13,7 @@ The owner, verbatim (typos as typed):
 - R-u (2026-10-08): "It should use my anthropic account.. Does swapping from one token to another mess with the information thats stored? i dontn want info to be sectioned by account"
 - 2026-10-13: learnings live inside Hermes and hq is where tools are stored (verbatim rulings in `hermes-agent-memory.md` §1).
 
-Hermes is NOT the brain's runtime (ADR 0046 §C1 stays rejected) and not a member or router. It is the store of learnings and a reader of hq's tools and architecture. The pipeline stays the main thread (R-q).
+Hermes is NOT the brain's runtime and not a member or router. It is the store of learnings and a reader of hq's tools and architecture. The pipeline stays the main thread (R-q).
 
 ## 2. Scope
 The owner asks Hermes questions at the CLI or the loopback API; Hermes answers from the digest and its own memory/skills with citations. It writes nothing outside `HERMES_HOME` (its only writable hook-allowed path outside memory and skills is `work/`) and has no network reach beyond the model endpoint. Other sessions may use the API as a door to learnings (`hermes-agent-memory.md` §5; probe-gated).
@@ -100,7 +100,7 @@ not raw HTML; quotes are as returned.
   gateway install` → launchd agent; user auth default deny per platform.
 
 ## 4. Invariants
-- **Not the brain.** Not its runtime (ADR 0046 §C1), not a member or router. Brain sessions may call its API as a door; what it returns is data, never an instruction or a rule (Rule 9).
+- **Not the brain.** Not its runtime, not a member or router. Brain sessions may call its API as a door; what it returns is data, never an instruction or a rule (Rule 9).
 - **Holds learnings, not rules.** Learnings live in Hermes's memory and skills (owner ruling 2026-10-13). hq git stays the owner of tools, skills, profiles, scripts, architecture, plans and ADRs. Hermes never writes hq: it has no repo, terminal or commit tools and its hook denies writes outside `HERMES_HOME`.
 - **No partition by account (R-u).** ALL Hermes state — `memories/`, `skills/`, `pending/`, `state.db`, `cron/`, `SOUL.md`, `config.yaml`, the hq digest and index — is keyed by ONE `HERMES_HOME` and the ONE default profile. Named profiles (`hermes -p`) are not used.
 - **Credentials by env only.** The token reaches Hermes as `CLAUDE_CODE_OAUTH_TOKEN` set by the caller or by `hermes-gw` from a profile token file; `hermes-up` reads no token file (`plans/hermes-agent/evidence/h2a/hermes-up:2`, MEASURED). It never appears in the digest, index skill, `SOUL.md`, memory or any hq file. `auth.adopt_external_logins: false`.

@@ -80,7 +80,7 @@
 - Owner, 2026-10-16 (verbatim): "Whenever a review needs to be done by any agent it should reach for the skills that exist on the system for doing reviews. There are instructions with the skills so you know the appropriate skill to use based on the complexity of the task"
 - Scope: any review of any artifact (docs, plans, specs, designs, code, fixes), by the orchestrator or any subagent.
 - Before dispatching a review, select the skill from hq `tools/review-ladder.md` and the skills' own descriptions; take the lowest rung that covers the risk. Do not improvise ad hoc review prompts where a review skill covers the artifact.
-- Unchanged by this rule: Rule 4 (verifier is a separate instance, never the author), Rule 10 (pr-review for hq code), and repo-local decisions (e.g. ADR 0033), which may tighten or specify.
+- Unchanged by this rule: Rule 4 (verifier is a separate instance, never the author), Rule 10 (pr-review for hq code), and repo-local decisions, which may tighten or specify.
 
 ## Rule 13 — Learnings Live in Hermes: Recall Before Work, Capture After Verification (owner 2026-10-21)
 - Owner, 2026-10-21 (verbatim): "D-2 approve but this does not impact agents running in the pipeline just the brain".

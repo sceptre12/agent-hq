@@ -102,7 +102,7 @@ defect, caught by preflight rule 10 below).
 | Field | Values / shape | Default when absent |
 |---|---|---|
 | `persona` | non-empty one-line token naming the persona brief the dispatched agent runs under. Passed verbatim in the brief, never interpreted; it does not override the `agents` model tier. | today's dispatch brief |
-| `lane` | non-empty one-line token naming an exclusive-writer resource lane. Within one run (one invocation of the skill) at most one work_item per lane is live; the others wait. In a frontier wave a lane is busy from its work_item's dispatch until that work_item's gate passes or it escalates (its gate and fix agents included). The skill only serializes by lane name; leasing the lane's real resources (ports, browsers, devices) stays the caller's job. | no lane constraint |
+| `lane` | non-empty one-line token naming an exclusive-writer resource lane. Within one run (one invocation of the skill) at most one work_item per lane is live; the others wait. In a frontier wave a lane is busy from its work_item's dispatch until that work_item's per-item gate passes or it escalates (its gate and fix agents included); in a barrier wave until the holder posts its completion (`UNIT-VERDICT`) (INTERFACES 1.6.0 AM-6 C-4). The skill only serializes by lane name; leasing the lane's real resources (ports, browsers, devices) stays the caller's job. | no lane constraint |
 | `depends_on` | list of work_item ids of the **same wave**: `depends_on: [<work_item>, ...]`. One edge (one listed id) anywhere in the wave makes it a frontier wave; `depends_on: []` declares no edge. | none (barrier wave) |
 | `done_condition` | two-key object `{"token": "<str>", "command": "<str>"}`; both values non-empty, one-line strings; no other key. Required under `gate_type: step_complete`, otherwise ignored by the gate machinery. | absent |
 
@@ -111,8 +111,8 @@ gate agent passes the work_item only when `command` exits 0 and that line equals
 exactly. `persona` and `lane` are validated inline (non-empty, one line), not by a numbered rule.
 A work_item generated at runtime (from a `work_items` rule, or a fix agent) may carry `persona`
 and `lane`, stated by the rule that generates it; absent, the defaults above apply. In a barrier
-wave, as in a frontier wave, a lane is released when its holder's gate passes or it escalates
-(INTERFACES 1.5.0 C1.1).
+wave (one wave-level gate) a lane is released when its holder posts its completion (`UNIT-VERDICT`);
+in a frontier wave when the holder's per-item gate passes or escalates (INTERFACES 1.6.0 AM-6 C-4, C1.1).
 
 Entry shape: under the wave's `- **work_items:**` line, each work_item is a listed
 `- **<id>**` entry whose fields are `- **<field>:**` sub-bullets (e.g. a `lane` value under its work_item).

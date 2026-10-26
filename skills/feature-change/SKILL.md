@@ -60,7 +60,7 @@ arrival duty is surface-only (report the output, never fix or stop on the lead's
    needs a layer outside this repo (backend migration, another repo, prod config): STOP and hand
    back `HANDBACK: <layer> needed — <evidence file:line>`; do not reach across. Dispatch shape:
    `superpowers:subagent-driven-development` (fresh implementer, exact brief, no session history).
-   team: confirm the Agent tool first (review path; the unit dispatches no verifier); absent = `ESCALATE` per the failure table, before any edit.
+   team: confirm the Agent tool first (a unit at depth 1 dispatches its `review path` reviewer at depth 2; it dispatches no verifier); absent = a launcher defect: print `INPUT-ERROR tools` and stop, before any edit (INTERFACES 1.6.0 AM-6 C-5).
 4. **Tests.** Follow `superpowers:test-driven-development`: a failing test per AC item first,
    watched fail, then pass. Adjust existing tests only where the AC change their expectation.
 5. **Repo gates.** In the worktree run every command in `GATES`, each as its own call, capturing

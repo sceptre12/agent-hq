@@ -22,8 +22,10 @@ An agent is dispatched only when all of these hold:
    agents together. A gate or fix agent with no free slot waits for one; it is never
    dispatched over the cap. `max_concurrent` absent = unbounded.
 2. **Lane (work_item agents only):** no other work_item with the same `lane` is live in the
-   run (one invocation of the skill). In a barrier and a frontier wave alike a work_item holds its lane from its
-   dispatch until its gate passes or it escalates, including its gate and fix agents (INTERFACES 1.5.0 C1.1).
+   run (one invocation of the skill). A work_item holds its lane from its dispatch. In a frontier wave it holds it
+   until its per-item gate passes or it escalates, including its gate and fix agents; in a barrier wave, whose gate
+   is wave-level, until it posts its completion (`UNIT-VERDICT`), so two same-lane work_items under one wave gate
+   never deadlock (INTERFACES 1.6.0 AM-6 C-4, C1.1).
    A work_item generated at runtime, and a fix agent, may carry `persona` and `lane` (C1.1). Leasing the lane's real
    resources is the caller's.
 3. **Blockers (frontier only):** every work_item in its `depends_on` has a passed gate.

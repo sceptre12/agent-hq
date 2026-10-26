@@ -1,12 +1,13 @@
 ---
 name: port-claim
-description: Check the hq-owned host port registry before binding, mapping, or exposing any TCP port, and register the claim immediately after. Use when about to `docker compose up`, start a dev server, add a port mapping, or pick a port for a new service — before the bind happens, not after a collision is discovered. Also use when auditing existing port claims for staleness, or before trusting a project's own port doc as ground truth.
+version: 1.1.0
+description: Check the hq-owned host port registry before binding, mapping, or exposing any TCP port, and register the claim before the bind (claim before bind, A.5.2). Use when about to `docker compose up`, start a dev server, add a port mapping, or pick a port for a new service — before the bind happens, not after a collision is discovered. Also use when auditing existing port claims for staleness, or before trusting a project's own port doc as ground truth.
 ---
 
 ## Trigger
 Use when: about to bind, map, or expose a host TCP port for any service, anywhere under
-`~/projects/` — before picking the number. Also use immediately after a successful bind (to
-register the claim), and any time a project's own port doc is about to be trusted instead of
+`~/projects/` — before picking the number. Also use to register the claim before the bind
+(claim before bind, INTERFACES A.5.2), and any time a project's own port doc is about to be trusted instead of
 checked. hq owns `tools/ports.tsv`; this skill never edits any file outside hq
 (architecture/port-registry.md §6).
 
@@ -24,18 +25,22 @@ checked. hq owns `tools/ports.tsv`; this skill never edits any file outside hq
 2. If the candidate is inside a declared range (e.g. anywhere in `9000-9999`), still check the
    *specific* port — the script expands ranges numerically, so a range row correctly reports as
    taken even though its own text never mentions your exact number.
-3. Bind the port in the target project as normal. This skill does not touch any file outside hq.
-4. Immediately after the bind succeeds, in the same session, register it:
-   `~/projects/agent-hq/tools/port-check.sh --claim <port> <bind> <container_port> <service> <project> <status> <source> <note>`
+3. Claim the port before the bind, in the same session:
+   `~/projects/agent-hq/tools/port-check.sh --claim <port> <bind> <container_port> <service> <project> claimed <source> <note>`
    — all 8 fields are positional and required; pass `-` for `container_port` or `note` when
-   there is nothing to record. `<port>` must be a single numeric port, 1-65535 — `--claim` does
+   there is nothing to record. In a delivery run `<project>` is the `<run-id>` and `<source>` is
+   `<run-id>-<subtask>` (A.5.2). `<port>` must be a single numeric port, 1-65535 — `--claim` does
    not accept a range (a range claim is out of scope for this skill: stop and report it), even
    though range *rows* are legal in the registry and are matched by the check path. `<status>`
    must be one of `live` / `claimed` / `reserved` / `unmerged` / `released` /
    `UNVERIFIED` — the enum is closed (architecture §2.1) and `--claim` refuses anything else with
-   exit `3`. `--claim` re-runs the check first and refuses to append on a live conflict; only add
-   a trailing `--force` when the conflict is understood and accepted — it is then recorded as
-   `note=forced`, never silently.
+   exit `3`. `--claim` re-runs the check first and refuses to append on a live conflict (exit `1`
+   or `2`: do not bind, report); only add a trailing `--force` when the conflict is understood and
+   accepted — it is then recorded as `note=forced`, never silently.
+4. Bind the port in the target project as normal, only after the claim returned exit `0`. This
+   skill does not touch any file outside hq. If the bind fails, supersede the claim at once with a
+   `released` row of the same port and the same `source`:
+   `~/projects/agent-hq/tools/port-check.sh --claim <port> <bind> <container_port> <service> <project> released <source> <note>`
 5. Before trusting a project's own port doc (a `LOCAL-PORTS.md`, a `CLAUDE.md` port list, etc.),
    run `~/projects/agent-hq/tools/port-check.sh --audit`. It classifies every non-`released` row (rows
    superseded by a later same-port, same-source `released` row are skipped) as MATCH / GHOST /
@@ -59,8 +64,9 @@ checked. hq owns `tools/ports.tsv`; this skill never edits any file outside hq
       not after the bind was already attempted.
 - [ ] If exit was `1` or `2`, the bind was NOT attempted and the collision/disagreement was
       reported instead of worked around or auto-remapped.
-- [ ] After a successful bind, `tools/port-check.sh --claim ...` was run and returned exit `0`
-      (one row appended).
+- [ ] `tools/port-check.sh --claim ... claimed ...` was run and returned exit `0` (one row
+      appended) before the bind, not after it.
+- [ ] A bind that failed was followed by a `released` row of the same port and source.
 - [ ] No file outside `~/projects/agent-hq/tools/ports.tsv` was edited to record or resolve the claim.
 - [ ] If a project's port doc was consulted for this decision, `--audit` was also run, and any
       GHOST/SQUATTER/CONFLICT finding touching the port in question was reported, not dismissed.
@@ -70,4 +76,4 @@ Provenance: Hermes skill `learnings/port-collisions` (was learnings/port-collisi
 host 9000 while agent-hq's agent-topology already held it; the container healthcheck passing, and
 that project's own port doc separately asserting no collision on unrelated ports, both masked host-level
 truth that only `lsof` revealed).
-Ported into agent-hq 2026-10-26 for the delivery workflow (design §7 item 8).
+Ported into agent-hq 2026-10-26 for the delivery workflow (design §7 item 8); amended 2026-10-26, AM-1 A.5.2: claim before bind.

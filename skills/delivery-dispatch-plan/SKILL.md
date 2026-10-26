@@ -1,0 +1,57 @@
+---
+name: delivery-dispatch-plan
+version: 0.1.0
+description: Turns an accepted architecture.md plus drafts and the repo profile into an executable dispatch plan - sub-tasks, units, DAG, lanes, shared-file owners, port table, slot plan, verification - then dispatches the Plan-checker and loops to PLAN-CHECK clean or round 3. Use when an accepted architecture must become an executable dispatch plan (delivery stage 3), when a post-merge failure adds new units for a sub-task (NEW_UNITS), or when a plan file needs re-planning after INVALIDATE.
+---
+
+## Trigger
+Use when an accepted architecture must become an executable dispatch plan: sub-tasks, units, DAG, lanes, shared-file owners, slot plan, verification. Stage 3 has no human gate (Rule 11): the human is informed, the Plan-checker and the review loop are the bar.
+
+## Steps
+0. **Step 0, validate inputs.** `DELIVERY_ROOT` is an environment variable; the rest are `NAME=value` arguments. Print one line per failing field, then stop; no retry, no prompt (INTERFACES D1).
+   - `DELIVERY_ROOT` unset: `INPUT-ERROR DELIVERY_ROOT unset`.
+   - `RUN_HOME` (path under `$DELIVERY_ROOT` that holds `state.md`), `PLANS_DIR` (path that holds `architecture.md` and `drafts/`), `REPO_PROFILE` (`<abs path>@<40-hex sha>`, the file exists): `INPUT-ERROR <NAME> missing|path|format`.
+   - `NEW_UNITS` (optional): when set it must equal `RUN_HOME/pm/new-units.md`, else `INPUT-ERROR NEW_UNITS path`. Set means post-merge re-entry (step 13).
+   - `state.md` must give `interfaces_version`; absent is `INPUT-ERROR interfaces_version missing`.
+   - Read `RUN_HOME/tickets.tsv` (latest row per `slug` governs; no row yet means the draft slug stands in).
+   - Profile keys this skill reads are `ports.bus_base`, `ports.lane_base`, `durations.unit_median_min`, `gates.*`, `worktree_base`, `e2e.harness`, `clones[]`, `linked_profiles[]`; any key absent from the profile is written into the plan as `FILL_IN_BEFORE_DISPATCH` and fails step 11. Never guess a value.
+1. **Read and measure.** Read `architecture.md` (merge order, contracts, test plan hooks, the header line `security_sensitive: yes|no`), `drafts/index.md` and every draft. Any repo fact the plan relies on (paths, globs, manifests, scripts, existing ports) is verified by a command whose result you record as `measured: <cmd -> result>`. A claim you cannot measure is written as "unmeasured, verify at move". If a measurement contradicts a frozen architecture fact, stop (Red flags) and re-measure before anything else.
+2. **Cut sub-tasks.** One PR each (D5), in the merge order `architecture.md` gives. `st0` is the plan PR: it commits `plans/<epic>/*`, `contracts/` and `.tasks/`, first in merge order, with those globs in the owner table. Each later cut is either dependency-free with computed disjoint globs or strictly ordered (successor starts only after `RELEASE`). Each sub-task row carries `ticket`, `branch` (`<key>-<slug>`), `repo`, lead backend, depends-on, and the version-bump list of affected apps under `apps/`. Details: `references/unit-and-waves.md`.
+3. **Define units.** Ids `u<N>`. Each unit has exactly one `done_condition` `{token, command}` that a verifier can run, scope globs, blocked-by, persona and tier, lane, e2e `new|updated|none`, a budget in minutes taken from the profile's measured medians, and its `ticket` (from `tickets.tsv`). A unit with no runnable verifier is a stop row. Never invent an effort figure.
+4. **Write the unit task files.** One `.tasks/<unit>-<slug>.md` per unit at the primary repo root, using `writing-plans` for the content and the 11-section layout and six pre-flight checks of `part-04` section 5.3b by reference (template: item 27's pack). Scope globs go under heading `## 3`, one `- <glob>` per line (git `:(glob)` dialect). Do not write into `references/templates/`.
+5. **Shared-file owner and serial-lane table (M16).** For every package manifest, lockfile, barrel, generated file and CI config name one owning unit; every other unit that touches it is serialized behind the owner or rejected. Also name the one owning document of every cross-unit contract (D63). Overlapping globs or an implicit touch reject the plan. Procedure: `references/shared-files-and-parallelism.md`.
+6. **Blockers and DAG.** `blocked-by` becomes `depends_on` edges inside `01-build.md` only (same wave, acyclic). Add an edge only for a real data or file dependency; a false edge serializes work (the D55 finding). Sketch the frontiers.
+7. **Personas, tiers and e2e.** Choose each unit's `persona` from the closed set (INTERFACES D2.1) and `tier` (`design|execute|verify|mechanical`, never a model name). Add e2e units per user-visible story by the method in design section 3.6; where `e2e.harness` is `none` the plan names the gap and points to the test plan's by-hand coverage.
+8. **Lanes and ports.** Write the lane table with a per-lane resource profile: HTTP, HMR and devtools ports, browser pre-staged by the desk `INSTALL`, device lanes human-run. Write the port table: one candidate per bind per sub-task (`bus`, `review-bus`, each lane port) as `<base> + 10*k`, `k` written in the row, from `ports.bus_base` and `ports.lane_base` (`references/shared-files-and-parallelism.md`). The plan states that the launcher claims each candidate per A.5.2 before launch, that a refusal is never re-picked (a lane maps to `lane-unavailable`), and that no plan value is promised free. The plan itself runs no `port-check.sh`.
+9. **Slot plan, budgets and the Rule 7 note.** Per sub-task state `dispatch_budget` (rule 11 total of the bundle) and peak concurrency; the machine line sums the peaks against 200 and holds concurrent builds to 3 (rule 8). State that full-mode `security-auditor` agents draw on free slots at launch (A.4), 0 pre-allocated, counted in the ledger; the plan header carries `security_sensitive:` copied from `architecture.md`, and when `yes` each sub-task names the `pre-pr-gate` row `C26` (`validate-findings.cjs`). The audit is not a unit. Then write the computed Rule 7 note. Arithmetic: `references/shared-files-and-parallelism.md`.
+10. **Write the artifacts.** `dispatch-plan.md` (header with `interfaces_version: <version>@<sha256>` copied from `state.md`, never edited by the conductor afterwards), `subtasks/<subtask>/substate.seed.md` (exactly the keys `subtask_id session_id reserved frontier interfaces_version phase: seeded`), `subtasks/<subtask>/waves/` (`01-build.md`, `02-integrate.md`, plus `00-constitution.md` only when the repo has no profile), the `.tasks` files, and an empty `RUN_HOME/catalog.tsv` (create it empty; only `catalog.sh` appends). Wave files, bundle fields and `Brief:` lines: `references/unit-and-waves.md`. `max_concurrent` is not a field of the spec; it is a caller argument of `delivery-run`.
+11. **Pre-dispatch checklist.** Run every row of `references/predispatch-checklist.md`: sentinels gone, every path `ls`-verified, flags present, six unit pre-flight checks, port candidates distinct. Fix every failure before step 12.
+12. **Plan-check, review, loop.** Plan-checker first, before round 1 (D55): `references/plan-check-loop.md` (G48 pre-round check, fresh checker per round, stop at `clean` or round 3). Then call `review-tailor` with `SLUG=run-plan-<n>` (`n` a per-run counter you mint), `KIND=plan`, `STAKES`, `CONTENTION`, `NOVELTY`, `SECURITY_AUDIT` from `state.md`, and run the rung it returns: Rung 2b above 10 units, else Rung 1. Review loops stop after round 3 and the owner decides (D7). Any fix that changes `waves/` or the unit table re-runs step 11 and a fresh Plan-checker inside that round.
+13. **Post-merge re-entry.** With `NEW_UNITS` set, read the new-unit lines, take the sub-task id `st<N>` the conductor added to `state.md`, and produce the stage-3 outputs for `st<N>` only: unit-table rows (tickets from `tickets.tsv`), `.tasks` files, seed, `waves/`, a fresh `plan-check.md`. Existing sub-tasks' files are not edited.
+14. **Finish.** Print the path of `dispatch-plan.md`, the line-1 token of `plan-check.md`, the units and sub-task counts, and the Rule 7 note headline. No gate: the conductor informs the human.
+
+## Red flags
+| Rationalization | What to do instead |
+|---|---|
+| "The globs overlap a little, the units will not conflict in practice." | Overlap or an implicit touch rejects the plan (M16). Give the file one owner and serialize the rest. |
+| "This unit's check is obvious, I will skip the verifier." | A unit without a runnable `done_condition` is a stop row. Write the command and its exact last-line token. |
+| "The architecture says 12 files, close enough." | Measure it. A measured value that contradicts a frozen fact stops the loop; re-measure first (D51). |
+| "I will put a free port in the plan so launch is easy." | Candidates are a fixed formula, not promises. The launcher claims each per A.5.2; a refusal is never re-picked. |
+| "I will run `port-check.sh` here to be sure." | The plan runs no port check. A reading now says nothing at launch time. |
+| "A cross-wave `depends_on` is cleaner." | Edges name same-wave work_items only (rule 15). Put the units in `01-build.md`. |
+| "`max_concurrent` belongs in the spec." | It is a caller argument of `delivery-run`; the spec carries `dispatch_budget`. |
+| "Plan-check is clean, review can skip it." | Plan-check comes first, and any fix to `waves/` needs a fresh checker. Round 3 ends with the owner (D7), never a fourth round. |
+| "One more fix round will clear it." | Same finding class in two consecutive rounds replaces the mechanism (D60); a third round without `clean` stops. |
+| "Gate rows in the plan can say TBD until dispatch." | A sentinel left in the plan fails the checklist; fill it or stop with the missing key named. |
+| "Security audit can be a unit." | It is not a plan unit. It runs in `pre-pr-gate`; the plan only states slot use and row `C26`. |
+
+## Exit criteria
+- [ ] `dispatch-plan.md`, one `substate.seed.md` and one `waves/` per sub-task, one `.tasks/<unit>-<slug>.md` per unit, and an empty `RUN_HOME/catalog.tsv` exist.
+- [ ] Every unit has one `done_condition` with a verifier, scope globs and a ticket; no scope overlap; every shared file has one owner.
+- [ ] Port table, slot plan (`dispatch_budget`, peak, machine line against 200), `security_sensitive:` header and the computed Rule 7 note are in the plan.
+- [ ] `references/predispatch-checklist.md` has no failing row and no `FILL_IN_BEFORE_DISPATCH` remains in any file this skill wrote.
+- [ ] Line 1 of `RUN_HOME/plan-check.md` is `PLAN-CHECK: clean`, or the loop stopped at round 3 and the owner has been told (state which).
+- [ ] The review loop ran at the rung `review-tailor` returned and ended at 0 blocking and 0 medium, or at round 3 with the owner told.
+
+## Provenance
+Provenance: design card 5. Friction behind it (part-06 section 7b, stage 3): efficiency-study PLAN row; Rule 7 overcount retro; D55 plan-check after ratification found false dependencies; P6 (`patterns:78`) and the `brain-run3` retro (`:73`): briefs named paths that did not exist; D30 (`RLM:40`): an implicit budget drifted from 70 to 44 across rounds.

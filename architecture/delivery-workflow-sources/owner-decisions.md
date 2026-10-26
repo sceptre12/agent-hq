@@ -85,3 +85,7 @@
 - PORT GUARD (owner, 2026-10-26): "ensure we have the port check hook setup in agent-hq and that its apart of this plan", so that running multiple apps can't knock over another service on the same port.
   - Port tools/port-check.sh, the hooks/port-precheck.sh PreToolUse(Bash) hook, the ports.tsv and app-ports.tsv registries, and architecture/port-registry.md into agent-hq. Wire the hook in config/settings.json (the move-time template).
   - Workflow rule: every port a run binds is claimed through port-claim/port-check before launch and recorded as a catalog `port` row. Cleanup releases it.
+- Plan-check owner questions (owner, 2026-10-26):
+  - OQ-1 BROAD LIST: an epic is security_sensitive for auth, secrets, money, personal data, the e2e mock/auth-bypass gate, network-facing input parsing, or a new third-party dependency; when unsure, yes. The architecture doc carries exactly one `security_sensitive: yes|no` line.
+  - OQ-2 KEEP +10 EVERYWHERE: after a port-claim refusal, exactly ONE retry at candidate+10 (claimed before bind, never auto-picked by the tool), then stop the line. Applies in delivery runs and standalone pr-review. Overrides the plan-check default "retire in runs".
+  - OQ-3 SHEPHERD FLAGS STALLS TOO: the shepherd also flags STALLED and PROMPT-OPEN (in addition to the watchdog tick); the lead still decides TaskStop. Overrides INTERFACES C7 split.

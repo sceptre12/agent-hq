@@ -95,7 +95,7 @@ Field types (`DEFAULT (integrator)`): `repo` abs path (realpath under a register
 | `fetch` | `{repo, ref}` | `delivery-run` Integrator, `delivery-cleanup` verify / same | Integrator rebase base |
 | `tag-push` | `{repo, tag, sha, step_id}` | conductor only (stage 7), on a `CONDUCTOR-REQUEST` from the `pm` lead (part C5.1) / `release-track` | per the owner, "tag-push behaviour is set per repo in repo-profile.md" and "With no profile entry, tag-push is refused." (owner 2026-10-26, N11, `architecture/delivery-workflow-sources/owner-decisions.md:82-84`); the desk reads the `release_tags.*` entry of the profile `repo` resolves to (part A.2.2 profile resolution, row R4-J2) and refuses `REJECTED policy` (terminal, B2.1) when the entry is absent, `release_tags.used` is `"no"`, `tag` does not match `release_tags.pattern`, or, with `used: "yes"`, `pattern` or `approval` is absent or malformed (`detail` names the key; row R4-J4); under `release_tags.approval: human` it requires `RUN_HOME/gates/H-prod.<step_id>.ok` else `gate-missing`, under `none` no gate file (`DEFAULT (integrator)` keys, codes and `step_id` field, row R40-1) |
 | `publish` | `{repo, package, version, step_id}` | conductor only (stage 7), on a `CONDUCTOR-REQUEST` from the `pm` lead (part C5.1) / `release-track` | requires `RUN_HOME/gates/H-prod.<step_id>.ok` (`DEFAULT`: the step id names the gate file) |
-| `test-report-push` | `{tool, payload_path, dry_run}` | conductor only (stage 6-7), on a `CONDUCTOR-REQUEST` from the `pm` lead (part C5.1) / `release-track` | `payload_path` under `RUN_HOME/bodies/` (`DEFAULT`); first call `dry_run: true`; never sends `folder` on a PUT to an existing case |
+| `test-report-push` | `{tool, payload_path, dry_run}` | conductor only (stage 6-7), on a `CONDUCTOR-REQUEST` from the `pm` lead (part C5.1), the request authored by `release-track`, which owns test reporting (PC-6, AM-2; `post-merge-verify` only records per-row results in `postmerge-<sha>.md`) | `payload_path` under `RUN_HOME/bodies/` (`DEFAULT`); first call `dry_run: true`; never sends `folder` on a PUT to an existing case |
 | `jira-get` | `{key, fields[]}` | `ticket-clerk`, `delivery-dispatch-plan` / same | `fields[]` from the readable set `summary, description, issuetype, parent, labels, priority, components, status` (`DEFAULT`) |
 | `jira-create` | `{parent, fields}` | `ticket-clerk` (stage 2 after H1; the epic itself only from the conductor, `<subtask>` = `run`) / `ticket-clerk` (writes `tickets.tsv`) | refused until `H1.ok`; parent re-fetched first |
 | `jira-update` | `{key, fields}` | `ticket-clerk` / `ticket-clerk` | never deletes |
@@ -139,7 +139,7 @@ Envelope: `{"id", "verb", "status": "DONE|REJECTED", "reason": "<code>|null", "d
 | `jira-create` | `key`, `parent` |
 | `jira-update`, `jira-transition` | `key`, `read_back` (the fields or status as re-read) |
 
-The machine-readable copy of this table is `skills/delivery-desk/references/schemas.json` (W1 target, written from this table at W1 item 26; not on disk yet); this part is its authority.
+The machine-readable copy of this table is `skills/delivery-desk/references/schemas.json` (W1 target, written from this table at W1 item 26; not on disk yet); this part is its authority. `schemas.json` layout (AM-2 row 15): JSON Schema draft-07; top keys `verbs` (per verb `request` and `result` object schemas with `required` and `additionalProperties: false`), `reason_codes` (`class`, `trigger`), `envelope`, `regexes` (B1, B2, B8 line regexes).
 
 ## B7. Redaction before storing (M28, M31)
 

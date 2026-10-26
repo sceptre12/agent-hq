@@ -1,0 +1,2 @@
+Frontier: Badge widget, 3 sizes; open items: 1 line (13 sentinels); confirm to record H0.
+PROFILE: <PRIMARY_REPO>/plans/repo-profile.md@<40-hex git hash-object of that file>

@@ -1,0 +1,31 @@
+clones: [<PRIMARY_REPO>]
+linked_profiles: []
+worktree_base: <DELIVERY_ROOT>/worktrees        # human-answered, brief.md Q2
+merge_method: squash                             # measured: docs/CONTRIBUTING.md
+merge_reach: 'a merge to main deploys nothing'   # measured
+ci:
+  required_checks: [lint, typecheck, test]       # job names; hosting-service list is cannot measure
+  min_push_spacing_s: FILL_IN_BEFORE_DISPATCH
+  max_open_pr_pipelines: FILL_IN_BEFORE_DISPATCH
+merge_pipeline:
+  stages: [lint, typecheck, test]
+jira:
+  status_map: FILL_IN_BEFORE_DISPATCH
+  archive_status: FILL_IN_BEFORE_DISPATCH
+secrets:
+  pattern_file: FILL_IN_BEFORE_DISPATCH
+gates:
+  command: 'pnpm lint && pnpm typecheck && pnpm test'
+  parallel: FILL_IN_BEFORE_DISPATCH
+  min_free_kb: FILL_IN_BEFORE_DISPATCH
+  runner_slots: FILL_IN_BEFORE_DISPATCH
+node:
+  prefix_cmd: FILL_IN_BEFORE_DISPATCH
+zephyr:
+  read_ops: [FILL_IN_BEFORE_DISPATCH]
+durations:
+  pr_review_min: FILL_IN_BEFORE_DISPATCH
+  ci_round_min: FILL_IN_BEFORE_DISPATCH
+  unit_median_min: FILL_IN_BEFORE_DISPATCH
+release_tags:
+  used: "no"

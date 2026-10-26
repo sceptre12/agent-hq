@@ -1,0 +1,11 @@
+{
+  "name": "demo-shop",
+  "version": "1.4.0",
+  "private": true,
+  "workspaces": ["apps/*", "src/*"],
+  "scripts": {
+    "test": "vitest run",
+    "lint": "eslint .",
+    "build": "tsc -b"
+  }
+}

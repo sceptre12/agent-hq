@@ -13,7 +13,7 @@ Run before the Plan-checker and again after every fix (Plan-check or review fix,
 | 5 | Ids and tokens | units `^u[0-9]+$`, sub-tasks `^(st[0-9]+\|pm)$`, `st0` present, shas 40-hex |
 | 6 | Tickets | every unit and sub-task has a `key` from `tickets.tsv` or a draft slug |
 | 7 | Scopes disjoint | the owner table shows no glob pair that can match one path, apart from files with a named owner |
-| 8 | Port candidates distinct | every candidate and every candidate + 10 in the port table, fixed-by-app-config rows included, is pairwise distinct and at most 65535 (INTERFACES 1.5.0 A.5.2, AM-4 W2-3); on a plan-time clash stop and report, never re-pick (plan-time clash only; the launch-time single +10 retry is separate, A.5.2) |
+| 8 | Port candidates distinct | every candidate and every candidate + 10 in the port table, fixed-by-app-config rows included, is pairwise distinct and at most 65535 (INTERFACES 1.9.0 A.5.2, AM-4 W2-3); on a plan-time clash stop and report, never re-pick (plan-time clash only; the launch-time single +10 retry is separate, A.5.2) |
 | 9 | Budgets | `dispatch_budget` and peak per build-mode sub-task, machine line (each concurrent build's peak plus `sum(reserved)`, A.3, A.4) at most 200, concurrent builds at most 3 |
 | 10 | Waves valid | each `waves/` passes spec-format rules 1-11 and 13-15 by reading (the Plan-checker runs them again) |
 | 11 | Briefs exist | each `Brief:` path resolves under `skills/delivery-run/references/briefs/` |

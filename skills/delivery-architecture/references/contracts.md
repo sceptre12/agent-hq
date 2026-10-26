@@ -1,6 +1,6 @@
 # Contracts: one owning document, siblings cite by pin
 
-Sources: card 3 ("contracts for every shared value, each cross-unit contract having exactly one owning document that siblings cite by pin and never restate"); D63 (`RLM:83`), D67 (`RLM:89`); `RLM:32` (`RLM` = `$HOME/claude-profiles/hermes/h1-home/skills/brain/review-loop-mechanics/SKILL.md`, outside W; key defined in `../SKILL.md` §Provenance) (about 55% of serious light-review findings were cross-document conflicts); INTERFACES 1.5.0 (`architecture/delivery-workflow/INTERFACES.md:3`) part A.6 (`interfaces/part-a-state.md:293-334`) and D6 (`interfaces/part-d-enums-topics.md:136-164`) (`contracts/` at the repo root, writer the Architect).
+Sources: card 3 ("contracts for every shared value, each cross-unit contract having exactly one owning document that siblings cite by pin and never restate"); D63 (`RLM:83`), D67 (`RLM:89`); `RLM:32` (`RLM` = `$HOME/claude-profiles/hermes/h1-home/skills/brain/review-loop-mechanics/SKILL.md`, outside W; key defined in `../SKILL.md` §Provenance) (about 55% of serious light-review findings were cross-document conflicts); INTERFACES 1.9.0 (`architecture/delivery-workflow/INTERFACES.md:3`) part A.6 (`interfaces/part-a-state.md:293-334`) and D6 (`interfaces/part-d-enums-topics.md:136-164`) (`contracts/` at the repo root, writer the Architect).
 
 ## What gets a contract
 

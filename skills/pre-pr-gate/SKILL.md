@@ -211,4 +211,4 @@ any row fails or lacks evidence.
 Card 10 friction (part-02 §2.2 card 10; part-06 sources row "4b Pre-PR gate"):
 `enforcement-gates:10`, `:141`; PR #18/#19 second verify; `pr-review-local-diff-bus-facts`;
 `pr-review-orch-reads-closed`; `brain-workflow-shift:26`. Spec `tasks/20-pre-pr-gate.md`;
-INTERFACES 1.7.0 (AM-4 rows 20, 24-Q2, W2-1, W2-3, W2-4, W2-7, 11-Q11-R1; AM-5 10-B2, 26). Pilot: pending.
+INTERFACES 1.9.0 (AM-4 rows 20, 24-Q2, W2-1, W2-3, W2-4, W2-7, 11-Q11-R1; AM-5 10-B2, 26). Pilot: pending.

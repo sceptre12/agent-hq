@@ -1,6 +1,6 @@
 # Flags and nudges (delivery-shepherd reference)
 
-Authority: INTERFACES 1.5.0 part C7 (flag table, nudge template, "Not a stall", "After every TaskStop", "Observation means", "Merged tick"), C2 (records, reader idiom), C3 (`NEXT:`), C4 (`.verdict`), A.4 (slot row), D4 (topic), D5 (`bus.endpoint`). This file copies the table by anchor; on any difference C7 wins. Lines marked "this skill's reading" interpret a contract; they add no INTERFACES grammar.
+Authority: INTERFACES 1.9.0 part C7 (flag table, nudge template, "Not a stall", "After every TaskStop", "Observation means", "Merged tick"), C2 (records, reader idiom), C3 (`NEXT:`), C4 (`.verdict`), A.4 (slot row), D4 (topic), D5 (`bus.endpoint`). This file copies the table by anchor; on any difference C7 wins. Lines marked "this skill's reading" interpret a contract; they add no INTERFACES grammar.
 
 ## Flag table (C7, with its "Raised by" column)
 
@@ -12,7 +12,7 @@ Authority: INTERFACES 1.5.0 part C7 (flag table, nudge template, "Not a stall", 
 | `CREEP` | shepherd half (this skill) | `scope-check.sh` hit outside the unit's globs | a named defect, never a fix; adjacent defects ticketed |
 | `FREE-CANDIDATE` | shepherd half (this skill) | a terminal record exists for the agent (bus post or `.verdict`) but its slot row is not yet `.freed` | the lead alone frees, after C2 verification |
 
-This skill raises the three shepherd-half flags and also `STALLED` and `PROMPT-OPEN` on its own tick (INTERFACES 1.5.0 C7 authority line, AM-3, owner OQ-3), alongside the `delivery-run` watchdog half, which raises them on every tick including below 3 live agents; two flags for one agent collapse to one lead action, and the lead decides `TaskStop` (D10). The bus-down check and the orphan sweep after a `TaskStop` stay the watchdog half's. The shepherd half runs when the sub-task has 3 or more live agents (the `.row` count, A.4 `live_rows`); below that the lead checks drift and creep itself on each verdict.
+This skill raises the three shepherd-half flags and also `STALLED` and `PROMPT-OPEN` on its own tick (INTERFACES 1.9.0 C7 authority line, AM-3, owner OQ-3), alongside the `delivery-run` watchdog half, which raises them on every tick including below 3 live agents; two flags for one agent collapse to one lead action, and the lead decides `TaskStop` (D10). The bus-down check and the orphan sweep after a `TaskStop` stay the watchdog half's. The shepherd half runs when the sub-task has 3 or more live agents (the `.row` count, A.4 `live_rows`); below that the lead checks drift and creep itself on each verdict.
 
 A pending advisory port-hook `ask` (AM-1) can hold an agent; that is the `PROMPT-OPEN` case, flagged here and by the lead's watchdog half. The shepherd never releases a `port` catalog row (cleanup's, A.5.1).
 

@@ -1,6 +1,6 @@
 # ci-fix-loop provenance
 
-Provenance: pending pilot. Source: design part-02 §2.2 card 11; INTERFACES 1.5.0 D2.2 row 11, D1.1 `CI:`, A.2.2 `sensitive_paths[]`, A.5.2, A.7, B4/B6 desk rows (B4 `push` first/later push, AM-4 24-Q2); A.3 `stop_reason` `d7-round3` (AM-5); owner rule D23 (`delivery-workflow-sources/owner-decisions.md` line 21).
+Provenance: pending pilot. Source: design part-02 §2.2 card 11; INTERFACES 1.9.0 D2.2 row 11, D1.1 `CI:`, A.2.2 `sensitive_paths[]`, A.5.2, A.7, B4/B6 desk rows (B4 `push` first/later push, AM-4 24-Q2); A.3 `stop_reason` `d7-round3` (AM-5); owner rule D23 (`delivery-workflow-sources/owner-decisions.md` line 21).
 
 ## Sonar sub-cases (diagnosed as `flake`)
 Recorded on the pilot platform (`contribution-guidelines/04` §C; `architecture-04-cicd.md` Known Pipeline Bugs). Card 11: each is a one-retry flake class and is never fixed by editing scan configuration. The diagnoser classifies each as `flake` and names the sub-case in `evidence`. A real finding in PR-changed lines is `code-defect`; any other scan-gate failure is `static-analysis-gate` (human).

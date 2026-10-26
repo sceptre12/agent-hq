@@ -87,6 +87,17 @@ call "${DU}" "$(j get_versions GET)"; eq "duplicate read_ops key: exit 2" "${rc}
 DZ="${ROOT}/dupz.md"; printf 'zephyr:\n  read_ops: [get_versions]\nzephyr:\n  read_ops: [setFlag]\n' >"${DZ}"
 call "${DZ}" "$(j get_versions GET)"; eq "duplicate zephyr key: exit 2" "${rc}" 2
 
+# Producer/consumer: the delivery-intake template's exact zephyr: block (only the sentinels replaced) is read by the guard.
+TPL="${ZEPHYR_TEMPLATE_UNDER_TEST:-${HERE}/../../delivery-intake/references/templates/repo-profile.md}"
+TB="$(awk '/^zephyr:/ { z = 1; print; next } z && /^[[:space:]]/ { print; next } { z = 0 }' "${TPL}" 2>/dev/null)"
+case "${TB}" in zephyr:*read_ops:*) pass "template has a zephyr: block with read_ops" ;; *) fail "template zephyr: block not found in ${TPL}" ;; esac
+TP="${ROOT}/profile-from-template.md"
+{ printf 'name: fixture
+'; printf '%s\n' "${TB}" | sed -e 's/read_ops: \[FILL_IN_BEFORE_DISPATCH\]/read_ops: [get_versions, get_history]/' \
+    -e "s/execute_tool: FILL_IN_BEFORE_DISPATCH/execute_tool: ${TOOL}/"; printf 'jira:\n  project_key: X\n'; } >"${TP}"
+has "template fixture: read_ops sentinel replaced" "$(cat "${TP}")" "[get_versions, get_history]"
+call "${TP}" "$(j get_history GET)"; eq "template-form profile, listed read: exit 0" "${rc}" 0
+call "${TP}" "$(j list_secrets GET)"; eq "template-form profile, non-listed: exit 2" "${rc}" 2
 # check-zephyr-disallowed.sh: one pass and one fail fixture, plus list forms and exceptions
 A="${ROOT}/agents-pass"; mkdir -p "${A}"
 printf -- '---\nname: a\ndisallowedTools: %s, Other\n---\nbody\n' "${TOOL}" >"${A}/a.md"

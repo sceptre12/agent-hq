@@ -1,6 +1,6 @@
 # The merged 10-minute tick (watchdog half)
 
-Depth for the SKILL.md step "arm the merged tick", and the procedure for each tick. Authority (INTERFACES 1.7.0): part C C7 (flag table, nudge template, flag discipline, not-a-stall, after `TaskStop`, bus down, observation means, merged tick), C1.1 (call model and its fallback; lane release, AM-6 C-4), C4 (relay), C5.3 (order after `TaskStop`), C8 (AM-5: CV13, CV17, CV47, controller `TaskStop`); part A A.1 (`shepherd/ticks.md` writers), A.5.1 (`process`, `cron`, `bgtask` rows), A.8 (`tick_utc`; cron probe first, AM-6 (d)); design part-03 §4 "Merged tick"; spec 28 RESOLVED R-3, PC-W2-5, PC-W2-7; AM-4 row 23.
+Depth for the SKILL.md step "arm the merged tick", and the procedure for each tick. Authority (INTERFACES 1.9.0): part C C7 (flag table, nudge template, flag discipline, not-a-stall, after `TaskStop`, bus down, observation means, merged tick), C1.1 (call model and its fallback; lane release, AM-6 C-4), C4 (relay), C5.3 (order after `TaskStop`), C8 (AM-5: CV13, CV17, CV47, controller `TaskStop`); part A A.1 (`shepherd/ticks.md` writers), A.5.1 (`process`, `cron`, `bgtask` rows), A.8 (`tick_utc`; cron probe first, AM-6 (d)); design part-03 §4 "Merged tick"; spec 28 RESOLVED R-3, PC-W2-5, PC-W2-7; AM-4 row 23.
 
 ## Arming
 

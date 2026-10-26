@@ -1,6 +1,6 @@
 # Verdicts: the `UNIT-VERDICT` record and lead handling
 
-Depth for the SKILL.md invocation-loop step (C2 and C4 handling) and the tick's verdict read. Authority (INTERFACES 1.7.0): part C C2 (record, lead filter, lead table, readers), C3 (`NEXT:`), C4 (status-file fallback), C1.2 (`step_complete` verifier row), C5.3 (read order, paging), C7 (drift and creep below 3 live agents), C8 (AM-5: CV6, CV7, CV11, the `UNIT-VERDICT` filter; AM-6 (a), (c), (e); AM-7); part D D4; spec 28 RESOLVED R-2, AM4-3; AM-4 rows 22, 23.
+Depth for the SKILL.md invocation-loop step (C2 and C4 handling) and the tick's verdict read. Authority (INTERFACES 1.9.0): part C C2 (record, lead filter, lead table, readers), C3 (`NEXT:`), C4 (status-file fallback), C1.2 (`step_complete` verifier row), C5.3 (read order, paging), C7 (drift and creep below 3 live agents), C8 (AM-5: CV6, CV7, CV11, the `UNIT-VERDICT` filter; AM-6 (a), (c), (e); AM-7); part D D4; spec 28 RESOLVED R-2, AM4-3; AM-4 rows 22, 23.
 
 ## Reading the topic
 

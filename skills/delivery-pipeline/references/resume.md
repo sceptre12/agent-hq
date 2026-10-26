@@ -1,6 +1,6 @@
 # Resume: conductor resume, `REBIND`, applied-result scan, lead relaunch
 
-Authority: card 1 (resume, missing-state stop; D8 29-9), INTERFACES 1.7.0 B1 (registry, re-claim, applied-result scan R4-J9, `.out` polling), B8 (`REBIND`), C5.1, C5.3, A.2 (AM-4 W2-5), A.3 (lock), A.4; adopted conventions A.8 (`RESUME` semantics, AM-6 (f)), B9 (GATE `<run-id>`, AM-6 (f)), C8 (`provenance.md`).
+Authority: card 1 (resume, missing-state stop; D8 29-9), INTERFACES 1.9.0 B1 (registry, re-claim, applied-result scan R4-J9, `.out` polling), B8 (`REBIND`), C5.1, C5.3, A.2 (AM-4 W2-5), A.3 (lock), A.4; adopted conventions A.8 (`RESUME` semantics, AM-6 (f)), B9 (GATE `<run-id>`, AM-6 (f)), C8 (`provenance.md`).
 
 ## Conductor resume (input `RUN_HOME`)
 

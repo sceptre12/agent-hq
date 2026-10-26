@@ -1,6 +1,6 @@
 # H1 packet: one-page layout
 
-Sources: card 3 ("H1 packet (one page: decisions needed, risks, open findings if round 3 was reached, what you are accepting)"); INTERFACES 1.5.0 (`architecture/delivery-workflow/INTERFACES.md:3`) part A.2.1 (H1 files, `ref=` is the sha256 of `h1-packet.md`; `interfaces/part-a-state.md:92-108`), part B8 (`GATE` line grammar; `interfaces/part-b-desk.md:152-172`), part A.6 (`h1-packet.md` in `PLANS_DIR`; `part-a-state.md:293-334`).
+Sources: card 3 ("H1 packet (one page: decisions needed, risks, open findings if round 3 was reached, what you are accepting)"); INTERFACES 1.9.0 (`architecture/delivery-workflow/INTERFACES.md:3`) part A.2.1 (H1 files, `ref=` is the sha256 of `h1-packet.md`; `interfaces/part-a-state.md:92-108`), part B8 (`GATE` line grammar; `interfaces/part-b-desk.md:152-172`), part A.6 (`h1-packet.md` in `PLANS_DIR`; `part-a-state.md:293-334`).
 
 ## Rules
 

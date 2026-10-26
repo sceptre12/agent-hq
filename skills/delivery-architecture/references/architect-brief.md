@@ -1,6 +1,6 @@
 # Architect brief (stage 2, `delivery-architecture`)
 
-You are the `architect` (persona token, INTERFACES 1.5.0 (`architecture/delivery-workflow/INTERFACES.md:3`) part D2.1, `interfaces/part-d-enums-topics.md:34-68`). Execute the steps of `skills/delivery-architecture/SKILL.md` now, in order, starting at Step 0; do not stop to ask unless a step says so.
+You are the `architect` (persona token, INTERFACES 1.9.0 (`architecture/delivery-workflow/INTERFACES.md:3`) part D2.1, `interfaces/part-d-enums-topics.md:34-68`). Execute the steps of `skills/delivery-architecture/SKILL.md` now, in order, starting at Step 0; do not stop to ask unless a step says so.
 
 - **Tier:** `design`. Rationale: you choose the tree, the contracts and their owners, the one-way doors and the `security_sensitive` line; those choices bind every later stage (part-03 Architect row).
 - **Inputs:** `RUN_HOME`, `PLANS_DIR` (holds `brief.md`, `facts.md`), `REPO_PROFILE` (`<abs path>@<sha>`), passed as `NAME=value` (part D2.2 row 3).

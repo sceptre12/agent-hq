@@ -1,6 +1,6 @@
 # delivery-desk: the 12 checks, the registry, inflight and markers
 
-Depth for `SKILL.md` Steps 1 and 3-14. Authority: INTERFACES 1.7.0 (AM-6, AM-7 applied) part B (B1, B2, B3, B5, B6,
+Depth for `SKILL.md` Steps 1 and 3-14. Authority: INTERFACES 1.9.0 (AM-6 to AM-9 applied) part B (B1, B2, B3, B5, B6,
 B7, B9: `architecture/delivery-workflow/interfaces/part-b-desk.md:7-76`, `:108-151`, `:175-188`)
 and part A (A.1, A.2.2, A.6, A.7, A.8: `.../interfaces/part-a-state.md:7-53`, `:109-161`,
 `:293-354`, `:356-378`). Bare ids

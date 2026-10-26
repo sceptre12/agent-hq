@@ -5,12 +5,12 @@ Field shapes and preflight rules are in `spec-format.md`; this file is controlle
 
 ## Which mode a wave runs in
 
-- **Barrier wave:** no work_item declares `depends_on`. It runs as in 1.0.0: all its
-  work_items, one wave gate over the wave's output, and the next wave starts only after
-  that gate passes.
-- **Frontier wave:** at least one work_item declares `depends_on: [<work_item>, ...]`. The
-  wave enumerates its work_items (rule 15) and every edge names a work_item of the same
-  wave. Frontiers are computed inside the wave; declared waves stay barriers to each other,
+- **Barrier wave:** no work_item declares a `depends_on` edge (`depends_on: []` declares
+  none). It runs as in 1.0.0: all its work_items, one wave gate over the wave's output, and
+  the next wave starts only after that gate passes.
+- **Frontier wave:** at least one edge: a work_item's `depends_on: [<work_item>, ...]` names
+  another work_item. The wave enumerates its work_items (rule 15) and every edge names a
+  work_item of the same wave. Frontiers are computed inside the wave; declared waves stay barriers to each other,
   so wave N+1 starts only after every work_item of a frontier wave N has passed its gate.
 - There is no global barrier-free flag and no cross-wave edge.
 
@@ -22,24 +22,27 @@ An agent is dispatched only when all of these hold:
    agents together. A gate or fix agent with no free slot waits for one; it is never
    dispatched over the cap. `max_concurrent` absent = unbounded.
 2. **Lane (work_item agents only):** no other work_item with the same `lane` is live in the
-   run. A work_item counts as live from its dispatch until its gate passes or it escalates,
-   including its gate and fix agents. Leasing the lane's real resources is the caller's.
+   run (one invocation of the skill). In a frontier wave a work_item counts as live from its dispatch until its
+   gate passes or it escalates, including its gate and fix agents. Leasing the lane's real
+   resources is the caller's.
 3. **Blockers (frontier only):** every work_item in its `depends_on` has a passed gate.
 
 Work_items without edges are releasable at once.
 
 ## Agent ids and the dispatch record
 
-- Each agent gets a `from_agent` id matching `^[a-z0-9-]+$` that carries the per-invocation
-  `NONCE` (step 3), e.g. `<work_item>-<nonce>`, `<work_item>-gate-<nonce>`,
-  `<work_item>-fix<k>-<nonce>`. The controller records the id's role (`worker`, `gate`,
-  `fix`), wave and work_item. No id is reissued under one `session_id`, even on resume.
+- Each agent gets its own `from_agent` id matching `^[a-z0-9-]+$` that carries the
+  per-invocation `NONCE` (step 3), e.g. `<work_item>-<nonce>`, `<work_item>-gate<k>-<nonce>`,
+  `<work_item>-fix<k>-<nonce>` (`<k>` as defined in `spec-format.md`, "Agent ids and accepted posts"). These shapes are examples: the id matches the pattern
+  whatever the work_item name, and no id is reissued under one `session_id`, even on resume,
+  so several gate agents for one work_item, or a gate re-run after a fix, each get a distinct
+  id. The controller records the id's role (`worker`, `gate`, `fix`), wave and work_item.
 - **Dispatch record (only when `bus_endpoint` is declared):** before dispatching an agent,
   append one JSON line to `dirname(<resolved bus_endpoint>)/dispatch/<invocation>.jsonl`:
   `{"agent_id","role","unit","persona","tier","backend","utc"}` — `role` `worker|gate|fix`;
   `unit` the served work_item id; `persona` the work_item's `persona` for a worker,
-  `gate-checker` for a gate agent, `fixer` for a fix agent; `tier` the wave `agents` tier
-  (a worker under `tier_override` takes the overriding tier); `backend` `agent-tool` or
+  `gate-checker` for a gate agent, `fixer` for a fix agent; `tier` the model the wave's
+  `agents` field names (a required field, spec-format) (a worker under `tier_override` takes the overriding tier); `backend` `agent-tool` or
   `claude-p` (the Operating Mode Gate result); `utc` ISO 8601. The caller reads this file;
   the skill only appends to it.
 - **Acceptance:** a bus post counts only if its `from_agent` was assigned in this invocation
@@ -62,8 +65,8 @@ Repeat until no work_item is live or releasable:
    caller that needs one puts it in a following barrier wave.
 4. **Pass:** write the work_item's gate pass to the checkpoint, free its lane, then
    re-evaluate releasability of its dependents.
-5. **Fail:** that work_item's fix loop (step 7), its own `fix_loop_cap` (default 3), fix
-   agents scoped to it alone. On exhaustion post `{SESSION_ID}-escalation` with
+5. **Fail:** that work_item's fix loop (step 7): the wave's `fix_loop_cap` (default 3),
+   counted for this work_item alone, fix agents scoped to it alone. On exhaustion post `{SESSION_ID}-escalation` with
    `{ halt_reason: "fix-loop-cap-exhausted", wave: N, work_item: <id>, iterations: <cap> }`,
    free its lane, and never release its transitive dependents. Other work_items run on to
    their own gate pass or escalation.

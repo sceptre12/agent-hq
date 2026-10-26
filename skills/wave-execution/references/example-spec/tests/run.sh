@@ -3,7 +3,9 @@
 # tests/fixtures/{valid,invalid-<rule>-<case>}/. Hermetic, bash 3.2 / BSD awk, no network.
 # Covers rules 4, 5, 9, 11, 13, 14, 15 (the rules new or amended by ADR 0054); rules 1-3, 6-8 and 10
 # need the caller's filesystem or judgement and are not checked here. Option B bundles only
-# (bundle.md plus waves/NN-<name>.md). Last line: WAVE-EXEC-TESTS: PASS <n>/<n>
+# (bundle.md plus waves/NN-<name>.md). A wave enumerates its work_items when its work_items value
+# is empty or starts with "enumerated below" and each item is a "  - **<id>**" entry; any other
+# value is a runtime rule. Last line: WAVE-EXEC-TESTS: PASS <n>/<n>
 set -uo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SPEC="$(cd "$HERE/.." && pwd)"
@@ -21,6 +23,7 @@ check_bundle() {
   function first(s,   a) { split(s, a, /[ \t]+/); return a[1] }
   function bad(rule, w, msg) { print "RULE " rule ": wave " w ": " msg; fails++ }
   function isnum(s) { return s ~ /^[0-9]+$/ }
+  function enumerated(w) { return wval[w, "work_items"] == "" || wval[w, "work_items"] ~ /^enumerated below/ }
   function done_ok(v,   t, n, c) {   # {"token": "<str>", "command": "<str>"}, nothing else
     if (v !~ /^\{.*\}$/) return 0
     t = v; n = gsub(/"[A-Za-z_]+"[ \t]*:/, "&", t)
@@ -51,8 +54,8 @@ check_bundle() {
       if (gt !~ /^(exit_criteria|adversarial_verify|judge_panel|step_complete)$/) bad(9, w, "gate_type " gt " is not in the enum")
       if (gt == "adversarial_verify" && !(isnum(first(wval[w, "skeptics"])) && first(wval[w, "skeptics"]) + 0 >= 1)) bad(9, w, "adversarial_verify needs skeptics >= 1")
       if (gt == "judge_panel") { j = first(wval[w, "judges"]); if (!isnum(j) || j + 0 < 3 || j % 2 == 0) bad(9, w, "judge_panel needs an odd judges >= 3") }
-      if (gt == "step_complete") {
-        if (!icount[w]) bad(9, w, "step_complete needs enumerated work_items, each with a done_condition")
+      if (gt == "step_complete") {   # rule 9: done_condition on every work_item, so none may be runtime-generated
+        if (!icount[w] || !enumerated(w)) bad(9, w, "step_complete needs every work_item listed, each with a done_condition")
         for (i = 1; i <= icount[w]; i++) { nm = iname[w, i]
           if (!iset[w, nm, "done_condition"]) bad(9, w, "work_item " nm " has no done_condition")
           else if (!done_ok(ival[w, nm, "done_condition"])) bad(9, w, "work_item " nm " done_condition is not exactly {token, command} with both non-empty") } }
@@ -66,7 +69,6 @@ check_bundle() {
     for (w = 1; w <= maxw; w++) {
       if (!seen[w]) continue
       edges = 0
-      if (wset[w, "depends_on"]) { bad(15, w, "edges declared but the wave does not enumerate its work_items"); continue }
       for (i = 1; i <= icount[w]; i++) { nm = iname[w, i]; nd[w, i] = 0
         if (!iset[w, nm, "depends_on"]) continue
         d = ival[w, nm, "depends_on"]; gsub(/\[|\]/, "", d); m = split(d, da, ",")
@@ -76,6 +78,7 @@ check_bundle() {
             bad(15, w, "work_item " nm " depends_on " e ", " (found ? "a work_item of another wave (cross-wave edge)" : "which this wave does not declare")) } } }
       frontier[w] = (edges > 0)
       if (!edges) continue
+      if (!enumerated(w)) bad(15, w, "edges declared but the wave does not enumerate its work_items (work_items is a runtime rule)")
       for (i = 1; i <= icount[w]; i++) rem[w, i] = 0
       for (pass = 1; pass <= icount[w]; pass++) for (i = 1; i <= icount[w]; i++) if (!rem[w, i]) {
         ok = 1; for (x = 1; x <= nd[w, i]; x++) { dn = dep[w, i, x]; if (isitem[w, dn]) { for (y = 1; y <= icount[w]; y++) if (iname[w, y] == dn && !rem[w, y]) ok = 0 } }
@@ -111,9 +114,9 @@ expect() {
 
 # 1. The full example bundle (3 legacy waves + the frontier wave 4 + bundle header) passes.
 expect "example bundle (waves 1-4 + bundle header) passes" "$SPEC" ""
-# 2. The legacy 3-wave bundle with none of the new fields passes unchanged.
+# 2. The legacy form (waves 1-3, no new fields) passes unchanged.
 mkdir -p "$ROOT/legacy/waves"; cp "$SPEC"/waves/0[123]-*.md "$ROOT/legacy/waves/"
-expect "legacy 3-wave bundle (no new field) passes" "$ROOT/legacy" ""
+expect "legacy form (waves 1-3, no new fields) passes" "$ROOT/legacy" ""
 # 3. Valid frontier fixture, then each negative fixture fails with exactly its named rule.
 FX="$HERE/fixtures"
 expect "fixture valid: frontier bundle passes (budget met exactly)" "$FX/valid" ""
@@ -133,6 +136,10 @@ sed -i.bak 's/^- \*\*session_id:\*\* `example-audit-fix`/- **session_id:** `Exam
 expect "mutation: example with uppercase session_id fails rule 13" "$ROOT/m" "13"
 cp "$SPEC/bundle.md" "$ROOT/m/bundle.md"; rm -f "$ROOT/m/waves/02-fix.md"
 expect "mutation: example with wave 2 removed fails rule 4" "$ROOT/m" "4"
+cp -R "$SPEC/waves/02-fix.md" "$ROOT/m/waves/"
+sed -i.bak 's/^- \*\*work_items:\*\* enumerated below.*/- **work_items:** one per file in `fixed_docs`, plus those below./' "$ROOT/m/waves/04-build.md"
+rm -f "$ROOT/m/waves/"*.bak
+expect "mutation: frontier step_complete wave whose work_items is a runtime rule fails rules 9 and 15" "$ROOT/m" "9 15"
 # Rule 11 is the last check executed: with a rule 13 failure and an overrun, only rule 13 is reported.
 cp -R "$FX/invalid-13-uppercase" "$ROOT/last"; sed -i.bak 's/dispatch_budget:\*\* 14/dispatch_budget:** 1/' "$ROOT/last/bundle.md"
 expect "rule 11 runs last (suppressed while another rule fails)" "$ROOT/last" "13"

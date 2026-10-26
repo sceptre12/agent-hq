@@ -208,6 +208,18 @@ r lane-lease lane/z; A_LL=$RID
 r container web:1; C_ID=$RID
 r tmpdir "$RUN/rel-dir"; R_ID=$RID; mkdir -p "$RUN/rel-dir"
 cat_ release tmpdir "$RUN/rel-dir"
+# M1 (PR #11): non-canonical path handles are rejected at register (exit 2, rule named), so none reaches the audit
+cate() { OUT=$(RUN_HOME="$RUN" /bin/bash "$CATSH" "$@" 2>&1 >/dev/null); RC=$?; }
+N0=$(lines)
+for c in "$RUN/st0/bus/|trailing-slash" "$RUN/st0/bus/.|dot-component" "$RUN/st0/bus//|trailing-slash" \
+  "$RUN/st0//bus|double-slash" "$RUN/st0/./bus|dot-component"; do
+  cate register bus "${c%|*}" - run s st0 agent-a; eq "bus ${c%|*} rc" "$RC" 2; has "bus ${c%|*} rule" "$OUT" "${c#*|} rule"
+done
+cate register tmpdir "$RUN/live-dir/" - run s run agent-a; eq "tmpdir trailing / rc" "$RC" 2
+cate register worktree "$WT/.#$REPO@main" - run s st0 agent-a; eq "worktree /. rc" "$RC" 2; has "worktree /. rule" "$OUT" "dot-component rule"
+cate register branch "$REPO//#feat@main" - run s run agent-a; eq "branch repo // rc" "$RC" 2
+cate register clone "$RUN/.hidden" - run s run agent-a; eq "dot-prefixed name still allowed" "$RC" 0
+eq "rejected handles appended no row" "$(lines)" $((N0 + 1))
 # rowin <audit-output> <row_id>: exact match of field 2 (a plain substring test confuses row id ...-1 with ...-10)
 rowin() { printf '%s\n' "$1" | cut -f2 | command grep -qxF -- "$2"; }
 cat_ audit; AUD=$OUT; eq "audit rc" "$RC" 0
@@ -216,6 +228,7 @@ for id in "$G_PROC" "$G_TMP" "$G_WT" "$G_BR" "$G_BUS" "$G_RBUS" "$G_RBUS2"; do h
 has "SQUATTER stray" "$AUD" "SQUATTER$T-${T}worktree:$STRAY"
 if rowin "$AUD" "$C_ID"; then fail "container printed"; else pass; fi
 if rowin "$AUD" "$R_ID"; then fail "released printed"; else pass; fi
+eq "GHOST count is exactly the 7 seeded ghosts plus .hidden (no non-canonical bus row reached audit)" "$(printf '%s\n' "$AUD" | command grep -c "^GHOST$T")" 8
 case $AUD in *"worktree:$WT"*) fail "open worktree reported as squatter" ;; *) pass ;; esac
 BADL=0
 while IFS= read -r line; do

@@ -15,12 +15,14 @@ checked. hq owns `tools/ports.tsv`; this skill never edits any file outside hq
 1. Before picking a port, check it: `~/projects/agent-hq/tools/port-check.sh <port>`.
    - Exit `0` → free in both registry and `lsof`. Proceed.
    - Exit `1` → taken (registry and/or live agree). Stop. Do not auto-pick the next port —
-     report the collision and let a human choose. Exception, the one retry (INTERFACES 1.3.0
-     A.5.2, AM-3, owner OQ-2): on the first refusal of a candidate, make exactly one retry at
-     candidate + 10, itself checked and claimed with `--claim` before any bind (the tool never
-     picks it); a second refusal stops the line and is reported. Never a second +10.
-   - Exit `2` → registry and live **disagree** (staleness signal). Stop — this is a hard stop,
-     never a warning. It is the exact failure class named in architecture §5.1.
+     report the collision and let a human choose, except for the one retry below.
+   - Exit `2` → registry and live **disagree** (staleness signal). Stop — this is a hard stop for
+     the candidate, never a warning: do not bind it. It is the exact failure class named in
+     architecture §5.1. The one retry below applies exactly as for exit `1`.
+   - The one retry, for exit `1` and exit `2` alike (INTERFACES 1.3.0 A.5.2, AM-3, owner OQ-2):
+     on the first refusal of a candidate, make exactly one retry at candidate + 10, itself
+     checked and claimed with `--claim` before any bind (the tool never picks it); a second
+     refusal stops the line and is reported. Never a second +10.
    - Exit `3` → usage error, or the registry is unusable: missing, empty, or carrying a
      structurally malformed row (not 9 tab-separated fields, a non-numeric port field, or a
      status outside the closed enum). Fix the invocation or the row; the script fails closed
@@ -34,12 +36,13 @@ checked. hq owns `tools/ports.tsv`; this skill never edits any file outside hq
    there is nothing to record. In a delivery run `<project>` is the `<run-id>` and `<source>` is
    `<run-id>-<subtask>` (A.5.2). `<port>` must be a single numeric port, 1-65535 — `--claim` does
    not accept a range (a range claim is out of scope for this skill: stop and report it), even
-   though range *rows* are legal in the registry and are matched by the check path. `<status>`
-   must be one of `live` / `claimed` / `reserved` / `unmerged` / `released` /
+   though range *rows* are legal in the registry and are matched by the check path. The status
+   field (here `claimed`) must be one of `live` / `claimed` / `reserved` / `unmerged` / `released` /
    `UNVERIFIED` — the enum is closed (architecture §2.1) and `--claim` refuses anything else with
    exit `3`. `--claim` re-runs the check first and refuses to append on a live conflict (exit `1`
    or `2`: do not bind; take the one +10 retry of Step 1 at most once, else report); only add a trailing `--force` when the conflict is understood and
-   accepted — it is then recorded as `note=forced`, never silently.
+   accepted — it is then recorded with note `forced` (or `forced: <note>`), never silently. In a delivery run never pass
+   `--force`: a refusal gets the one +10 retry, then stop (`skills/resource-catalog/references/ports.md`).
 4. Bind the port in the target project as normal, only after the claim returned exit `0`. This
    skill does not touch any file outside hq. If the bind fails, supersede the claim at once with a
    `released` row of the same port and the same `source`:

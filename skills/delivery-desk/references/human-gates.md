@@ -2,15 +2,23 @@
 
 The human types one line in the desk session. These lines are not `SendMessage` verbs and not
 B4 verbs; an agent never sends them and the desk never accepts them over the transport. The desk
-is the only writer under `gates/` (M30). Authority: INTERFACES part B8 and part A.2.1.
+is the only writer under `gates/` (M30). Authority: INTERFACES part B8
+(`architecture/delivery-workflow/interfaces/part-b-desk.md:152-172`) and part A.2.1
+(`.../interfaces/part-a-state.md:91-105`); M30 resolves in `references/source-keys.md`.
 
 ## Grammar (POSIX ERE)
 
 ```
-GATE   <run-id> <gate> <verdict> <text>     ^GATE ([a-z0-9-]+) (H0|H1|H-e2e\.(st[0-9]+|pm)|H-pr|H-prod\.[a-z0-9-]+) (ok|changes|reject)( .+)?$
+GATE   <run-id> <gate> <verdict> <text>     ^GATE ([a-z0-9-]+) (H0|H1|H-e2e\.(st[0-9]+|pm)|H-pr|H-prod\.[a-z0-9-]+|grant\.(st[0-9]+|pm)\.[0-9]+) (ok|changes|reject)( .+)?$
 ANSWER <run-id> <subtask> <unit> <text>     ^ANSWER ([a-z0-9-]+) (st[0-9]+|pm) ([ui][0-9]+) (.+)$
 REBIND <run-id> <sender-id>                 ^REBIND ([a-z0-9-]+) ([^ ]+)$
 ```
+
+The `grant.<subtask>.<n>` alternative is `DEFAULT (author)`, pending an INTERFACES erratum: A.2.1
+(AM-4 20 Q1, `part-a-state.md:102`) adds the grant file and its typed line as
+`GATE grant.<subtask>.<n> ok <text>` (no `<run-id>`), while B8 (`part-b-desk.md:157`, matrix
+`:164-170`) does not list `grant.*`. The desk accepts only the B8 form with `<run-id>`; a line
+without it fails the regex.
 
 A line that fails its regex, or names a `<run-id>` with no `$DELIVERY_ROOT/<run-id>/state.md`,
 is answered in the session with what failed; nothing is written.
@@ -24,6 +32,7 @@ is answered in the session with what failed; nothing is written.
 | `H-e2e.<subtask>` | ok | `RUN_HOME/<subtask>/gates/H-e2e.<subtask>.ok` | none at the desk; the lead refuses e2e generation without it |
 | `H-prod.<step_id>` | ok | `RUN_HOME/gates/H-prod.<step_id>.ok` | `publish`; `tag-push` under `release_tags.approval: human` |
 | `H-pr` | none | nothing: external evidence only (the approving review, B5) | `pr-merge` refuses without the read-back |
+| `grant.<subtask>.<n>` | ok | `RUN_HOME/gates/grant.<subtask>.<n>.ok` (A.2.1, AM-4 20 Q1; `DEFAULT (author)` line form, above) | none at the desk; a `pre-pr-gate` sensitive-path hit passes only with a desk `INSTALLED` row for that path or this file |
 
 Any other gate-verdict pair is refused in the session and nothing is written.
 
@@ -45,6 +54,7 @@ Key=value lines, written to a temp file in the same directory and `mv`d into pla
 | `H1` | sha256 of `h1-packet.md`, or the typed `jira:<KEY>@<comment-id>` |
 | `H-e2e.<subtask>` | sha256 of the batched `.feature` list named in `test-plan.md` for that sub-task |
 | `H-prod.<step_id>` | the release-plan `step_id` |
+| `grant.<subtask>.<n>` | the sensitive path (A.2.1 "`ref=` names the sensitive path"); the desk cannot compute it, so the typed `<text>` must start with `ref=<path>`, else the line is refused in the session and nothing is written (`DEFAULT (author)`) |
 
 H1 history: before writing any `H1` file, rename every existing `H1.ok`, `H1.changes`,
 `H1.reject` and `H1.notes.md` to `<name>.<yyyymmddThhmmssZ>`, so one live H1 file remains. For

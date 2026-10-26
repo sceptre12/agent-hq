@@ -12,7 +12,7 @@ One lead per `substate.md`. A resumed lead gets the brief
 `resume <subtask>: re-read substate.md, inbox/ and gates/` and runs the same steps (C5.3);
 the checkpoint is the sole resume authority (O-Q6).
 
-Authority: INTERFACES 1.5.0 parts A-D (AM-5 additions A.8, B9, C8, D8) and 1.6.0 AM-6. Paths: `RUN_HOME = $DELIVERY_ROOT/<run-id>`, `ST = RUN_HOME/<subtask>`.
+Authority: INTERFACES 1.7.0 parts A-D (AM-5 additions A.8, B9, C8, D8; AM-6; AM-7). Paths: `RUN_HOME = $DELIVERY_ROOT/<run-id>`, `ST = RUN_HOME/<subtask>`.
 Depth lives in seven references: [bus-and-ports](references/bus-and-ports.md),
 [ledger](references/ledger.md), [verdicts](references/verdicts.md),
 [control-channel](references/control-channel.md), [resume](references/resume.md),
@@ -133,7 +133,7 @@ the lead copies nothing (C1.2, R4-J14). Tier names only, never models (M19).
 
 9. **The merged tick (C7; [tick](references/tick.md)).** One session cron every 10 minutes,
    `run_in_background`, armed in your own session at step 3 for both backends, prompt verbatim from design
-   §4 (`part-03-personas-and-concurrency.md:92`, copied in `references/tick.md`); register it as
+   §4 (`part-03-personas-and-concurrency.md:94`, copied in `references/tick.md`); register it as
    a catalog `cron` row. A `claude -p` lead runs the A.8 12-minute cron probe first and
    switches to the C1.1 fallback only if it fails (AM-6 (d), [tick](references/tick.md)).
    Every tick (watchdog half; also below 3 live agents, R-3), in the `tick.md` order:
@@ -197,7 +197,7 @@ the lead copies nothing (C1.2, R4-J14). Tier names only, never models (M19).
        in `spawns`.
     5. `max_concurrent = 30 - live_rows - sum(reserved)`, computed after that row exists.
     6. Call the extended `wave-execution` as a background Agent task with `spec_root`
-       `PLANS_DIR/subtasks/<subtask>/waves/` (C1, AM-6 (e)),
+       `PLANS_DIR/subtasks/<subtask>/` (C1, AM-7),
        `max_concurrent`, `invocation`, and
        `tier_override <unit>=<tier>` for a re-dispatch; the bundle carries
        `bus_endpoint` = `<run-id>/<subtask>/bus.endpoint`, `gate_type: step_complete`. At most
@@ -241,7 +241,7 @@ the lead copies nothing (C1.2, R4-J14). Tier names only, never models (M19).
     pass `RUN_HOME`, `SUBTASK`, `HEAD` (the rebased sub-task head), `WORKTREE` (the sub-task
     worktree), `REPO_PROFILE`, `SECURITY_AUDIT`. Store the word after `PREPR: ` in `prepr` (`PASS|STOP`, A.3), the head to
     `head`, `RUN_HOME/review/<subtask>/record-<head>.md` to `review_record`. `PREPR: STOP` maps
-    to `port-refused`, `d7-round3` or `stop-the-line:S2` by the checklist evidence (proposed CV26,
+    to `port-refused` (`STOP C12`, port condition), `d7-round3` or `stop-the-line:S2` (proposed CV26,
     [handoffs-and-modes](references/handoffs-and-modes.md#pre-pr-gate-d22-row-10)). An `INPUT-ERROR` answer is no D7 round: fix the
     input, re-invoke with the same iteration (AM4-2).
 
@@ -316,7 +316,7 @@ Every wait (`RELEASE`, `ANSWER`, `MERGED`, this pause, `WAITING-HUMAN`) follows
       return or `TaskStop`), never on an unverified post.
 - [ ] `max_concurrent` was computed per invocation by the free-slot formula; `spawns` never passed `cap - 5`.
 - [ ] Every `UNIT-VERDICT` was handled per C2; every `ESCALATE` has `ST/escalations/<unit>.md`.
-- [ ] `integrated`, `prepr`, `head`, `review_record`, `pr`, `ci` in `substate.md` name the same final head.
+- [ ] `prepr`, `head`, `review_record` and `ci` in `substate.md` name the same final head (A.3 W2-7).
 - [ ] No push or `pr-create` without `PREPR: PASS` and `GATE-PASS` for its head (AM4-1 for later pushes).
 - [ ] On any stop, `stop_reason` holds one A.3 value (incl. `port-refused`) and the path was printed.
 

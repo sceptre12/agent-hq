@@ -1,6 +1,6 @@
 # Units to `waves/`: what step 10 writes
 
-Authority is INTERFACES `1.5.0` part C1, C1.1, C1.2, C8 and part A.3, A.6, A.8. This file points at them and records only how this skill applies them; it does not restate their tables. Field names for the spec come from `skills/wave-execution/references/spec-format.md` (item 9 extends it); read that file before writing, and follow it where it is more exact than this page.
+Authority is INTERFACES `1.7.0` part C1 (`spec_root` = bundle root, AM-7 touch-up 6), C1.1 (lane release, AM-6 C-4), C1.2, C8 and part A.3, A.6 (AM-6 B-9b, B-9c), A.8. This file points at them and records only how this skill applies them; it does not restate their tables. Field names for the spec come from `skills/wave-execution/references/spec-format.md` (item 9 extends it); read that file before writing, and follow it where it is more exact than this page.
 
 ## Output paths (A.6)
 
@@ -10,7 +10,7 @@ Authority is INTERFACES `1.5.0` part C1, C1.1, C1.2, C8 and part A.3, A.6, A.8. 
 | `.tasks/<unit>-<slug>.md` | primary repo root | `<slug>` is the unit's ticket slug (A.1), never `NN-slug` |
 | `subtasks/<subtask>/substate.seed.md` | `PLANS_DIR/` | build-mode sub-tasks only; exactly the seed keys below |
 | `subtasks/<subtask>/bundle.md` | `PLANS_DIR/` | the bundle header (bundle fields below), at the bundle root next to `waves/` (C1, AM-3 errata (c)) |
-| `subtasks/<subtask>/waves/` | `PLANS_DIR/` | Option B layout of the spec format; waves numbered from 1 |
+| `subtasks/<subtask>/waves/` | `PLANS_DIR/` | Option B layout of the spec format; waves numbered from 1; the `spec_root` `delivery-run` passes is the bundle root `subtasks/<subtask>/`, not `waves/` (C1, INTERFACES 1.7.0 AM-7 touch-up 6, E46) |
 | `subtasks/<subtask>/constitution.md` | `PLANS_DIR/` | only when the repo has no profile yet (C1; definition below); not a wave file (C1, AM-3 errata (d)); written here at plan time, never at run time (A.8 A.6, C8, owner S4b) |
 | `catalog.tsv`, `plan-check.md` | `RUN_HOME/` | the first created empty by this skill; the second written by the Plan-checker |
 

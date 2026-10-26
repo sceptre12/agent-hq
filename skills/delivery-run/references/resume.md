@@ -1,6 +1,6 @@
 # Resume, reconcile, lock and hand-over
 
-Depth for the SKILL.md steps "lifetime `substate.lock` and seed copy" and "reconcile (also on a first start)", and for every restart. Authority (INTERFACES 1.5.0): part C C5.3 (brief, triggers, steps 1-6 with 3a and 3b, hand-over, order after `TaskStop`, bus paging); part A A.3 (lock and break, seed, `stop_reason`, `interfaces_version`), A.4 (resume encoding by rename), A.5 (`catalog.sh audit`, exit 5 per the I script table), A.8 (`RESUME` gate, `stale-session`); part B B1 (re-attach, applied-result scan); spec 28 RESOLVED Q2, PC-W2-8; AM-4 row W2-5.
+Depth for the SKILL.md steps "lifetime `substate.lock` and seed copy" and "reconcile (also on a first start)", and for every restart. Authority (INTERFACES 1.7.0): part C C5.3 (brief, triggers, steps 1-6 with 3a and 3b, hand-over, order after `TaskStop`, bus paging); part A A.3 (lock and break, seed, `stop_reason`, `interfaces_version`), A.4 (resume encoding by rename), A.5 (`catalog.sh audit`, exit 5 per the I script table), A.8 (`RESUME` gate, AM-6 (f); `stale-session`); part B B1 (re-attach, applied-result scan); spec 28 RESOLVED Q2, PC-W2-8; AM-4 row W2-5.
 
 ## Brief and triggers (C5.3)
 
@@ -66,7 +66,7 @@ After steps 1-5 a resumed lead re-enters at the row for its `substate.md` `phase
 
 ## `interfaces_version` on resume
 
-Step 0 runs on every start: the dispatch-plan header `interfaces_version` (and, in mode `build`, the seed copy's) is compared with `state.md` `interfaces_version`. A mismatch is `INPUT-ERROR interfaces_version format` and a stop (D2.2 row 6). The A.2 example's `1.1.0` is illustrative and not authoritative; the live files are compared (AM4-4).
+Step 0 runs on every start: the dispatch-plan header `interfaces_version` (and, in mode `build`, the seed copy's) is compared with `state.md` `interfaces_version`. A mismatch is `INPUT-ERROR interfaces_version format` and a stop (D2.2 row 6). The A.2 example's `1.4.0` is illustrative and not authoritative; the live files are compared (AM4-4).
 
 ## Red flags
 

@@ -1,6 +1,6 @@
 # Resume: conductor resume, `REBIND`, applied-result scan, lead relaunch
 
-Authority: card 1 (resume, missing-state stop; D8 29-9), INTERFACES 1.5.0 B1 (registry, re-claim, applied-result scan R4-J9, `.out` polling), B8 (`REBIND`), C5.1, C5.3, A.2 (AM-4 W2-5), A.3 (lock), A.4; adopted conventions A.8, B9, C8 (`provenance.md`).
+Authority: card 1 (resume, missing-state stop; D8 29-9), INTERFACES 1.7.0 B1 (registry, re-claim, applied-result scan R4-J9, `.out` polling), B8 (`REBIND`), C5.1, C5.3, A.2 (AM-4 W2-5), A.3 (lock), A.4; adopted conventions A.8 (`RESUME` semantics, AM-6 (f)), B9 (GATE `<run-id>`, AM-6 (f)), C8 (`provenance.md`).
 
 ## Conductor resume (input `RUN_HOME`)
 
@@ -52,5 +52,5 @@ A `stopped` sub-task (not the run-level `stage: stopped`) stays `stopped` at res
 - A lead that dies again with `phase` still equal to `relaunch_phase` is reported to the owner with the sub-task, both session tokens, `homes/<session>/lead.log` and `substate.md` paths, and not relaunched a third time (the conductor's reading of "never a third attempt", with stop-and-report from card 1; C8 29-6, owner item O-2 lead default); the `spawn-cap` trigger counts the same way, so a missing lock does not re-trigger every tick.
 - A `merged` sub-task not yet `cleaned` is relaunched only to run `delivery-cleanup` `MODE=subtask` (its lead still owes it; owner item O-2 lead default, C8 29-6).
 - A second `pm` lead that finds a fresh `substate.lock` refuses to start with `stop_reason: stale-session` (A.8; owner item O-1 lead default): post it as a human step; no relaunch while the old lock is fresh.
-- Not relaunched: a `pm` with `postmerge: FAIL`, a `POSTMERGE: STOP` record, a `stop_reason: human` (`stopped`, 29-31) or a terminal `release_record` (29-19).
+- Not relaunched: a `pm` with `postmerge: FAIL`, a `POSTMERGE: STOP` record with no later `RESUME.pm.<run-id>.ok` gate (AM-7 E47; `tick-relay.md`), a `stop_reason: human` (`stopped`, 29-31) or a terminal `release_record` (29-19).
 - `wave-execution` resumes from its checkpoint because `session_id` is unchanged; the lead's own C5.3 steps (slot rows, catalog audit, lease reclaim, pm2 check) are `delivery-run`'s, never the conductor's.

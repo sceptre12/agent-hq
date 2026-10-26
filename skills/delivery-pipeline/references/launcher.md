@@ -1,6 +1,6 @@
 # Launching sub-task leads: ledger checks and the launcher spec
 
-Authority: design §4 (numbers, rule 8; `architecture/delivery-workflow/part-03-personas-and-concurrency.md:65-95`), §6.4 (launcher spec, D25 `architecture/delivery-workflow-sources/owner-decisions.md:12`; `part-05-execution-constraints.md:46-57`), INTERFACES 1.5.0 A.1, A.4 (machine ledger, AM-4 W2-9; `interfaces/part-a-state.md:7`, `:210`), A.8 (29-1, 29-2, 29-13, 29-21, 29-22, 29-26, 29-38, 29-39), C5.2, C5.3 (`interfaces/part-c-waves-control.md:131-151`); spec 25 RESOLVED Q6 (the Zephyr entry). The conductor is the only launcher (card 1, A4/A5). It never dispatches unit workers; a lead dispatches its own.
+Authority: design §4 (numbers, rule 8; `architecture/delivery-workflow/part-03-personas-and-concurrency.md:65-95`), §6.4 (launcher spec, D25 `architecture/delivery-workflow-sources/owner-decisions.md:12`; `part-05-execution-constraints.md:46-57`), INTERFACES 1.7.0 A.1 (review session id, AM-6 C-3), A.4 (machine ledger, AM-4 W2-9; `interfaces/part-a-state.md:7`, `:210`), A.8 (cron probe first, AM-6 (d); `pm` worktree, AM-6 (b); 29-1, 29-2, 29-13, 29-21, 29-22, 29-26, 29-38, 29-39), C5.2, C5.3 (`interfaces/part-c-waves-control.md:131-151`); spec 25 RESOLVED Q6 (the Zephyr entry). The conductor is the only launcher (card 1, A4/A5). It never dispatches unit workers; a lead dispatches its own.
 
 ## Which backend starts a lead (C5.2)
 

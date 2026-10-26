@@ -1,6 +1,6 @@
 # Template: `state.md` and `substate.md` (design 5.0; INTERFACES A.2, A.3, A.4)
 
-Fill-in skeletons for the two run-state files and the two single-line records that sit beside them (slot row, machine ledger row). Every field name, enum and regex below is copied from `INTERFACES.md` 1.5.0; if this file and INTERFACES differ, INTERFACES wins and this file is the defect. Regex dialect: POSIX ERE.
+Fill-in skeletons for the two run-state files and the two single-line records that sit beside them (slot row, machine ledger row). Every field name, enum and regex below is copied from `INTERFACES.md` 1.7.0 (AM-6 and AM-7 applied); if this file and INTERFACES differ, INTERFACES wins and this file is the defect. Regex dialect: POSIX ERE.
 
 - **Writer / Reader (`state.md`):** writer the conductor (`delivery-pipeline`) only. Readers: conductor at resume, `delivery-run` Step 0 (`interfaces_version` only), `delivery-desk` (gate pointers, `plans_dir`, `repo_profile` pinned `@<sha>`), the human.
 - **Writer / Reader (`substate.md`):** writer the sub-task lead only. Readers: conductor (never the bus), shepherd tick, lead at resume. Two writers on one `substate.md` is stop-the-line `S6`.
@@ -88,7 +88,7 @@ machine_ledger_row: <abs path>        # $DELIVERY_ROOT/machine/<session>.row of 
 | `phase: building` read in the lead's `substate.md` | `building` | `substate.md` |
 | `pr-create` `.out` | `pr-open` (`pr` set) | desk result |
 | `pr-merge` `.out` | `merged` (`merge_sha` set) | desk result |
-| `stop_reason` in `stop-the-line:*\|d7-round3\|human\|port-refused\|stale-session` (`spawn-cap` keeps the state and triggers a C5.3 relaunch; `invalidate` keeps it until the fresh `RELEASE`) | `stopped` | `substate.md` |
+| `stop_reason` in `stop-the-line:*\|d7-round3\|human\|port-refused` (`stale-session` keeps the state and is posted as a human step, A.2; `spawn-cap` keeps the state and triggers a C5.3 relaunch; `invalidate` keeps it until the fresh `RELEASE`) | `stopped` | `substate.md` |
 | `RUN_HOME/gates/RESUME.<subtask>.<run-id>.ok` (desk-written, owner action) | leaves `stopped`: the only exit | A.8, B9 |
 | `CLEANUP DONE <subtask>` | `cleaned` (for `pm` only once `release_record` line 1 is terminal and `cleanup-<run-id>-pm.md` is newer than the current `pm` `launched_utc`) | cleanup record |
 | back-edge: sub-task re-enters stage 4 | `pr-open` or `merged` to `building`; `merge_sha` cleared in the same write when `INVALIDATE ... predecessor-reentered` goes to successors | part C6 |
@@ -186,7 +186,7 @@ Lifetime lock: the lead runs `mkdir RUN_HOME/<subtask>/substate.lock` at start. 
 | File | Writer | Format |
 |---|---|---|
 | `bus.endpoint` | lead (`delivery-run`), atomic, after the bus starts and before any dispatch | key=value lines `port=`, `data_dir=` (absolute), `pm2_app=`, `pid=`, `session_id=` (equals the bundle `session_id`), `topic=` (equals the bundle `output_topic`) |
-| `inbox/*.md` | conductor and desk | conductor messages `RELEASE`, `INVALIDATE`, desk `ANSWER` lines (part C5) |
+| `inbox/*.md` | conductor and desk; for `pm/inbox/` also the `post-merge-verify` verdict agent | conductor messages `RELEASE`, `INVALIDATE`, `MERGED`, desk `ANSWER` lines; in `pm/inbox/` the `verdict` type: the verdict agent's `POSTMERGE:` line or the desk-written `VERDICT pm <row-id> <text>` (part C5.1, C8; AM-7 touch-up 7) |
 | `status/<agent-id>.md`, `.verdict`, `.verdict.consumed` | each agent, own file | `NEXT: <unit>.<n> <one line>`, regex `^NEXT: (u[0-9]+)\.([0-9]+) .+$` (part C3) |
 | `gates/H-e2e.<subtask>.ok` | desk | Part 1.3 |
 | `gate-runs/<sha>.md` | gate runner | `GATE-PASS` record, A.7 (link only) |

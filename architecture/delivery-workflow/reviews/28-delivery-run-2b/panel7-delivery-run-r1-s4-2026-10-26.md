@@ -1,6 +1,6 @@
 # panel7 delivery-run r1 s4 (hand-off to wave-execution EXTEND and dispatch-plan wave files)
 
-W' = /Users/xavier/projects/agent-hq-worktrees/delivery-extends ; paths below are relative to W unless prefixed W'.
+W' = $HOME/projects/agent-hq-worktrees/delivery-extends ; paths below are relative to W unless prefixed W'.
 
 | id | sev | artifact file:line | defect | source file:line | fix |
 |---|---|---|---|---|---|

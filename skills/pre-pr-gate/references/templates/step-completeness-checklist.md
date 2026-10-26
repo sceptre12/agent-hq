@@ -35,7 +35,7 @@ Fill the evidence cell with a path, a command and its exit status, or a sha. `n/
 | C9 | GATE-PASS: a `GATE-PASS` record exists for every pushed batch on the branch (D21, R2-3) | each `RUN_HOME/<subtask>/gate-runs/<sha>.md` with line 1 matching `^GATE-PASS ([0-9a-f]{40}) (.+)$`; the head's record exists. `HUSKY=0` rule: INTERFACES A.7 | |
 | C10 | Redaction gate clean | scan command with `secrets.pattern_file`, 0 hits | |
 | C11 | Scope-check clean, or each extra or sensitive path justified by a desk `INSTALLED` row or a grant file `RUN_HOME/gates/grant.<subtask>.<n>.<run-id>.ok` naming it (INTERFACES A.2.1, AM-4 20 Q1) | scope-check output; `INSTALLED` row or grant path per extra path | |
-| C12 | Ports claimed (the port row: the review-bus `BUS_PORT` claim, at most one +10 retry; a second refusal is `PREPR: STOP C12`, INTERFACES 1.6.0 AM-6 B-7, D2.2 row 10), then reviewer record path and 0 Blocking / 0 Medium | claim line or refusal line; record path `RUN_HOME/review/<subtask>/record-<head>.md`; line 1 matches the record regex in section 4 with the current head | |
+| C12 | Ports claimed (the port row: the review-bus `BUS_PORT` claim, at most one +10 retry; a second refusal is `PREPR: STOP C12`, INTERFACES 1.6.0 AM-6 B-7, D2.2 row 10), then reviewer record path and 0 Blocking / 0 Medium (both conditions stay in C12; the stop text says which failed, AM-7 touch-up 5) | claim line or refusal line; record path `RUN_HOME/review/<subtask>/record-<head>.md`; line 1 matches the record regex in section 4 with the current head | |
 | C13 | Verified-By seat is distinct from the Reviewed-By seat | line 2 `seat-id` vs line 3 `seat-id` of the record | |
 | C14 | Fixer shas listed, each with a `fix:` field | `fix-<agent-id>-<n>.md` paths, shas | |
 | C15 | `fix-verifier` result CLEAN | `verify-<seat-id>-<n>.md` path, verdict line | |
@@ -43,7 +43,7 @@ Fill the evidence cell with a path, a command and its exit status, or a sha. `n/
 | C17 | Migrations have a rollback | migration path -> rollback path, or n/a | |
 | C18 | No leftovers (debug code, TODO without ticket, stray files) | grep command, 0 hits | |
 | C19 | Adjacent defects ticketed | ticket keys or `none` | |
-| C20 | Fix commits pushed | `git rev-parse` of the remote branch equals head | |
+| C20 | Fix commits pushed | first gate of a PR: `n/a (first gate: no push precedes pre-pr-gate, part-b B4 push)`; a re-gate after a pushed head (`ci-fix-loop`, B4 later push, AM-4 24-Q2 W2-7): `git rev-parse` of the remote branch equals head | |
 | C21 | Catalog has no `planned` rows for this sub-task (design 5.7; leases, ports and bus rows are released by cleanup only, INTERFACES A.5.1, A.5.2, so `live` rows do not fail this row) | `catalog.sh list --live --subtask <st>` output (latest rows that are `planned` or `live`), 0 `planned` | |
 | C22 | PR body built from the template | `RUN_HOME/review/<subtask>/pr-body.md` path | |
 | C23 | Plan unit list equals the branch unit list | dispatch-plan units vs `git log` units, diff empty | |

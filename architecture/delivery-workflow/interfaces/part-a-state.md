@@ -273,7 +273,7 @@ General rules (card 9): read-only dry run first; the lead approves an explicit l
 | `process` | `kill -0 <pid>` | `kill <pid>`, `kill -0` before and after; never by pattern; cleanup acts only on rows already in `catalog.tsv` (the C7 orphan sweep registers each orphan before killing it) (`DEFAULT (integrator)`) |
 | `port` | `lsof -nP -iTCP:<port> -sTCP:LISTEN` | after the listener is stopped, `tools/port-check.sh --claim <port> <bind> <container_port> <service> <project> released <source> <note>` with the claim's `port` and `source` (a `released` row supersedes the claim), then `catalog.sh release` (A.5.2; amendment AM-1) |
 | `pm2-app` | `pm2 jlist` lists the exact name | `pm2 delete <exact name>` (`DEFAULT`) |
-| `bus` | `kill -0` on the `bus.endpoint` pid | `pm2 delete <pm2_app>`, then `rm` of `data_dir` by literal path after `pm2 jlist` no longer lists it (`DEFAULT`) |
+| `bus` | `kill -0` on the pid of the `bus.endpoint` beside the row's handle (`dirname(<handle>)/bus.endpoint`, handle = the bus `data_dir`: `RUN_HOME/<subtask>/bus.endpoint` for the sub-task bus, `RUN_HOME/review/<subtask>/<review-id>/bus.endpoint` for an in-run review bus, A.1, D5) | `pm2 delete <pm2_app>`, then `rm` of `data_dir` by literal path after `pm2 jlist` no longer lists it (`DEFAULT`) |
 | `tmpdir`, `file`, `clone` | `test -e <path>` | delete by literal path, one `rm` per path (`DEFAULT (integrator)`) |
 | `tag` | `git tag -l <tag>` | no delete verb exists; `kept` and reported to the human with the correlation id (`DEFAULT`; tag deletion is a human step) |
 | `container`, `image`, `workspace` | not verifiable from a lead session (docker and Harness workspaces are unmeasured, verify at move) | `kept` and reported (`DEFAULT`) |

@@ -1,6 +1,6 @@
 # Template: `dispatch-plan.md` (Part A) and unit task spec `.tasks/<unit>-<slug>.md` (Part B)
 
-Local section headings of Part A are `P0`-`P11` (this template's own); every `A.x` citation is INTERFACES part A.
+Local section headings of Part A are `P0`-`P12` (this template's own); every `A.x` citation is INTERFACES part A.
 
 Purpose: fill-in skeletons for the stage 3 plan and for each unit's task spec. Grammars live in INTERFACES (anchors cited per block); this file never restates them. Values not measured stay `FILL_IN_BEFORE_DISPATCH`; never invent one.
 
@@ -87,20 +87,37 @@ One row per bind per sub-task. The launcher claims each candidate at launch (INT
 Shepherd cadence: `<ticks>`. Branching and merge order: `<from architecture.md section 5>`. Pre-PR gate rule: link `pre-pr-gate`, `GATE-PASS` per INTERFACES A.7 (link, do not restate `HUSKY=0`). Cleanup rule: `delivery-cleanup`, D8 and D9. Review rung table: `<unit or sub-task -> rung -> review-tailor record>`.
 
 ### P11 Pre-dispatch checklist and stop-the-line
-| # | check | result |
+The plan's checklist section: the 13 "Whole plan" rows of `skills/delivery-dispatch-plan/references/predispatch-checklist.md` (checks and how-to there, not restated) plus its per-unit pre-flight. Each result is `PASS <evidence>` or `FAIL <what>`; any `FAIL` blocks step 12.
+
+| # | check (predispatch-checklist.md row) | result |
 |---|---|---|
-| 1 | no `FILL_IN_BEFORE_DISPATCH` left (budgets, ports, profile keys) | `[ ]` |
-| 2 | every unit has a verifier and a done token | `[ ]` |
-| 3 | scopes disjoint; shared-file owners unique | `[ ]` |
-| 4 | worst-case dispatch count within 30 and the machine ledger within 200 | `[ ]` |
-| 5 | `PLAN-CHECK: clean` in `RUN_HOME/plan-check.md` (D55; stop after round 3, D7) | `[ ]` |
-| 6 | every task spec passes the Part B pre-flight | `[ ]` |
+| 1 | No sentinel left | `[ ]` |
+| 2 | Every path named in the plan exists | `[ ]` |
+| 3 | Flags present | `[ ]` |
+| 4 | Header complete | `[ ]` |
+| 5 | Ids and tokens | `[ ]` |
+| 6 | Tickets | `[ ]` |
+| 7 | Scopes disjoint | `[ ]` |
+| 8 | Port candidates distinct | `[ ]` |
+| 9 | Budgets | `[ ]` |
+| 10 | Waves valid | `[ ]` |
+| 11 | Briefs exist | `[ ]` |
+| 12 | Catalog | `[ ]` |
+| 13 | Stop rows stated | `[ ]` |
+| per unit | the six pre-flight checks and the `## 3` glob check, per `.tasks` file | `[ ]` |
 
 | stop-the-line | action |
 |---|---|
 | unit without verifier | stop; add one |
 | overlapping scopes | stop; re-cut |
 | an unmeasured claim contradicted | re-measure first |
+
+### P12 Plan review
+The plan's review section, written by `delivery-dispatch-plan` step 12 (`references/plan-check-loop.md`) and read by the conductor before the first launch (`skills/delivery-pipeline/references/stages.md` "Review round 3").
+- Plan-check: `RUN_HOME/plan-check.md` line 1 at exit (`PLAN-CHECK:`, D1.1; D55).
+- Review rounds: `<round> | <rung> | <record path> | <open B/M findings>` per round (stop after round 3, owner D7).
+- Open findings at stop: `<finding id, severity, one line>` or `-`.
+- Stop line, only on a round-3 stop with open B/M findings: `PLAN-REVIEW: STOP round-3` (D1.1, INTERFACES 1.6.0 AM-6 (g)); absent otherwise.
 
 ---
 

@@ -2,7 +2,7 @@
 
 - **Status:** accepted by the owner (H1) 2026-10-26.
 - **Date:** 2026-10-26. Design v2, revised after the 11-agent panel and the owner's rulings D1-D25.
-- **Consolidated:** 2026-10-26 (W3 item 33): the INTERFACES design errata E1-E42 are applied to the parts, and every sentence an INTERFACES amendment (AM-1 to AM-5, `delivery-workflow/INTERFACES.md` at version 1.5.0) superseded is rewritten and tagged "(amended: AM-n)". Where a part and INTERFACES still differ, INTERFACES wins.
+- **Consolidated:** 2026-10-26 (W3 item 33): the INTERFACES design errata E1-E42 are applied to the parts, and every sentence an INTERFACES amendment (AM-1 to AM-7, `delivery-workflow/INTERFACES.md` at version 1.7.0) superseded is rewritten and tagged "(amended: AM-n)". Where a part and INTERFACES still differ, INTERFACES wins.
 
 ## Summary
 

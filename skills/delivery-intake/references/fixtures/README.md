@@ -9,6 +9,6 @@ Run (by a reader agent that follows SKILL.md):
 
 Expected:
 - `facts.md` line 1 `FACTS: <n> facts` with `<n>` the row count; `expected/facts.md` lists the rows (36); the hosting-service question is a `cannot measure:` row.
-- The profile carries every A.2.2 key, `release_tags.used: "no"` and sentinels for what the repo cannot show; `expected/profile-excerpt.yaml` shows the A.2.2 keys only, and its 17 sentinels, one open-item line each, are the counts printed in `expected/stdout.txt`. A full profile also carries the part-04 section 5.8 and skeleton fields, so the reader's counts are higher: check shape, not numbers.
+- The profile carries every A.2.2 key, `release_tags.used: "no"` and sentinels for what the repo cannot show; `expected/profile-excerpt.yaml` shows the A.2.2 keys only, and its 18 sentinels, one open-item line each, are the counts printed in `expected/stdout.txt`. A full profile also carries the part-04 section 5.8 and skeleton fields, so the reader's counts are higher: check shape, not numbers.
 - `stdout.txt`: the summary and confirm question, then `PROFILE: <abs path>@<40-hex>` as the last line; `git hash-object <profile>` equals that sha.
 - `unset.txt` contains `INPUT-ERROR DELIVERY_ROOT unset`.

@@ -1,6 +1,6 @@
 # Verdicts: the `UNIT-VERDICT` record and lead handling
 
-Depth for the SKILL.md invocation-loop step (C2 and C4 handling) and the tick's verdict read. Authority (INTERFACES 1.5.0): part C C2 (record, lead filter, lead table, readers), C3 (`NEXT:`), C4 (status-file fallback), C1.2 (`step_complete` verifier row), C5.3 (read order, paging), C7 (drift and creep below 3 live agents), C8 (AM-5: CV6, CV7, CV11, the `UNIT-VERDICT` filter); part D D4; spec 28 RESOLVED R-2, AM4-3; AM-4 rows 22, 23.
+Depth for the SKILL.md invocation-loop step (C2 and C4 handling) and the tick's verdict read. Authority (INTERFACES 1.7.0): part C C2 (record, lead filter, lead table, readers), C3 (`NEXT:`), C4 (status-file fallback), C1.2 (`step_complete` verifier row), C5.3 (read order, paging), C7 (drift and creep below 3 live agents), C8 (AM-5: CV6, CV7, CV11, the `UNIT-VERDICT` filter; AM-6 (a), (c), (e); AM-7); part D D4; spec 28 RESOLVED R-2, AM4-3; AM-4 rows 22, 23.
 
 ## Reading the topic
 
@@ -69,7 +69,7 @@ A pair outside the matrix fails filter step 3.
 
 ### `{SESSION_ID}-escalation` drain
 
-On the same bus, read the topic `<session_id>-escalation` with the same idiom. For each `{halt_reason: "fix-loop-cap-exhausted", wave, work_item, iterations}` not yet drained, write `escalations/<work_item>.md` as an `ESCALATE` with reason `fix-loop-cap-exhausted`. The work_item's dependents stay unreleased (ADR 0054 A5). A work_item that already has an escalation record is not written twice. A post with no `work_item` (a barrier-wave exhaustion, W' `SKILL.md:149-151`) names no unit: write `escalations/wave-<N>.md` (record `unit` `-`, reason `fix-loop-cap-exhausted`), write `stop_reason: human`, and start no further invocation (proposed CV43).
+On the same bus, read the topic `<session_id>-escalation` with the same idiom. For each `{halt_reason: "fix-loop-cap-exhausted", wave, work_item, iterations}` not yet drained, write `escalations/<work_item>.md` as an `ESCALATE` with reason `fix-loop-cap-exhausted`. The work_item's dependents stay unreleased (ADR 0054 A5). A work_item that already has an escalation record is not written twice. A post with no `work_item` (a barrier-wave exhaustion, W' `SKILL.md:150-157`) names no unit: write `escalations/wave-<N>.md` (record `unit` `-`, reason `fix-loop-cap-exhausted`), write `stop_reason: human`, and start no further invocation (proposed CV43).
 
 ## Status-file fallback (C4)
 

@@ -8,7 +8,7 @@ Tier: design (conductor session). Rationale: the grill decides what the run will
 
 - Inputs: intent, context store.
 - Outputs: `brief.md` frontier (with `facts.md` from explorers and the new or refreshed `repo-profile.md`, stage 1 / `delivery-intake`).
-- Done token: `H0 recorded` (the H0 gate file `RUN_HOME/gates/H0.ok` is written by the desk after the human confirms; it is never an agent-written field).
+- Done token: the `PROFILE: <abs path>@<sha>` line, the last stdout line of `delivery-intake` (D1.1, D2.2 row 2), after `facts.md` line 1 `FACTS: <n> facts`. H0 is then the desk's wait, not your token: the desk writes `RUN_HOME/gates/H0.<run-id>.ok` after the human types `GATE <run-id> H0 ok <text>` (A.2.1 AM-5 26, B8); never an agent-written file.
 - Session row (design §3.1): runs in the conductor session, depth 0, holds the Agent tool, slot not counted.
 
 ## COMMON block (verbatim; pass unchanged to any agent you brief)
@@ -27,4 +27,4 @@ Role statement and execute imperative first; tier line with rationale; done toke
 
 Stop rule: owner-only choice found: park it.
 
-<!-- cites: §3.2 row Grill facilitator; §3.1 conductor row; part-01 stage 1 row (line 66); card 2 `delivery-intake` (part-02 line ~56); part-05 §6.2 row 1; part-B H0 gate (interfaces/part-b-desk.md:166). -->
+<!-- cites: §3.2 row Grill facilitator; §3.1 conductor row; part-01 stage 1 row (line 66); card 2 `delivery-intake` (part-02 line ~56); part-05 §6.2 row 1; part-B H0 gate (interfaces/part-b-desk.md:167). -->

@@ -49,7 +49,7 @@ while read -r lref lsha rref rsha; do
   if ! git cat-file -e "$src:$G/run-mapped-tests.sh" 2>/dev/null; then
     src="$lsha"; echo "CODE-GATE: BOOTSTRAP base $base has no $G; running the pushed head's copy" >&2
   fi
-  gate="$(mktemp -d)" || block "mktemp failed"; GATES="$GATES $gate"
+  gate="$(mktemp -d "${TMPDIR:-/tmp}/pre-push.XXXXXX")" || block "mktemp failed"; GATES="$GATES $gate"
   # No pipe: bsdtar stops at the end-of-archive marker, so `git archive` piped into tar can die of SIGPIPE (rc 141
   # under pipefail) after a complete extraction and falsely block the push.
   git archive "$src" "$G" --output "$gate/gate.tar" || block "cannot archive $G from $src"

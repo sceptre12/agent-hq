@@ -27,7 +27,7 @@ audit_port() { # port -> 0 listening, 1 not listening, 5 lsof missing or failed
   return 5
 }
 
-audit_check() { # kind handle subtask -> 0 alive, 1 gone, 2 unverifiable (no output), 5 live truth unreadable
+audit_check() { # kind handle subtask(unused for bus) -> 0 alive, 1 gone, 2 unverifiable (no output), 5 live truth unreadable
   local k=$1 h=$2 st=$3 path rest repo ref pid ep
   case $k in
     process) kill -0 "$h" 2>/dev/null ;;
@@ -42,7 +42,7 @@ audit_check() { # kind handle subtask -> 0 alive, 1 gone, 2 unverifiable (no out
       [ "$k" = tag ] && ref="refs/tags/$ref" || ref="refs/heads/$ref"
       git -C "$repo" show-ref --verify --quiet "$ref" 2>/dev/null < /dev/null ;;
     bus)
-      ep="$RH/$st/bus.endpoint"
+      ep="${h%/*}/bus.endpoint" # beside the row's handle (the bus data_dir): sub-task bus and in-run review bus alike (A.5.1, D5)
       [ -f "$ep" ] || return 1
       pid=$(sed -n 's/^pid=//p' "$ep" | head -1)
       [[ $pid =~ ^[0-9]+$ ]] && kill -0 "$pid" 2>/dev/null ;;

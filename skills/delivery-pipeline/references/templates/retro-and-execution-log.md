@@ -7,6 +7,7 @@ Fill-in skeletons for the stage 8 retrospective and the per-run execution-log ro
 - **Dates:** `YYYY-MM-DD`. Inside generated file bodies a timestamp is ISO UTC `YYYY-MM-DDTHH:MM:SSZ` (A.1).
 - **Run Health targets:** the first four rows and their targets are the context-store template's Wave Health Score (`XC/_templates/retrospective.md`, design 5.9); the two stop rows are template-local.
 - **Size:** a retro stays about 150 lines; link evidence instead of pasting it.
+- **Read-back (INTERFACES C8, 29-24):** a different agent reads both files back and writes `RUN_HOME/capture/read-back.md`, line 1 `READ-BACK: pass` or `READ-BACK: <n> differences`; on differences the conductor fixes `retro.md` and `execution-log.md` once and runs a fresh read-back; a second failure goes to the owner.
 - **Sentinel:** a value you did not measure is written `UNMEASURED`, never estimated. `UNMEASURED` is retro-local (this file only); it is not the `FILL_IN_BEFORE_DISPATCH` pre-dispatch sentinel and no reader greps for it.
 
 ## Part A. `retro.md`

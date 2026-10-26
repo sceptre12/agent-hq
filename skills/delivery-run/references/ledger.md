@@ -1,6 +1,6 @@
 # Slot ledger, spawn cap, machine row and leases
 
-Depth for the SKILL.md steps "machine-ledger row" and "invocation loop", and for every dispatch the lead makes. Authority (INTERFACES 1.4.0): part A A.3 (`live`, `reserved`, `spawns`, lock), A.4 (slot row, free slots, machine row, security-audit agents), A.5 (leases), A.7 (gate runner); part C C1.1 (`max_concurrent`, dispatch record, lane lease), C5.3 (hand-over); spec 28 RESOLVED Q1, Q2, PC-W2-1, PC-W2-2, PC-W2-6; AM-4 rows W2-2, W2-8, W2-9, 13.
+Depth for the SKILL.md steps "machine-ledger row" and "invocation loop", and for every dispatch the lead makes. Authority (INTERFACES 1.5.0): part A A.3 (`live`, `reserved`, `spawns`, lock), A.4 (slot row, free slots, machine row, security-audit agents), A.5 (leases), A.7 (gate runner), A.8 (AM-5: CV3, CV10, CV12, 29-2); part C C1.1 (`max_concurrent`, dispatch record, lane lease), C5.3 (hand-over); spec 28 RESOLVED Q1, Q2, PC-W2-1, PC-W2-2, PC-W2-6; AM-4 rows W2-2, W2-8, W2-9, 13.
 
 ## The slot row
 
@@ -19,7 +19,7 @@ impl-u07 implementer u07 execute 2026-11-02T10:31:00Z 45 /abs/delivery/wt/found-
 | Agent | Row | Fields the lead fills |
 |---|---|---|
 | The `wave-execution` controller task (one per invocation) | yes, written **before** its Agent call (Q1, AM-4 W2-2) | `persona` `wave-controller` (no brief file), `unit` `-`, `tier` = the wave `agents` tier, `budget_min` = the sum of the invocation's work_item budgets (an upper bound), `worktree` = the sub-task worktree, `pid` `<lead-pid>/<agent-id>` |
-| Each `dispatch/<invocation>.jsonl` line (worker, gate, fix agents) | yes, one row per recorded `agent_id`, as the line appears (A.4, C1.1) | `persona`, `unit`, `tier`, `backend` from the line. `worktree` is derived by the lead: `<worktree_base>/<run-id>-<subtask>-<unit>` for `u<N>`, the sub-task worktree for `i<N>`, the served work_item's worktree for gate and fix agents (C1.1). `budget_min` for a worker is the work_item budget, copied from its brief text (C1.2 `budget` row). A gate or fix agent gets `durations.unit_median_min` (A.4 field 6; A.2.2). A wave-level gate agent has `unit` `wave-<N>` in its record (AM-4 9, `architecture/delivery-workflow/INTERFACES.md:26`), so its row takes `unit` `-` (the A.4 field-3 grammar) and the sub-task worktree. |
+| Each `dispatch/<invocation>.jsonl` line (worker, gate, fix agents) | yes, one row per recorded `agent_id`, as the line appears (A.4, C1.1) | `persona`, `unit`, `tier`, `backend` from the line. `worktree` is derived by the lead: `<worktree_base>/<run-id>-<subtask>-<unit>` for `u<N>`, the sub-task worktree for `i<N>`, the served work_item's worktree for gate and fix agents (C1.1). `budget_min` for a worker is the work_item budget, copied from its brief text (C1.2 `budget` row). A gate or fix agent gets `durations.unit_median_min` (A.4 field 6; A.2.2). A wave-level gate agent has `unit` `wave-<N>` in its record (AM-4 9, `architecture/delivery-workflow/INTERFACES.md:26`), so its row takes `unit` `-` (the A.4 field-3 grammar; A.8 CV3) and the sub-task worktree. |
 | Lead-own agents: Wave 0 gate runner, Wave 0 Explorer, constitution agent, Integrator for `st0`, `delivery-cleanup` executor and validator | yes, before the Agent call | `persona` per D2.1. `budget_min` from `durations.*`. `unit` `-` unless the agent serves one. |
 | Agents of hosted skills: `pre-pr-gate`'s gate runner, G48 checker, fixer, fix-verifier, validator, Verified-By seat and security auditors; `ci-fix-loop`'s gate runner | yes, before each dispatch (PC-W2-6) | `budget_min` `durations.pr_review_min` for `pre-pr-gate` agents and `durations.ci_round_min` for `ci-fix-loop` agents |
 | `security-audit` hunters and verifiers (full mode, inside `pre-pr-gate`) | yes, before each starts (A.4 AM-1) | `persona` `security-auditor`, `unit` `-`, `tier` `verify`. Their total `budget` is the free-slot count at launch, and none starts without a free slot. |
@@ -46,7 +46,7 @@ max_concurrent = 30 - live_rows - sum(reserved)
 
 ## Freeing (`.freed`)
 
-Each case renames `<agent-id>.row` to `<agent-id>.freed`. A row is never deleted.
+Each case renames `<agent-id>.row` to `<agent-id>.freed` (the A.8 "A.4 slot rows" `.freed` rule, CV12). A row is never deleted.
 
 | Row | Freed when |
 |---|---|
@@ -70,8 +70,8 @@ The shepherd never frees a row. It flags `FREE-CANDIDATE`, and the lead frees on
 ## Machine ledger row (PC-W2-1, PC-W2-2, AM-4 W2-9)
 
 - **When:** after the seed copy and before `REGISTER`, for every lead on either backend.
-- **Lock:** `mkdir $DELIVERY_ROOT/machine/.lock`, with an `owner` file as for `substate.lock` (A.3). A waiter retries every 1 s and gives up after 60 s. A stale lock is broken by the A.3 break procedure (A.3 lock rule, `interfaces/part-a-state.md:186`, which covers `machine/.lock`).
-- **Under the lock:** reap first, renaming every `machine/*.row` whose `pid` fails `kill -0` to `.dead`. Then sum `live_count` over the remaining rows plus 31 for this session (at most 30 slot and reserved agents plus its own seat; AM-5 29-2, proposed: "a launch is allowed only when `sum(live_count) + 31 <= 200`"). The total must be at most 200. When `MODE=build`, the count of rows with `build=1`, including this one, must be at most 3 (rule 8).
+- **Lock:** `mkdir $DELIVERY_ROOT/machine/.lock`, with an `owner` file as for `substate.lock` (A.3). A waiter retries every 1 s and gives up after 60 s. A stale lock is broken by the A.3 break procedure (A.3 lock rule, `interfaces/part-a-state.md:192`, which covers `machine/.lock`; A.8 CV10).
+- **Under the lock:** reap first, renaming every `machine/*.row` whose `pid` fails `kill -0` to `.dead`. Then sum `live_count` over the remaining rows plus 31 for this session (at most 30 slot and reserved agents plus its own seat; A.8 "A.4 machine ledger", 29-2: "a launch is allowed only when `sum(live_count) + 31 <= 200`"). The total must be at most 200. When `MODE=build`, the count of rows with `build=1`, including this one, must be at most 3 (rule 8).
 - **Over either cap:** remove the lock, write `stop_reason: human`, print the reason (the sums and the cap crossed), and stop. A `claude -p` lead was already summed by the conductor before launch; this re-check under the lock closes the race.
 - **Row:** `$DELIVERY_ROOT/machine/<SESSION>.row`, holding one line `session=<SESSION> pid=<lead-pid> live_count=<n> build=<0|1> utc=<ISO>`. Here `build=1` only in `MODE=build`, and `live_count` = this session's `.row` count + `sum(reserved)` + 1 for the lead itself (the real value; the 31 above is only the admission sum). It is written atomically (temp file plus `mv`) and then the lock is removed.
 - **Every tick:** rewrite `live_count` and `utc` atomically. The lead never deletes its row. After it exits, the reaper renames it `.dead`.

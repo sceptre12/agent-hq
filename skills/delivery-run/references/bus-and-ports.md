@@ -1,6 +1,6 @@
 # Sub-task bus and ports
 
-Depth for the SKILL.md step "bus claim, start, `bus.endpoint`" and for every later bus restart. Mode `build` only: `plan-pr` and `post-merge` start no bus (A.2 Modes). Authority, cited and not restated differently: INTERFACES 1.4.0 part A A.5.2 (port claims), A.3 (`bus.endpoint`), A.5 and A.5.1 (catalog rows), part C C1.1 (bus port, `bus_endpoint`, restarter), C5.3 step 4, C7 (bus down), part D D4, D5; spec 28 RESOLVED R-4, Q3, Q4, AM4-3; AM-4 rows W2-1, W2-3 and 18.
+Depth for the SKILL.md step "bus claim, start, `bus.endpoint`" and for every later bus restart. Mode `build` only: `plan-pr` and `post-merge` start no bus (A.2 Modes). Authority, cited and not restated differently: INTERFACES 1.5.0 part A A.5.2 (port claims), A.3 (`bus.endpoint`), A.5 and A.5.1 (catalog rows), A.8 (CV14, CV16, review-bus path), part C C1.1 (bus port, `bus_endpoint`, restarter), C5.3 step 4, C7 (bus down), part D D4, D5; spec 28 RESOLVED R-4, Q3, Q4, AM4-3; AM-4 rows W2-1, W2-3 and 18.
 
 ## Values
 
@@ -12,7 +12,7 @@ Depth for the SKILL.md step "bus claim, start, `bus.endpoint`" and for every lat
 | pm2 app | `swarm-mcp-<session_id>` | R-4 (W' `wave-execution` step 4 name form), A.1 namespacing |
 | candidate port | the P8 port-table `candidate` cell of `<PLANS_DIR>/dispatch-plan.md` for this sub-task's `bus` row, as written (it equals `ports.bus_base + 20·2N` for `st<N>`, AM-4 W2-3) | C1.1 bus port, A.5.2, Q4 |
 | retry port | candidate + 10, one time only | A.5.2 (AM-3 OQ-2) |
-| catalog keys | `correlation_id` = the sub-task `ticket` key of the dispatch-plan sub-task table; `source` `delivery-run`; `subtask` `<subtask>`; `owner_agent` = the lead's `SESSION` token; `unit` `-` | A.5, A.6 dispatch-plan additions |
+| catalog keys | `correlation_id` = the sub-task `ticket` key of the dispatch-plan sub-task table; `source` `delivery-run`; `subtask` `<subtask>`; `owner_agent` = the lead's `SESSION` token (`<run-id>-<subtask>-l<n>`, A.8 29-1); `unit` `-` | A.5, A.6 dispatch-plan additions, A.8 CV16 |
 
 The lead claims the candidate cell exactly as written. It never recomputes the formula, never picks another port, and never makes a second retry. With 20-spacing every candidate sits on an even ten from its base and every +10 retry on an odd ten that no candidate uses, so the one retry cannot land on another sub-task's candidate (Q4).
 
@@ -43,7 +43,7 @@ The lead claims the candidate cell exactly as written. It never recomputes the f
    ```
    Both range variables carry the claimed port as two assignments (A.5.2, C1.1, AM-4 row 18). Poll for `<data_dir>/port` up to 30 times at 0.3 s (the `swarm-communication` start idiom, `skills/swarm-communication/SKILL.md:88`).
 4. **Port equality.** `<data_dir>/port` must equal the claimed `port` (A.5.2), and `lsof -nP -iTCP:<port> -sTCP:LISTEN` must show the listener. Then run the identity preflight of `swarm-communication` (`/health` 2-3 times: `status: ok`, and `app_name`/`data_dir` equal to the values above).
-   - On any failure here the launch failed after a claim: `pm2 delete swarm-mcp-<session_id>`, release the claim at once with a `released` row of the same port and source (`port-claim` Step 4, `resource-catalog` `references/ports.md`), `catalog.sh fail` each of the three rows, write `stop_reason: human` with the observed and claimed ports, and stop. A.5.2 requires the equality but names no `stop_reason` for a failure, so the lead uses the generic `human` stop.
+   - On any failure here the launch failed after a claim: `pm2 delete swarm-mcp-<session_id>`, release the claim at once with a `released` row of the same port and source (`port-claim` Step 4, `resource-catalog` `references/ports.md`), `catalog.sh fail` each of the three rows, write `stop_reason: human` with the observed and claimed ports, and stop. This is the A.8 "A.5.2 launch failure after a claim" rule (CV14), whose `stop_reason` is `human`.
 5. **Mark live** (A.5.2 step 4): `catalog.sh start port <port>`, `catalog.sh start pm2-app swarm-mcp-<session_id>`, `catalog.sh start bus <data_dir>`.
 6. **Write `bus.endpoint`** atomically: write a temp file in `RUN_HOME/<subtask>/`, then `mv` it to `bus.endpoint` (A.1 atomic writes). It holds exactly these key=value lines (A.3, D5):
    ```
@@ -68,7 +68,7 @@ Only after step 6 may anything be dispatched. `start_session` is not the lead's 
 
 ## Ports the lead does not claim
 
-- **Per-review bus.** `pre-pr-gate` passes `BUS_PORT` (the P8 `review-bus` candidate, `ports.bus_base + 20·(2N+1)`) to `pr-review`, which claims it in its Step 1 and makes its own one +10 retry (D2.3). If `pre-pr-gate` reports a review-bus stop (`PREPR: STOP` with the refusal line in the checklist), the lead writes `stop_reason: port-refused` (Q3).
+- **Per-review bus.** `pre-pr-gate` passes `BUS_PORT` (the P8 `review-bus` candidate, `ports.bus_base + 20·(2N+1)`) to `pr-review`, which claims it in its Step 1 and makes its own one +10 retry (D2.3). That bus lives under `RUN_HOME/review/<subtask>/<review-id>/bus/` with its own `bus.endpoint` there and a fresh `pr-review-<uuid8>` session per review (A.1, D5; AM-5 10-B2, erratum E42); it is not this lead's bus and the lead never restarts it. If `pre-pr-gate` reports a review-bus stop (`PREPR: STOP` with the refusal line in the checklist), the lead writes `stop_reason: port-refused` (Q3).
 - **Lane ports.** A lane that binds a port claims it per A.5.2 before its launch (C1.1 lane lease). The lane runner does that under its brief. A second refusal comes back as the C2 reason `lane-unavailable` (`verdicts.md`). The lead leases the lane (`ledger.md`) and claims none of its ports.
 - **Teardown** is never the lead's. The `port`, `pm2-app` and `bus` rows are released by `delivery-cleanup` after `MERGED` (A.5.1 rows `port`, `pm2-app`, `bus`; `handoffs-and-modes.md`).
 

@@ -2,23 +2,27 @@
 
 The human types one line in the desk session. These lines are not `SendMessage` verbs and not
 B4 verbs; an agent never sends them and the desk never accepts them over the transport. The desk
-is the only writer under `gates/` (M30). Authority: INTERFACES part B8
-(`architecture/delivery-workflow/interfaces/part-b-desk.md:152-172`) and part A.2.1
-(`.../interfaces/part-a-state.md:91-105`); M30 resolves in `references/source-keys.md`.
+is the only writer under `gates/` (M30). Authority: INTERFACES 1.5.0 part B8 and B9
+(`architecture/delivery-workflow/interfaces/part-b-desk.md:152-185`) and part A.2.1
+(`.../interfaces/part-a-state.md:92-108`); M30 resolves in `references/source-keys.md`.
 
 ## Grammar (POSIX ERE)
 
 ```
-GATE   <run-id> <gate> <verdict> <text>     ^GATE ([a-z0-9-]+) (H0|H1|H-e2e\.(st[0-9]+|pm)|H-pr|H-prod\.[a-z0-9-]+|grant\.(st[0-9]+|pm)\.[0-9]+) (ok|changes|reject)( .+)?$
+GATE   <run-id> <gate> <verdict> <text>     ^GATE ([a-z0-9-]+) (H0|H1|H-e2e\.(st[0-9]+|pm)|H-pr|H-prod\.[a-z0-9-]+|grant\.(st[0-9]+|pm)\.[0-9]+|H-destructive\.[A-Za-z0-9.-]+|RESUME\.(st[0-9]+|pm)) (ok|changes|reject)( .+)?$
 ANSWER <run-id> <subtask> <unit> <text>     ^ANSWER ([a-z0-9-]+) (st[0-9]+|pm) ([ui][0-9]+) (.+)$
 REBIND <run-id> <sender-id>                 ^REBIND ([a-z0-9-]+) ([^ ]+)$
 ```
 
-The `grant.<subtask>.<n>` alternative is `DEFAULT (author)`, pending an INTERFACES erratum: A.2.1
-(AM-4 20 Q1, `part-a-state.md:102`) adds the grant file and its typed line as
-`GATE grant.<subtask>.<n> ok <text>` (no `<run-id>`), while B8 (`part-b-desk.md:157`, matrix
-`:164-170`) does not list `grant.*`. The desk accepts only the B8 form with `<run-id>`; a line
-without it fails the regex.
+B9 (AM-5 26, 21, queue row 29; `part-b-desk.md:179`, `:184`) adds three gates to B8:
+`grant.<subtask>.<n>` (A.2.1 grant row, AM-4 20 Q1), `H-destructive.<row-id>` (a human grant for
+a destructive post-merge test row; `<row-id>` as D2.2 row 12, `[A-Za-z0-9.-]+`) and
+`RESUME.<subtask>` (the only exit from `stopped`, A.8 O-4). B9 writes them as
+`GATE <gate> ok <text>`; the desk accepts them in the B8 form with `<run-id>` (the run must
+resolve; a line without it fails the regex).
+
+Every gate-file name carries the run id (A.2.1 AM-5 26): `<gate>.<run-id>.<verdict>`, so one
+desk session serving several runs cannot confuse them. Below, `<rid>` is the line's `<run-id>`.
 
 A line that fails its regex, or names a `<run-id>` with no `$DELIVERY_ROOT/<run-id>/state.md`,
 is answered in the session with what failed; nothing is written.
@@ -27,12 +31,14 @@ is answered in the session with what failed; nothing is written.
 
 | Gate | Allowed verdicts | File written | Desk enforcement |
 |---|---|---|---|
-| `H0` | ok | `RUN_HOME/gates/H0.ok` | none (the conductor waits for the file) |
-| `H1` | ok, changes, reject | `RUN_HOME/gates/H1.ok` / `H1.changes` / `H1.reject` | only `H1.ok` unlocks `jira-create` |
-| `H-e2e.<subtask>` | ok | `RUN_HOME/<subtask>/gates/H-e2e.<subtask>.ok` | none at the desk; the lead refuses e2e generation without it |
-| `H-prod.<step_id>` | ok | `RUN_HOME/gates/H-prod.<step_id>.ok` | `publish`; `tag-push` under `release_tags.approval: human` |
+| `H0` | ok | `RUN_HOME/gates/H0.<rid>.ok` | none (the conductor waits for the file) |
+| `H1` | ok, changes, reject | `RUN_HOME/gates/H1.<rid>.ok` / `.changes` / `.reject` | only `H1.<rid>.ok` unlocks `jira-create` |
+| `H-e2e.<subtask>` | ok | `RUN_HOME/<subtask>/gates/H-e2e.<subtask>.<rid>.ok` | none at the desk; the lead refuses e2e generation without it |
+| `H-prod.<step_id>` | ok | `RUN_HOME/gates/H-prod.<step_id>.<rid>.ok` | `publish`; `tag-push` under `release_tags.approval: human` |
 | `H-pr` | none | nothing: external evidence only (the approving review, B5) | `pr-merge` refuses without the read-back |
-| `grant.<subtask>.<n>` | ok | `RUN_HOME/gates/grant.<subtask>.<n>.ok` (A.2.1, AM-4 20 Q1; `DEFAULT (author)` line form, above) | none at the desk; a `pre-pr-gate` sensitive-path hit passes only with a desk `INSTALLED` row for that path or this file |
+| `grant.<subtask>.<n>` | ok | `RUN_HOME/gates/grant.<subtask>.<n>.<rid>.ok` (A.2.1, AM-4 20 Q1; B9) | none at the desk; a `pre-pr-gate` sensitive-path hit passes only with a desk `INSTALLED` row for that path or this file |
+| `H-destructive.<row-id>` | ok | `RUN_HOME/gates/H-destructive.<row-id>.<rid>.ok` (A.2.1 AM-5 21; B9) | the desk honours the line and writes the file; `post-merge-verify` refuses the row without it (`POSTMERGE: STOP`, D1.1) |
+| `RESUME.<subtask>` | ok | `RUN_HOME/gates/RESUME.<subtask>.<rid>.ok` (A.8, O-4; B9) | none at the desk; the conductor moves a `stopped` sub-task on only with this file (owner action) |
 
 Any other gate-verdict pair is refused in the session and nothing is written.
 
@@ -46,7 +52,7 @@ Key=value lines, written to a temp file in the same directory and `mv`d into pla
 | `by=` | the OS login of the desk session, `id -un` |
 | `ref=` | computed by the desk (below); a leading `ref=<value>` token in `<text>` overrides it (used for `jira:<KEY>@<comment-id>`) |
 | `text=` | the typed text (after any leading `ref=` token) |
-| `notes=` | `H1.changes` and `H1.reject` only: `RUN_HOME/gates/H1.notes.md` |
+| `notes=` | `H1.<rid>.changes` and `H1.<rid>.reject` only: `RUN_HOME/gates/H1.notes.md` |
 
 | Gate | Computed `ref=` |
 |---|---|
@@ -54,10 +60,12 @@ Key=value lines, written to a temp file in the same directory and `mv`d into pla
 | `H1` | sha256 of `h1-packet.md`, or the typed `jira:<KEY>@<comment-id>` |
 | `H-e2e.<subtask>` | sha256 of the batched `.feature` list named in `test-plan.md` for that sub-task |
 | `H-prod.<step_id>` | the release-plan `step_id` |
+| `H-destructive.<row-id>` | the `<row-id>` (H-prod form; `DEFAULT (author)`, A.2.1 names no `ref=`) |
+| `RESUME.<subtask>` | the `<subtask>` (`DEFAULT (author)`, A.2.1 names no `ref=`) |
 | `grant.<subtask>.<n>` | the sensitive path (A.2.1 "`ref=` names the sensitive path"); the desk cannot compute it, so the typed `<text>` must start with `ref=<path>`, else the line is refused in the session and nothing is written (`DEFAULT (author)`) |
 
-H1 history: before writing any `H1` file, rename every existing `H1.ok`, `H1.changes`,
-`H1.reject` and `H1.notes.md` to `<name>.<yyyymmddThhmmssZ>`, so one live H1 file remains. For
+H1 history: before writing any `H1` file, rename every existing `H1.<rid>.ok`, `.changes`,
+`.reject` and `H1.notes.md` to `<name>.<yyyymmddThhmmssZ>`, so one live H1 file remains. For
 `H1 changes` and `H1 reject` also write `<text>` to `RUN_HOME/gates/H1.notes.md`. A Jira-side
 approval is recorded only as `GATE <run-id> H1 ok ref=jira:<KEY>@<comment-id> <text>`.
 

@@ -1,8 +1,9 @@
 # delivery-desk: the 12 checks, the registry, inflight and markers
 
-Depth for `SKILL.md` Steps 1 and 3-14. Authority: INTERFACES 1.4.0 part B (B1, B2, B3, B5, B6,
-B7: `architecture/delivery-workflow/interfaces/part-b-desk.md:7-76`, `:108-151`) and part A
-(A.1, A.2.2, A.6, A.7: `.../interfaces/part-a-state.md:7-52`, `:106-155`, `:287-348`). Bare ids
+Depth for `SKILL.md` Steps 1 and 3-14. Authority: INTERFACES 1.5.0 part B (B1, B2, B3, B5, B6,
+B7, B9: `architecture/delivery-workflow/interfaces/part-b-desk.md:7-76`, `:108-151`, `:174-185`)
+and part A (A.1, A.2.2, A.6, A.7, A.8: `.../interfaces/part-a-state.md:7-53`, `:109-161`,
+`:293-354`, `:356-378`). Bare ids
 (M29, R4-J20, ...) resolve in `references/source-keys.md`. This file restates them for the desk operator; where it
 and part B differ, part B wins and this file is wrong.
 
@@ -27,10 +28,10 @@ and part B differ, part B wins and this file is wrong.
 | 2 | `RUN_HOME/desk/<id>.out` exists: re-send its reply and stop (no hash compare) | (replay) | stored |
 | 3 | Copy `RUN_HOME/desk/<id>.req` to `$DELIVERY_ROOT/desk-inbox/<id>.req` (desk-owned, 0700 dir; kept until the run is archived at CYCLE DONE) | a missing or unreadable `.req` is `schema`, `request_sha256` null (author default: the line names a file that does not exist) | yes |
 | 4 | `shasum -a 256` of the copy equals `sha256=<hex>` | `hash` | yes |
-| 5 | Copy validates: path equals `RUN_HOME/desk/<id>.req`; verb in B4 (a verb outside the 20, such as approve, trigger-prod or pipeline-edit, stops here as `schema`, never `policy`); JSON envelope `id`, `verb`, `subtask` equal the line; `fields` passes `schemas.json` `verbs.<verb>.request` (a `ref`, `base`, `merged_into`, `tag` or `package` starting with `-` fails here: raw flag); `pr-merge` `method` equals profile `merge_method`, `fields.subtask` equals the `record_path` `<subtask>` segment. The branch regex is deliberately **not** part of this check (`schemas.json` `definitions.branch` carries no pattern) | `schema` | yes |
-| 6 | Per-field roots and the branch regex (below); redaction (B7); never-granted request; `tag-push` profile entry (N11) | `repo` or `policy` | yes |
+| 5 | Copy validates: path equals `RUN_HOME/desk/<id>.req`; verb in B4 (a verb outside the 20, such as approve, trigger-prod or pipeline-edit, stops here as `schema`, never `policy`); JSON envelope `id`, `verb`, `subtask` equal the line; `fields` passes `schemas.json` `verbs.<verb>.request` (a `ref`, `base`, `merged_into`, `tag` or `package` starting with `-` fails here: raw flag, a contract rule, B9 26; an int written as `-0` or in exponent form fails here, read on the raw `.req` text, A.8 A.5; a non-Epic `jira-create` without `parent` fails here, B9 26); `pr-merge` `method` equals profile `merge_method`, `fields.subtask` equals the `record_path` `<subtask>` segment. The branch regex is deliberately **not** part of this check (`schemas.json` `definitions.branch` carries no pattern) | `schema` | yes |
+| 6 | Per-field roots and the branch regex (below); redaction (B7); never-granted request (also a `test-report-push` first call with `dry_run: false`, B9 26); `tag-push` profile entry (N11) | `repo` or `policy` | yes |
 | 7 | Session freshness (GitHub for `gh`/`git` verbs, Atlassian for `jira-*` and `test-report-push`) | `stale-session` | yes |
-| 8 | Gate files (`H1.ok`; `H-prod.<step_id>.ok`; `tag-push` only under `approval: human`); `pr-merge` `merge_reach` row; then predecessors; then markers | `gate-missing`, `order`, `marker` | yes |
+| 8 | Gate files (`H1.<run-id>.ok`; `H-prod.<step_id>.<run-id>.ok`; `tag-push` only under `approval: human`; names per A.2.1 AM-5 26); `pr-merge` `merge_reach` row; then predecessors; then markers | `gate-missing`, `order`, `marker` | yes |
 | 9 | `mkdir desk/<id>.inflight`, write `target`, duplicate guard, act | `action-failed` | yes |
 | 10 | Write `desk/<id>.out` atomically at 0600 | - | - |
 | 11 | Append one redacted JSON line per request and per result to `$DELIVERY_ROOT/desk-log/<run-id>.jsonl` | - | - |
@@ -104,14 +105,15 @@ content-merged. The desk derives each one itself; a marker the request claims co
 nothing. The only requester-host files read are the ones INTERFACES names, each compared to a
 desk-derived value: the gate-run record and the review record (B5), `RUN_HOME/merge-<merge_sha>.md`
 line 2 (B5 squash), and for `push` the B4 push-row evidence (`part-b-desk.md:83`): `PREPR: PASS`
-as `RUN_HOME/<subtask>/substate.md` `prepr`/`head` (A.3) and `RUN_HOME/ci/<pr>.md`, read only for
+as line 1 of `RUN_HOME/review/<subtask>/checklist-<subtask>.md` **and** `RUN_HOME/<subtask>/substate.md`
+`prepr`/`head` (A.3; both must agree, B9 26) and `RUN_HOME/ci/<pr>.md`, read only for
 the desk-derived `expect_head` and `<pr>`; they can only add refusals. Every `gh` call below carries
-`--repo=<gh-repo>` and every `<remote>` is the clone's `origin` (`DEFAULT (author)`, `verbs.md` §Repository binding).
+`--repo=<gh-repo>` and every `<remote>` is the clone's `origin` (ratified in B9 26, `verbs.md` §Repository binding).
 
 | Marker | How the desk derives it | Fails as |
 |---|---|---|
 | head | `push`: `git -C <repo> rev-parse --verify --end-of-options refs/heads/<branch>` equals `expect_head`; `pr-create`: the same live branch head; `pr-merge`: `gh pr view <pr> --repo=<gh-repo> --json headRefOid` equals `expect_head` | `marker` |
-| first/later push | `push` only (AM-4 24-Q2): one open PR for the branch (`gh pr list --head=<branch>`) makes it a later push, which needs `RUN_HOME/ci/<pr>.md` naming `expect_head` or `PREPR: PASS` for it; otherwise a first push, which needs `PREPR: PASS` for `expect_head` (`substate.md` `prepr`/`head`). `DEFAULT (author)` derivation, `verbs.md` §`push` | `marker` |
+| first/later push | `push` only (AM-4 24-Q2): exactly one open PR for the branch (`gh pr list --head=<branch>`) makes it a later push (B9 26), which needs `RUN_HOME/ci/<pr>.md` naming `expect_head` or `PREPR: PASS` for it; otherwise a first push, which needs `PREPR: PASS` for `expect_head`. `PREPR: PASS` = checklist line 1 and `substate.md` `prepr`/`head` agree (B9 26; disagreement is `marker`, `detail` `prepr`); `verbs.md` §`push` | `marker` |
 | merge target | `pr-merge` only: PR `baseRefName` equals the profile `default_branch` (A.2.2, AM-4 20 Q6; `DEFAULT (author)` code) | `marker` |
 | gate run | `RUN_HOME/<subtask>/gate-runs/<expect_head>.md` exists and line 1 matches `^GATE-PASS ([0-9a-f]{40}) (.+)$` with group 1 = `expect_head` (A.7; for `pr-merge` the `<subtask>` is `fields.subtask`) | `marker` |
 | review record | at `record_path`: line 1 `^CODE-GATE-REVIEW: PASS head=([0-9a-f]{40}) blocking=0 medium=0$`, line 2 `^Reviewed-By: ([a-z0-9-]+) ([a-z0-9-]+) ([A-Za-z0-9_-]+)$`, line 3 `^Verified-By: ([a-z0-9-]+) head=([0-9a-f]{40})$`; both heads equal `expect_head`; line 3 seat differs from line 2 seat (A.6) | `marker` |
@@ -132,7 +134,7 @@ every other line waits in the queue, §Inflight item 0) (author default slice; t
 
 ## Inflight and the duplicate-action guard (B2 idempotency, check 9)
 
-0. One request at a time (author default; part B's guard, `part-b-desk.md:47`, assumes the
+0. One request at a time (ratified in B9 26, `part-b-desk.md:177`; part B's guard, `part-b-desk.md:47`, assumes the
    earlier attempt has stopped). While a request is in checks 1-12, including a wait or a slow
    act, the desk answers only `STATUS` (step 15); every other `DESK`, `REGISTER-SENDER` or human
    line is queued in arrival order and handled after the current id has its `.out` (or its
@@ -181,12 +183,12 @@ every other line waits in the queue, §Inflight item 0) (author default slice; t
 | Code | Class | B3 step | Trigger (short) |
 |---|---|---|---|
 | `sender` | terminal | 1 | sender not registered; conductor-only or `run` id from a non-conductor |
-| `schema` | terminal | 5 | copy fails the closed schema or the line cross-check; verb outside B4 (approve, trigger-prod, pipeline-edit); ref, base, merged_into, tag or package starting with `-` |
+| `schema` | terminal | 5 | copy fails the closed schema or the line cross-check; verb outside B4 (approve, trigger-prod, pipeline-edit); ref, base, merged_into, tag or package starting with `-`; non-Epic `jira-create` without `parent` (B9); int as `-0` or exponent |
 | `hash` | terminal | 4 | copy sha256 differs |
 | `repo` | terminal | 6 | repo not a registered clone; branch regex; path outside its root |
-| `policy` | terminal | 6 | never-granted in-schema request; `tag-push` not allowed by profile; redaction hit; pattern file unusable or scan error |
+| `policy` | terminal | 6 | never-granted in-schema request; `test-report-push` first call with `dry_run: false` (B9); `tag-push` not allowed by profile; redaction hit; pattern file unusable or scan error |
 | `stale-session` | curable | 7 | GitHub or Atlassian session not fresh |
-| `gate-missing` | curable | 8 | `H1.ok`, `H-prod.<step_id>.ok` or `merge_reach` row absent |
+| `gate-missing` | curable | 8 | `H1.<run-id>.ok`, `H-prod.<step_id>.<run-id>.ok` or `merge_reach` row absent |
 | `order` | curable | 8 | a `pr-merge` predecessor not merged |
 | `marker` | curable | 8 | a re-derived marker fails (also `push-spacing`, `pipeline-bound`) |
 | `action-failed` | curable | 9 | valid request, the action failed |
@@ -196,17 +198,32 @@ resends it. Curable: "a curable code may be resent with a fresh id once its caus
 OP5 B, `architecture/delivery-workflow-sources/owner-decisions.md:67`); part B2.1: "the
 requester may resend with a fresh id on the same channel once the cause clears"
 (`architecture/delivery-workflow/interfaces/part-b-desk.md:54`). A fresh id is a new `<n>`;
-the same id only replays the stored `REJECTED` (B3 step 2, `part-b-desk.md:47`).
+the same id only replays the stored `REJECTED` (B3 step 2, `part-b-desk.md:47`). For the
+conductor's own requests B9 (29-33) names the trigger per curable code: `marker` when `head` or
+`review_record` changed; `order` when the predecessor has `merge_sha`; `action-failed`,
+`stale-session` and `gate-missing` on the owner's word. `stale-session` here is the B2.1 desk
+code; the A.3 `stop_reason: stale-session` (a second `pm` lead on a fresh `substate.lock`, A.8)
+is a lead stop, not a desk reply.
 
 ## Requester-side rules the desk relies on (B1, for diagnosis only)
 
 Sender side, for reference only (the desk never calls it): `tools/delivery/desk-req.sh <run-id>
 <subtask|run> <verb> <fields-json-file>` writes `RUN_HOME/desk/<id>.req` (0600) and prints the
-`DESK` line; exit 0 ok, 2 usage, 4 lock timeout (INTERFACES §Script interfaces, `INTERFACES.md:49-57`). (moved from `SKILL.md`)
+`DESK` line; exit 0 ok, 2 usage, 4 lock timeout (INTERFACES §Script interfaces, `INTERFACES.md:51-59`). (moved from `SKILL.md`)
 
 - A `claude -p` lead polls `.out` (authoritative) up to 5 minutes, re-sends the same `<id>` once,
   then renames `<id>.req` to `<id>.req.noreply` and escalates (default; source
   `architecture/delivery-workflow/interfaces/part-b-desk.md:22`, marked `DEFAULT (integrator)`). The desk answers the re-send from
   the stored `.out` (check 2) or processes it if none exists.
 - On resume each requester applies `DONE` results its own record does not show yet (applied-result
-  scan, row R4-J9) before sending anything new.
+  scan, row R4-J9) before sending anything new; the conductor runs it before every send, its
+  `REGISTER-SENDER` re-send included (B9 29-10).
+- Conductor send gate (B9 29-16, 29-27): until the desk answers `REGISTERED <run-id> | run | ok`
+  the conductor sends only the `run` claim and its one re-send, so the desk sees no lead line,
+  relay or conductor request for that run before it; lead `REGISTER-SENDER` lines stay gated.
+  Every conductor send (registration, its own `pr-approval-state`/`pr-merge`, each relayed
+  `CONDUCTOR-REQUEST`) is re-sent once with the same line or id, then becomes a human step
+  (`<id>.req.noreply`, terminal `sender`, B9 29-7); before minting an id it adopts its own `.req`
+  with the same verb and fields and no `.out`, so the desk never sees one request under two ids.
+  A relay or `CONDUCTOR-REQUEST` the conductor refuses (`.desk.refused`, `.refused`) never reaches
+  the desk and is logged only in the conductor's turn output and status post (B9 29-4).

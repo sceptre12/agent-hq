@@ -1,6 +1,6 @@
 # Units to `waves/`: what step 10 writes
 
-Authority is INTERFACES `1.4.0` part C1, C1.1, C1.2 and part A.3, A.6. This file points at them and records only how this skill applies them; it does not restate their tables. Field names for the spec come from `skills/wave-execution/references/spec-format.md` (item 9 extends it); read that file before writing, and follow it where it is more exact than this page.
+Authority is INTERFACES `1.5.0` part C1, C1.1, C1.2, C8 and part A.3, A.6, A.8. This file points at them and records only how this skill applies them; it does not restate their tables. Field names for the spec come from `skills/wave-execution/references/spec-format.md` (item 9 extends it); read that file before writing, and follow it where it is more exact than this page.
 
 ## Output paths (A.6)
 
@@ -11,14 +11,14 @@ Authority is INTERFACES `1.4.0` part C1, C1.1, C1.2 and part A.3, A.6. This file
 | `subtasks/<subtask>/substate.seed.md` | `PLANS_DIR/` | build-mode sub-tasks only; exactly the seed keys below |
 | `subtasks/<subtask>/bundle.md` | `PLANS_DIR/` | the bundle header (bundle fields below), at the bundle root next to `waves/` (C1, AM-3 errata (c)) |
 | `subtasks/<subtask>/waves/` | `PLANS_DIR/` | Option B layout of the spec format; waves numbered from 1 |
-| `subtasks/<subtask>/constitution.md` | `PLANS_DIR/` | only when the repo has no profile yet (C1; definition below); not a wave file (C1, AM-3 errata (d)) |
+| `subtasks/<subtask>/constitution.md` | `PLANS_DIR/` | only when the repo has no profile yet (C1; definition below); not a wave file (C1, AM-3 errata (d)); written here at plan time, never at run time (A.8 A.6, C8, owner S4b) |
 | `catalog.tsv`, `plan-check.md` | `RUN_HOME/` | the first created empty by this skill; the second written by the Plan-checker |
 
 ## Wave files per build-mode sub-task (C1)
 
 - `01-build.md`: one DAG wave holding every unit of the sub-task, with `depends_on` edges. Successive frontiers live inside this file. Do not write numbered "lane-wave" files.
 - `02-integrate.md`: the Integrator work_items `i<N>` (one per unit `u<N>`, merging serially into the sub-task branch) and the `pre-pr-gate` hand-off.
-- `constitution.md` (bundle root, next to `waves/`; not a wave file, since spec-format rule 4 numbers waves from 1): only when the repo has no profile yet: `repo-profile.md` absent, or `FILL_IN_BEFORE_DISPATCH` in a required A.2.2 key (AM-4 queue row 17, not yet in INTERFACES 1.4.0; the absent case already stops at Step 0, so in practice this is the sentinel case), the serial constitution-and-contracts agent, which the lead runs before `01-build.md`. Otherwise absent. Never `00-constitution.md`.
+- `constitution.md` (bundle root, next to `waves/`; not a wave file, since spec-format rule 4 numbers waves from 1): only when the repo has no profile yet: `repo-profile.md` absent, or `FILL_IN_BEFORE_DISPATCH` in a required A.2.2 key (INTERFACES A.8, AM-5 17; the absent case already stops at Step 0, so in practice this is the sentinel case), the serial constitution-and-contracts agent, which the lead runs before `01-build.md` and verifies as a C2 `PASS` (C8, 28-CV19). Otherwise absent. Never `00-constitution.md`.
 - Wave 0 setup (worktrees, baseline gates, lane leases) is not a wave file; `delivery-run` performs it. Do not add it.
 - `st0` (`plan-pr`) and `pm` (`post-merge`) have no seed, no `waves/` and no sub-task bus (A.2 modes; `st0`'s `pre-pr-gate` review still claims a `review-bus` port, port table in `references/shared-files-and-parallelism.md` section 3); their leads initialize `substate.md` from `subtask_id`, `session_id` and `phase: seeded` only. `pm` is added by the conductor post-merge, not by this plan.
 

@@ -2,8 +2,9 @@
 
 One section per B4 verb: requester and result reader, request `fields`, what the desk checks
 beyond the common 12 (`checks.md`), how it acts, and the `DONE` result fields (B6). The machine
-form of fields and results is `schemas.json`; part B4-B6
-(`architecture/delivery-workflow/interfaces/part-b-desk.md:77-143`) is the authority; bare ids (D3,
+form of fields and results is `schemas.json`; part B4-B6 and the B9 additions
+(`architecture/delivery-workflow/interfaces/part-b-desk.md:77-143`, `:174-185`, INTERFACES 1.5.0)
+are the authority; bare ids (D3,
 M24, N11, ...) resolve in `references/source-keys.md`. "Act" lines name the
 command family the desk uses under the operator's own auth; where INTERFACES fixes only the
 fields and not the command, the line says **measured at the move**, and the desk must not guess
@@ -12,16 +13,17 @@ a command for it before that measurement.
 No raw flag reaches argv (ADR 0055 §4, `decisions/0055-desk-verb-permission-tiers-02.md:198`
 "Never accepts raw flags or force options"). Two layers: (1) check 5 refuses a `ref`, `base`,
 `merged_into`, `tag` or `package` that starts with `-` (`schema`, `schemas.json` patterns, same
-rule as `tools/delivery/desk-req-schema.sh:23-24` for ref and tag), and a `branch` that fails its
-regex is `repo` at check 6; (2) every request-derived value below is placed after `--` (git
+rule as `tools/delivery/desk-req-schema.sh:28-29`, `:38`; a contract rule, B9 26, PR10-R2), and
+an int written as `-0` or in exponent form is `schema` too (A.8 A.5 numeric guard); a `branch`
+that fails its regex is `repo` at check 6; (2) every request-derived value below is placed after `--` (git
 transport commands, `gh`) or `--end-of-options` (git revision commands), passed as a fully
 qualified `refs/...` name, or attached to its option as `--opt=<value>`. `repo` is an absolute
 path, shas are 40-hex and `pr`/`ci_run_id` are integers, so none of them can start with `-`.
 
-Repository binding (author default; part B makes `repo` the only target check,
-`part-b-desk.md:14`): every act and read is bound to the request `repo` after check 6 has
+Repository binding (desk defaults ratified in B9 (26), `part-b-desk.md:177`: remote `origin`,
+`--repo` from the origin URL; part B makes `repo` the only target check, `part-b-desk.md:14`): every act and read is bound to the request `repo` after check 6 has
 realpath'd it under a registered clone. `<remote>` is `origin` of that clone (the profile
-`clones[]` entry is a path only, `part-a-state.md:116`). Git acts use `git -C <repo>`. Every
+`clones[]` entry is a path only, `part-a-state.md:119`). Git acts use `git -C <repo>`. Every
 `gh` call carries `--repo=<gh-repo>`, where `<gh-repo>` is the `<owner>/<name>` the desk parses
 from `git -C <repo> remote get-url origin` (a GitHub `https://` or `git@` URL); a `gh api` path
 uses the same `<gh-repo>` (`repos/<gh-repo>/...`). A remote URL the desk cannot parse is `repo`
@@ -40,13 +42,15 @@ the branch, labels, template), `harness-api` (read-only verbs), `jira`.
   `expect_head` (stage 5; no push precedes `pre-pr-gate`); a **later push to the same PR** needs
   the `GATE-PASS` record for `expect_head` plus `RUN_HOME/ci/<pr>.md` naming that head (a
   `ci-fix-loop` push) or `PREPR: PASS` for it. Later pushes only fast-forward.
-- First or later (`DEFAULT (author)`; part B does not say how the desk tells them apart): the desk
-  re-derives it from GitHub, never from the request: `gh pr list --repo=<gh-repo> --head=<branch>
+- First or later (ratified in B9 (26): "later push" means exactly one open PR exists for the
+  head's branch): the desk re-derives it from GitHub, never from the request: `gh pr list --repo=<gh-repo> --head=<branch>
   --state=open --json=number`. Exactly one open PR: a later push, `<pr>` is that number. None: a
   first push (also when the branch already exists on the remote without an open PR: the stricter
   first-push rule applies). More than one: `marker`, `detail` `pr-ambiguous`.
-- `PREPR: PASS` evidence (`DEFAULT (author)`): `RUN_HOME/<subtask>/substate.md` has `prepr: PASS`
-  with `head` equal to `expect_head` (A.3, `part-a-state.md:174-175`). CI evidence: a line of
+- `PREPR: PASS` evidence (B9 (26), owner D7 stop "Accept verified state", `OD:94`): line 1 of
+  `RUN_HOME/review/<subtask>/checklist-<subtask>.md` (validator-written) is `PREPR: PASS` **and**
+  `RUN_HOME/<subtask>/substate.md` has `prepr: PASS` with `head` equal to `expect_head` (A.3,
+  `part-a-state.md:180-181`); both must agree, else `marker`. CI evidence: a line of
   `RUN_HOME/ci/<pr>.md` contains `expect_head` (INTERFACES fixes only its line 1 `CI:` form, part
   D1). Missing: `marker`, `detail` `prepr` (first push) or `ci-or-prepr` (later push).
 - Checks: head (`git rev-parse --verify --end-of-options refs/heads/<branch>` equals `expect_head`); gate run
@@ -54,7 +58,7 @@ the branch, labels, template), `harness-api` (read-only verbs), `jira`.
   to 5 min (default; `architecture/delivery-workflow/interfaces/part-b-desk.md:83`, marked
   `DEFAULT (integrator)`, row R4-J20), else `marker` `push-spacing`).
 - Act: `HUSKY=0 git -C <repo> push -- <remote> <expect_head>:refs/heads/<branch>` (`HUSKY=0` on
-  every desk `git push`, inline, never exported, A.7, `interfaces/part-a-state.md:329-348`), no `--force`, no `--force-with-lease`, no `--no-verify`.
+  every desk `git push`, inline, never exported, A.7, `interfaces/part-a-state.md:335-354`), no `--force`, no `--force-with-lease`, no `--no-verify`.
   A non-fast-forward or protection refusal is `action-failed`.
 - Result: `head` (re-read from the remote, `git -C <repo> ls-remote -- <remote> refs/heads/<branch>`).
 
@@ -106,7 +110,7 @@ the branch, labels, template), `harness-api` (read-only verbs), `jira`.
   `record_path` segment (else `schema`); `merge_reach` row (else `gate-missing`); predecessors
   merged (else `order`); head (PR `headRefOid`), gate run, review record, H-pr, CI aggregate
   `success` (else `marker`); merge target: `gh pr view <pr> --repo=<gh-repo> --json=baseRefName`
-  equals the profile `default_branch` (A.2.2 `part-a-state.md:117`, AM-4 20 Q6: "main" in the
+  equals the profile `default_branch` (A.2.2 `part-a-state.md:123`, AM-4 20 Q6: "main" in the
   design means this key), else `marker` with `detail` `base`; an absent `default_branch` key is
   `marker` with `detail` `default_branch` (`DEFAULT (author)` code).
 - Act: `gh pr merge <pr> --repo=<gh-repo> --<method> --match-head-commit=<expect_head>`; never `--admin`, never
@@ -115,7 +119,8 @@ the branch, labels, template), `harness-api` (read-only verbs), `jira`.
 
 ### `branch-delete` `{repo, branch, merged_into, merge_sha}`
 - Requester: `delivery-cleanup` (its executor writes the `.req`; the host lead or conductor sends
-  the line). Reader: `delivery-cleanup`.
+  the line). Reader: `delivery-cleanup`. Never for a repo with no remote (`merge_reach: local`): branch
+  deletion there is local-only and the cleanup record says "no remote" (A.8 A.5.1, 19-F6).
 - Checks: content-merged (`checks.md` §Markers), always against the desk-fetched
   `refs/remotes/<remote>/<merged_into>`, never a local branch; failure is `marker`, never
   `DONE deleted=false`.
@@ -129,7 +134,8 @@ the branch, labels, template), `harness-api` (read-only verbs), `jira`.
 - Requester: the lead (`delivery-run`) before the `02-integrate.md` invocation and before each
   `pre-pr-gate` call (the Integrator and `pre-pr-gate` rebase onto the fetched ref and never send
   `DESK`, B1 host rule), and `delivery-cleanup` verify (AM-4 W2-4, `part-b-desk.md:95`). Reader:
-  same.
+  same. A repo with no remote (`merge_reach: local`) gets no desk `fetch` or `branch-delete`
+  (A.8 A.5.1, 19-F6); one that arrives anyway has no parsable `origin` and is `repo` at check 6.
 - Act: `git -C <repo> fetch -- <remote> <ref>`; read the fetched sha (`FETCH_HEAD`).
 - Result: `ref`, `sha`.
 
@@ -180,7 +186,7 @@ H-prod grant (frozen B4 stands; spec §4 amended)" (`part-b-desk.md:97`). Frozen
   `pattern`, or with `used: "yes"` an absent or malformed `pattern` (not anchored `^...$`, not a
   valid ERE) or `approval` (absent or outside `none|human`): `policy`, `detail` names the key. An
   unreadable linked profile: `policy`. `approval: human` needs
-  `RUN_HOME/gates/H-prod.<step_id>.ok` (else `gate-missing`); `none` needs no file.
+  `RUN_HOME/gates/H-prod.<step_id>.<run-id>.ok` (else `gate-missing`); `none` needs no file.
 - Act: `git -C <repo> tag --end-of-options <tag> <sha>` then
   `HUSKY=0 git -C <repo> push -- <remote> refs/tags/<tag>` (A.7);
   an existing remote tag at another sha is `action-failed`, never moved.
@@ -188,7 +194,7 @@ H-prod grant (frozen B4 stands; spec §4 amended)" (`part-b-desk.md:97`). Frozen
 
 ### `publish` `{repo, package, version, step_id}`
 - Reader: `release-track`.
-- Checks: `RUN_HOME/gates/H-prod.<step_id>.ok` (else `gate-missing`).
+- Checks: `RUN_HOME/gates/H-prod.<step_id>.<run-id>.ok` (else `gate-missing`).
 - Act: publish `<package>@<version>` per the repo's release procedure, **measured at the move**
   (`package` cannot start with `-`, check 5; the measured command must still put it after `--`);
   read back the registry entry first (already published at that version is answered `DONE` from
@@ -198,7 +204,9 @@ H-prod grant (frozen B4 stands; spec §4 amended)" (`part-b-desk.md:97`). Frozen
 ### `test-report-push` `{tool, payload_path, dry_run}`
 - Requester: the conductor, on a `CONDUCTOR-REQUEST` authored by `release-track`, which owns test reporting (AM-2). Reader: `release-track` (writer of the payload).
 - Checks: `tool` is `zephyr`; `payload_path` under `RUN_HOME/bodies/`, scanned. The first call
-  for a payload is `dry_run: true` (`DEFAULT`, `part-b-desk.md:98`: "first call `dry_run: true`").
+  for a payload is `dry_run: true` (`DEFAULT`, `part-b-desk.md:98`: "first call `dry_run: true`");
+  a first call with `dry_run: false` is `policy` (B9 26). "First" = no earlier `DONE`
+  `test-report-push` `.out` with `dry_run_path` for that `payload_path` in the run (`DEFAULT (author)`).
 - Act: send the payload to Zephyr Scale through the Atlassian session (`dry_run: true` validates
   and writes the would-be result without sending); never send `folder` on a PUT to an existing
   test case. Endpoint details are **measured at the move** (P0 Zephyr measurement).
@@ -217,11 +225,11 @@ Atlassian session.
 
 ### `jira-create` `{parent, fields}`
 - Reader: `ticket-clerk` (writes `tickets.tsv`). The epic itself only from the conductor.
-- Checks: `RUN_HOME/gates/H1.ok` (else `gate-missing`); the top-level `parent` is the only parent
+- Checks: `RUN_HOME/gates/H1.<run-id>.ok` (else `gate-missing`); the top-level `parent` is the only parent
   carrier: a `fields.parent` entry is `schema` at check 5 (`schemas.json`
   `verbs.jira-create.request`); `fields` needs `summary` and `issuetype`, every other allowlisted
   field is optional (AM-4 22, `part-b-desk.md:100`); `parent` present exactly when
-  `fields.issuetype` is not `Epic` (else `schema`); the parent is re-fetched first and must exist.
+  `fields.issuetype` is not `Epic` (else `schema`; a missing `parent` is `schema`, B9 26); the parent is re-fetched first and must exist.
   A changed draft `parent` or `issuetype`, and a terminal `REJECTED`, are `ticket-clerk`'s to
   report (B4); the desk does not update a created issue's parent.
 - Result: `key`, `parent` (null for an epic).

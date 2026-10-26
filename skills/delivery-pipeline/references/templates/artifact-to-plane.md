@@ -24,7 +24,7 @@ The single reference for where each artifact of the delivery workflow lives. A s
 - *Retro and `release-plan.md` v1:* the design row lists "retro" with the repo plane; it is removed from that row and given the RUN row above, because in this contract version `retro.md`, `execution-log.md` and `release-plan.md` v1 are RUN-only. Committing them to `plans/<epic>/` is a human step after CYCLE DONE. `release-plan.md` v0 (written by `delivery-architecture`) is repo `plans/<epic>/`.
 - *Plan-plane files not in the design row:* `brief.md`, `facts.md`, `drafts/` (with `drafts/index.md`), `review-architecture.md`, `h1-packet.md`, `subtasks/<subtask>/substate.seed.md` and `subtasks/<subtask>/waves/` are repo `plans/<epic>/` (INTERFACES D6).
 
-## Part B. AM-1 rows (INTERFACES 1.3.0)
+## Part B. AM-1 rows (INTERFACES 1.5.0)
 
 | Artifact | Plane and path | Durable? |
 |---|---|---|
@@ -33,6 +33,16 @@ The single reference for where each artifact of the delivery workflow lives. A s
 | `tools/ports.tsv`, `tools/app-ports.tsv`, `tools/hooks/port-precheck.sh` | agent-hq repo; registries filled at the move for the work machine | yes; `tools/port-check.sh --claim` appends only |
 
 Guidance mode (`state.md` `security_audit: guidance`) writes no file; the RUN row exists only under `full`.
+
+**AM-5 rows (INTERFACES 1.5.0 A.1, A.8, C8, D5).**
+
+| Artifact | Plane and path | Writer |
+|---|---|---|
+| in-run `pr-review` bus: `bus.endpoint` and `data_dir` `bus/` | RUN `review/<subtask>/<review-id>/`; one fresh session `pr-review-<uuid8>` per review (the M12 namespacing exception for review buses, E42) | `pr-review` Step 1 |
+| `pm/inbox/<seq>-<yyyymmddThhmmssZ>-verdict.md` (inbox type `verdict`) | RUN `pm/inbox/` | `post-merge-verify` verdict agent (C5.1, C8) |
+| `capture/read-back.md` (line 1 `READ-BACK: pass` or `READ-BACK: <n> differences`) | RUN `capture/` | read-back agent (C8, 29-24) |
+| `launcher/disallowed-tools.txt` (one tool name per line; absent or empty is `INPUT-ERROR launcher.disallowed_tools missing`) | ROOT `launcher/`, written at the move | the move operator (A.8, 29-21) |
+| `homes/<session>/pid`, `homes/<session>/prompt` (0600) | ROOT `homes/<session>/` | the launch subshell (A.8, 29-39) |
 
 ## Part C. Path rules every row depends on
 
@@ -43,7 +53,7 @@ Guidance mode (`state.md` `security_audit: guidance`) writes no file; the RUN ro
 | `plans_dir` | the primary repo's `plans/<epic>/`; for a provisional run-id `plans/<run-id>/`, not renamed when the key arrives | A.1, A.2 |
 | Multi-repo epic | the primary repo (`state.md` `primary_repo`, from the stage 1 `PRIMARY_REPO` input; restated in `architecture.md` section 3) governs; other profiles linked from it (`linked_profiles[]`) | A.1, A.2.2 |
 | Worktrees | `worktree_base` (profile key) under `$DELIVERY_ROOT`; sub-task `<worktree_base>/<run-id>-<subtask>`, unit `<worktree_base>/<run-id>-<subtask>-<unit>` | A.1, A.6 |
-| Namespacing | every pm2 app, bus `data_dir`, temp dir and worktree name carries `<run-id>-<subtask>` | A.1, D4 |
+| Namespacing | every pm2 app, bus `data_dir`, temp dir and worktree name carries `<run-id>-<subtask>`; exception: an in-run review bus lives under `RUN_HOME/review/<subtask>/<review-id>/` with session `pr-review-<uuid8>` (E42) | A.1, D4, D5 |
 | Atomic writes | temp file in the same directory, then `mv`; a file written by several agents of one kind is `<agent-id>-<purpose>-<n>.md` | A.1 |
 | Desk mailbox | `RUN_HOME/desk/` is the desk mailbox; the desk inbox is `$DELIVERY_ROOT/desk-inbox` (desk-owned) | A.1, D6 |
 
@@ -52,7 +62,7 @@ Guidance mode (`state.md` `security_audit: guidance`) writes no file; the RUN ro
 | Path | Plane | Writer |
 |---|---|---|
 | `RUN_HOME/state.md` | RUN | conductor |
-| `RUN_HOME/gates/<gate-file>` | RUN | desk only |
+| `RUN_HOME/gates/<gate-file>` (`<gate>.<run-id>.ok`, incl. `grant.*`, `H-destructive.*`, `RESUME.*`) | RUN | desk only |
 | `RUN_HOME/<subtask>/substate.md`, `substate.lock/`, `substate.seed.md` (copy) | RUN | lead |
 | `RUN_HOME/<subtask>/slots/<agent-id>.row` (`.stale`, `.freed`) | RUN | lead |
 | `RUN_HOME/<subtask>/status/`, `shepherd/ticks.md`, `lanes/`, `gate-runs/<sha>.md`, `dispatch/<invocation>.jsonl`, `inbox/`, `outbox/`, `escalations/` | RUN | per A.3, A.6, part C |

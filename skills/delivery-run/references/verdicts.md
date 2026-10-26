@@ -1,6 +1,6 @@
 # Verdicts: the `UNIT-VERDICT` record and lead handling
 
-Depth for the SKILL.md invocation-loop step (C2 and C4 handling) and the tick's verdict read. Authority (INTERFACES 1.4.0): part C C2 (record, lead filter, lead table, readers), C3 (`NEXT:`), C4 (status-file fallback), C1.2 (`step_complete` verifier row), C5.3 (read order, paging), C7 (drift and creep below 3 live agents); part D D4; spec 28 RESOLVED R-2, AM4-3; AM-4 rows 22, 23.
+Depth for the SKILL.md invocation-loop step (C2 and C4 handling) and the tick's verdict read. Authority (INTERFACES 1.5.0): part C C2 (record, lead filter, lead table, readers), C3 (`NEXT:`), C4 (status-file fallback), C1.2 (`step_complete` verifier row), C5.3 (read order, paging), C7 (drift and creep below 3 live agents), C8 (AM-5: CV6, CV7, CV11, the `UNIT-VERDICT` filter); part D D4; spec 28 RESOLVED R-2, AM4-3; AM-4 rows 22, 23.
 
 ## Reading the topic
 
@@ -16,7 +16,7 @@ Act only on a post that meets all of these:
 1. The post is **bare JSON**. "`UNIT-VERDICT:`" is the prose name and never a text prefix.
 2. It has exactly the four keys `{"unit","verdict","head","reason"}` (no extra key).
 3. `unit` matches `^[ui][0-9]+$`, `head` matches `^[0-9a-f]{40}$`, and `verdict` and `reason` satisfy the matrix below.
-4. Its `from_agent` is registered in **this invocation's** `dispatch/<invocation>.jsonl` with role `worker` or `gate`, and the record's `unit` equals that line's `unit` (AM-5 queue row (28): "UNIT-VERDICT filter accepts worker and gate records").
+4. Its `from_agent` is registered in **this invocation's** `dispatch/<invocation>.jsonl` with role `worker` or `gate`, and the record's `unit` equals that line's `unit` (C8 "C2 filter and readers": the `UNIT-VERDICT` filter accepts worker and gate records only).
 
 Per unit the lead acts on the **latest** accepted record; the `PASS` head check below compares the worktree HEAD with that record's `head`, never with an older record's.
 
@@ -43,15 +43,15 @@ A pair outside the matrix fails filter step 3.
    - for `i<N>`, append `u<N> <head>` to `substate.md` `integrated` (the `INTEGRATED:` entry, D1.1; one record per merged unit, A.3);
    - release the unit's lane lease if it was the lane's last work_item in the invocation;
    - below 3 live agents, run the drift and creep check (below).
-4. **Head mismatch** (step 1 fails: `u<N>` HEAD differs, or an `i<N>` `head` is not an ancestor): the post is incomplete. It is never accepted, the row is not freed on it, and nothing is appended. The unit is re-gated under its fix loop. The controller's `step_complete` gate reads the record and the branch at `head` (R-2), and the lead takes no action of its own on the controller. **Two consecutive mismatches on one unit** are a stop row for that unit. The lead counts them from the topic itself (two mismatching records for the unit with no accepted record between them), so the count survives a resume. On the second one, pause the unit as for `ESCALATE`, reason `human-step` (proposed CV6, owner answer O8; escalation record holding both records and the observed head), keep its dependents unreleased, and run the rest of the sub-task on.
+4. **Head mismatch** (step 1 fails: `u<N>` HEAD differs, or an `i<N>` `head` is not an ancestor): the post is incomplete. It is never accepted, the row is not freed on it, and nothing is appended. The unit is re-gated under its fix loop. The controller's `step_complete` gate reads the record and the branch at `head` (R-2), and the lead takes no action of its own on the controller. **Two consecutive mismatches on one unit** are a stop row for that unit. The lead counts them from the topic itself (two mismatching records for the unit with no accepted record between them), so the count survives a resume. On the second one, pause the unit as for `ESCALATE`, reason `human-step` (C8 CV6, owner answer O8; escalation record holding both records and the observed head), keep its dependents unreleased, and run the rest of the sub-task on.
 5. If step 2 fails while the head matches, handle it like a mismatch: the post is not accepted and the unit is re-gated.
 
 ### `ROLLED`
 
 - The unit is a failed gate on the controller side: its dependents stay unreleased (C2 controller side, ADR 0054 A5).
 - Wait until the live invocation returns (one live invocation per sub-task), then run a **fresh invocation** with `tier_override <unit>=<tier>` one tier up (C1.1). The controller resumes at the unpassed items from its checkpoint. Alternatively, mark the unit blocked and escalate. The lead decides: tier-up fits a capability cause (`budget`, `merge-conflict`); blocked plus an escalation fits a cause outside the agent (`lane-unavailable`, `env-bug`).
-- "One tier up" is one above the highest tier recorded for the unit in `dispatch/*.jsonl`, so it survives a `TaskStop` or a resume (CV7). A drained `fix-loop-cap-exhausted` escalation for a unit the lead tiers up (Integrator `merge-conflict` included) is closed resolved-by-lead (below, proposed CV34).
-- **Never a third attempt at the top tier.** The lead counts a unit's earlier attempts per tier from the `dispatch/*.jsonl` lines of that unit with `role` `worker` only (proposed CV7, owner answer O8). If two top-tier attempts are already recorded, the unit is blocked and escalated with `tier-exhausted`.
+- "One tier up" is one above the highest tier recorded for the unit in `dispatch/*.jsonl`, so it survives a `TaskStop` or a resume (C8 CV7). A drained `fix-loop-cap-exhausted` escalation for a unit the lead tiers up (Integrator `merge-conflict` included) is closed resolved-by-lead (below, proposed CV34).
+- **Never a third attempt at the top tier.** The lead counts a unit's earlier attempts per tier from the `dispatch/*.jsonl` lines of that unit with `role` `worker` only (C8 CV7, narrowed to `worker` lines by owner answer O8). If two top-tier attempts are already recorded, the unit is blocked and escalated with `tier-exhausted`.
 - The fixer one-MODEL-step rule (ADR 0014 T1, D2.1 `tier` row) belongs to the review loops and does not change this handling (AM4-3).
 
 ### `ESCALATE`
@@ -63,7 +63,7 @@ A pair outside the matrix fails filter step 3.
 
 ### Escalation closure (proposed CV34)
 
-- **Open:** a unit escalation is a file `escalations/<unit>.md` (`<unit>` `[ui][0-9]+`) that has not been renamed. Only these block a new invocation (CV21). Other names (`register`, `lane-wait`, `desk-<id>`, `cleanup`, `wave-<N>`, CV9 inbox items) never block step 10; each of them that stops the lead carries its own `stop_reason`.
+- **Open:** a unit escalation is a file `escalations/<unit>.md` (`<unit>` `[ui][0-9]+`) that has not been renamed. Only these block a new invocation (CV21). Other names (`register`, `lane-wait`, `desk-<id>`, `cleanup`, `wave-<N>`, C8 CV9 inbox items) never block step 10; each of them that stops the lead carries its own `stop_reason`.
 - **Close on `ANSWER`:** on consuming `ANSWER <run-id> <subtask> <unit> <text>` the lead appends `Resolved: <utc> <first line of the ANSWER file>` to `escalations/<unit>.md` and renames it `<unit>.md.resolved-<yyyymmddThhmmssZ>`. `decision-gate` closes only once the `.decisions` fork flow has filled its Re-dispatch instruction (`handoffs-and-modes.md`). For every other reason (`spec-gap`, `contract-gap`, `source-bug`, `arch`, `human-step`, `gherkin-checkpoint`, `tier-exhausted`, `fix-loop-cap-exhausted`, head-mismatch pause) the lead appends the CV42 pointer line naming the resolved file to the unit's `.tasks` file, and the next invocation re-dispatches the unit with the answer carried that way.
 - **Resolved by the lead:** a drained `fix-loop-cap-exhausted` for a unit the lead itself tiers up (`ROLLED`) gets `Resolved: <utc> lead tier-up <tier>` and the same rename at once, so it never blocks that tier-up.
 

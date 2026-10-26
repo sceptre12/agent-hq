@@ -22,11 +22,11 @@ date: YYYY-MM-DD
 ```
 
 ### P1 Sub-task table (one PR each, D5; `st0` is the plan PR, M22)
-Columns beyond the design (INTERFACES A.6 additions): `ticket`, `branch`, `repo`.
+Columns beyond the design (INTERFACES A.6 additions): `ticket`, `branch`, `repo`. `merge order` is binding: merge predecessors are every sub-task with a lower value (`st0` first); `RELEASE` follows `depends-on` (INTERFACES A.8, 29-18).
 
 | id | ticket | branch | repo | PR | merge order | lead session | backend | slot plan | depends-on |
 |---|---|---|---|---|---|---|---|---|---|
-| st0 | `<epic key>` | `<key>-<slug>` | `<clone root>` | `-` | 1 | `lead-st0-a1` | `agent-tool\|claude-p` | `<peak>/30` | `independent` |
+| st0 | `<epic key>` | `<key>-<slug>` | `<clone root>` | `-` | 1 | `-` (minted by the conductor at launch, `<run-id>-<subtask>-l<n>`, INTERFACES A.8) | `agent-tool\|claude-p` | `<peak>/30` | `independent` |
 | st<N> | `<JIRA-KEY from tickets.tsv>` | `<key>-<slug>` (B4 `branch` regex) | `primary_repo` or `linked_profiles[].clone` (INTERFACES A.2.2) | `-` | `<n>` | `<session>` | `<BACKEND>` | `<peak>/30` | `st<M>` or `independent` (M19) |
 
 - Sub-task worktree: `<worktree_base>/<run-id>-<subtask>`; unit worktree `<worktree_base>/<run-id>-<subtask>-<unit>` (INTERFACES A.6).
@@ -68,13 +68,13 @@ Text diagram. One DAG wave `01-build.md` per sub-task, then `02-integrate.md` (C
 Every lane, dev-server and bus port is claimed at launch per INTERFACES A.5.2 (`port-check.sh --claim`, then `catalog.sh register port`), never auto-picked; on a refusal exactly one retry at candidate + 10, claimed before bind; a second refusal stops the line and is reported to the lead; for a lane it maps to C2 reason `lane-unavailable` (INTERFACES A.5.2, AM-3, owner OQ-2).
 
 ### P8 Port table (INTERFACES A.5.2 candidate formula; one +10 retry, AM-3 OQ-2)
-`candidate = <base> + 10*k`; `<base>` is the profile key `ports.bus_base` (bus, review-bus) or `ports.lane_base` (lanes); either absent means `FILL_IN_BEFORE_DISPATCH`, which fails the pre-dispatch checklist. Fixed app ports keep `k = 0`. Bus rule: `st<N>` bus `k = 2N`, review bus `k = 2N + 1`; lanes by lane index.
+`candidate = <base> + 20·k` (INTERFACES 1.5.0 A.5.2, AM-4 W2-3; the one +10 retry lands on an odd ten no candidate uses); `<base>` is the profile key `ports.bus_base` (bus, review-bus) or `ports.lane_base` (lanes); either absent means `FILL_IN_BEFORE_DISPATCH`, which fails the pre-dispatch checklist. Fixed app ports keep their app port, `k` = `-`, outside the formula (W2-3). Bus rule: `st<N>` bus `k = 2N`, review bus `k = 2N + 1`; lane binds by the per-bind index, consecutive in table order from 0 across all lanes (A.5.2).
 
 | subtask | role (`bus\|review-bus\|lane/<name>`) | base_key (`ports.bus_base\|ports.lane_base`) | k | candidate |
 |---|---|---|---|---|
 | `st1` | `bus` | `ports.bus_base` | `2` | `FILL_IN_BEFORE_DISPATCH` |
 | `st1` | `review-bus` | `ports.bus_base` | `3` | `FILL_IN_BEFORE_DISPATCH` |
-| `st1` | `lane/<name>` | `ports.lane_base` | `<lane index>` | `FILL_IN_BEFORE_DISPATCH` |
+| `-` (run-wide) | `lane/<name>` | `ports.lane_base` | `<per-bind index>` | `FILL_IN_BEFORE_DISPATCH` |
 
 One row per bind per sub-task. The launcher claims each candidate at launch (INTERFACES A.5.2); on a refusal (exit 1 or 2) the launcher makes exactly one retry at candidate + 10, claimed before bind; a second refusal stops the line and is reported to the lead (INTERFACES A.5.2, AM-3, owner OQ-2). A candidate is never promised free; the plan runs no `port-check.sh`. A bus starts with `PORT_RANGE_START=PORT_RANGE_END=<port>` (the retry port when retried, C1.1) and its `$DATA_DIR/port` must equal the claim.
 

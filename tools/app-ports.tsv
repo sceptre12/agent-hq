@@ -1,0 +1,9 @@
+#match_dir	match_cmd	ports	service	source
+# Format: TAB-separated, 5 fields, mirrors tools/ports.tsv's TAB style (source cites file:line).
+# match_dir: "*" = any cwd; otherwise cwd under this dir, OR under "<match_dir>-worktrees/",
+#   OR the command contains "cd <path>" resolving under either (Rule 6 worktree coverage).
+# match_cmd: substring the launch command must contain (case-sensitive).
+# ports: comma-separated; a range ("8100-8179") is checked at its FIRST port only.
+# Every row here is derived from an existing tools/ports.tsv row or a verified file:line —
+# see plans/port-clash-precheck.md P1 for the citation of each.
+# No rows ship in agent-hq: the work environment fills its own rows at the move (literal --port / PORT= / docker -p ports are still checked).

@@ -1,0 +1,8 @@
+#port	bind	container_port	service	project	status	source	verified	note
+# Generic rows only (swarm-bus range, macOS system listeners). The work environment fills its own rows at the move.
+7777-7800	127.0.0.1	-	swarm-communication bus range	agent-hq	claimed	architecture/swarm-communication-layer.md:81-82; swarm-communication-layer/.env.example:17-18	2026-09-04	-
+5000	*	-	ControlCe (macOS Control Center)	system	live	raw-lsof.txt:4-7 (PID 688)	2026-09-04	-
+7000	*	-	ControlCe (macOS Control Center)	system	live	raw-lsof.txt:4-7 (PID 688)	2026-09-04	-
+60064	*	-	rapportd	system	live	raw-lsof.txt:2-3 (PID 642)	2026-09-04	-
+32222	127.0.0.1	-	OrbStack management	system	live	raw-lsof.txt:19-21 (PID 94490)	2026-09-04	-
+52322	127.0.0.1	-	OrbStack management	system	live	raw-lsof.txt:19-21 (PID 94490)	2026-09-04	-

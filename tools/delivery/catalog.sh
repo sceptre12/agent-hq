@@ -4,8 +4,11 @@
 #   env RUN_HOME (required, absolute, last segment = run-id); optional env WORKTREE_BASE (absolute).
 #   register <kind> <handle> <unit|-> <correlation_id> <source> <subtask|run> <owner_agent>
 #   start|release|fail <kind> <handle>      keep <kind> <handle> <reason>
-#   list --live [--subtask <st>]            audit   (see catalog-audit.sh)
-# Exit: 0 ok; 2 usage or rejected row; 3 lane-lease held; 4 lock timeout.
+#   list --live [--subtask <st>]            (latest row of each pair is planned or live; INTERFACES 1.4.0 AM-4 row 20)
+#   audit                                   (see catalog-audit.sh)
+# Stdout: register/start/release/fail/keep the row_id; list the matching TSV rows; audit the verdict lines.
+# Exit: 0 ok; 2 usage or rejected row; 3 lane-lease held, or audit could not read live truth (lsof missing
+#   or failed: fail closed, no verdict for that row); 4 lock timeout.
 # Test hooks: DL_LOCK_TIMEOUT (seconds, default 60), DL_LOCK_SLEEP (seconds, default 1).
 # Runtime: /bin/bash 3.2, BSD userland, mkdir lock, no ps/pgrep.
 set -u
@@ -96,9 +99,9 @@ check_handle() { # kind handle (full grammar, register only)
     process) [[ $h =~ ^[1-9][0-9]*$ ]] || die "process handle must be a pid" ;;
     port)
       [[ $h =~ ^[1-9][0-9]{0,4}$ ]] && [ "$h" -le 65535 ] || die "port must be 1-65535" ;;
-    pm2-app|container|image|workspace|db)
-      [[ $h =~ ^[A-Za-z0-9._/:-]+$ ]] || die "bad $k handle" ;;
-    cron|bgtask) [[ $h != *[[:space:]]* ]] || die "bad $k handle" ;;
+    pm2-app|container|image|workspace|db) # no leading "-": the handle reaches pm2/docker argv at cleanup
+      [[ $h =~ ^[A-Za-z0-9._/:][A-Za-z0-9._/:-]*$ ]] || die "bad $k handle" ;;
+    cron|bgtask) [[ $h != *[[:space:]]* && $h != -* ]] || die "bad $k handle" ;;
     lane-lease) [[ $h =~ ^(gate-runner/[0-9]+|lane/[A-Za-z0-9._-]+)$ ]] || die "bad lane-lease handle" ;;
   esac
 }
@@ -219,7 +222,7 @@ cmd_list() {
   DL_ST=$st awk -F'\t' '
     { k = $6 "\034" $7; if (!(k in last)) order[++n] = k; last[k] = $0; state[k] = $10; sub_[k] = $3 }
     END { for (i = 1; i <= n; i++) { k = order[i]
-      if (state[k] == "live" && (ENVIRON["DL_ST"] == "" || sub_[k] == ENVIRON["DL_ST"])) print last[k] } }' "$CAT"
+      if ((state[k] == "planned" || state[k] == "live") && (ENVIRON["DL_ST"] == "" || sub_[k] == ENVIRON["DL_ST"])) print last[k] } }' "$CAT"
 }
 
 cmd=$1; shift
@@ -233,6 +236,6 @@ case $cmd in
     [[ $3 =~ ^[[:space:]]*$ ]] && die "keep needs a reason"
     cmd_move kept "$@" ;;
   list)  cmd_list "$@" ;;
-  audit) [ $# -eq 0 ] || die "usage: audit"; cmd_audit ;;
+  audit) [ $# -eq 0 ] || die "usage: audit"; cmd_audit; exit $? ;;
   *) die "unknown subcommand: $cmd" ;;
 esac

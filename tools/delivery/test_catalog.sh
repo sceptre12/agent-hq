@@ -39,6 +39,8 @@ eq "12 fields" "$(printf '%s' "$ROW" | awk -F'\t' '{print NF}')" 12
 eq "state planned" "$(printf '%s' "$ROW" | cut -f10)" planned
 eq "keep col" "$(printf '%s' "$ROW" | cut -f11)" -
 eq "run_id col" "$(printf '%s' "$ROW" | cut -f2)" abc-1
+cat_ list --live; has "list shows planned (INTERFACES 1.4.0 A.5)" "$OUT" "$RUN/t1"; eq "planned is one row" "$(printf '%s\n' "$OUT" | wc -l | tr -d ' ')" 1
+cat_ list --live --subtask st1; has "planned subtask filter" "$OUT" "$RUN/t1"
 cat_ start tmpdir "$RUN/t1"; eq "start rc" "$RC" 0
 L=$(sed -n 2p "$RUN/catalog.tsv")
 eq "start state" "$(printf '%s' "$L" | cut -f10)" live
@@ -54,9 +56,11 @@ cat_ list --live; eq "kept not live" "$OUT" ""
 cat_ fail tmpdir "$RUN/t1"
 L=$(sed -n 4p "$RUN/catalog.tsv")
 eq "fail state" "$(printf '%s' "$L" | cut -f10)" failed; eq "fail reason" "$(printf '%s' "$L" | cut -f11)" -
+cat_ list --live; eq "failed not listed" "$OUT" ""
 cat_ release tmpdir "$RUN/t1"
 L=$(sed -n 5p "$RUN/catalog.tsv")
 eq "release state" "$(printf '%s' "$L" | cut -f10)" released; eq "release reason" "$(printf '%s' "$L" | cut -f11)" -
+cat_ list --live; eq "released not listed" "$OUT" ""
 reg tmpdir "$RUN/t2" - run s run agent-b; reg tmpdir "$RUN/t3" - run s run agent-b
 cat_ start tmpdir "$RUN/t3"; cat_ start tmpdir "$RUN/t2"
 cat_ list --live
@@ -89,6 +93,10 @@ rej "branch grammar" register branch "nohash" - run s run a
 rej "tag base" register tag "$ROOT#v1@main" - run s run a
 rej "worktree grammar" register worktree "$WB/x" - run s run a
 rej "lane grammar" register lane-lease "lane" - run s run a
+rej "pm2 leading dash" register pm2-app -x - run s run a
+rej "image leading dash" register image --rm - run s run a
+rej "cron leading dash" register cron -x - run s run a
+rej "bgtask leading dash" register bgtask --all - run s run a
 rej "keep no reason" keep tmpdir "$RUN/ok" "  "
 rej "transition no pair" start tmpdir "$RUN/none"
 rej "arg count" register tmpdir "$RUN/a"
@@ -208,6 +216,24 @@ done <<< "$AUD"
 eq "audit lines match regexes" "$BADL" 0
 cat_ release process "$ALIVE"
 cat_ audit; if rowin "$OUT" "$A_PROC"; then fail "released process still audited"; else pass; fi
+# port live truth fails closed (M4): no lsof or a failing lsof is exit 3 and no verdict, never GHOST
+newrun aud-port
+r port 48731; P_ID=$RID
+r tmpdir "$RUN/gone2"; G2_ID=$RID
+FB="$ROOT/fakebin"; mkdir -p "$FB/none" "$FB/fail" "$FB/empty" "$FB/hit"
+printf '#!/bin/sh\nexit 2\n' > "$FB/fail/lsof"
+printf '#!/bin/sh\nexit 1\n' > "$FB/empty/lsof"
+printf '#!/bin/sh\necho "x 1 u 3u IPv4 0 0t0 TCP *:48731 (LISTEN)"\n' > "$FB/hit/lsof"
+chmod +x "$FB"/*/lsof
+aud() { OUT=$(PATH="$FB/$1:/usr/bin:/bin" RUN_HOME="$RUN" /bin/bash "$CATSH" audit 2>"$ROOT/aud.err"); RC=$?; }
+aud none; eq "no lsof rc 3" "$RC" 3
+if rowin "$OUT" "$P_ID"; then fail "no lsof printed a port verdict"; else pass; fi
+has "no lsof other rows still audited" "$OUT" "GHOST$T$G2_ID"
+has "no lsof stderr" "$(cat "$ROOT/aud.err")" "failing closed"
+aud fail; eq "failing lsof rc 3" "$RC" 3
+if rowin "$OUT" "$P_ID"; then fail "failing lsof printed a port verdict"; else pass; fi
+aud empty; eq "lsof no match rc 0" "$RC" 0; has "lsof no match GHOST" "$OUT" "GHOST$T$P_ID"
+aud hit; eq "lsof hit rc 0" "$RC" 0; has "lsof hit MATCH" "$OUT" "MATCH$T$P_ID"
 newrun aud-empty; cat_ audit; eq "audit no catalog" "$RC$OUT" 0
 
 echo "test_catalog: $P passed, $F failed"

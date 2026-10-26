@@ -1,12 +1,12 @@
-# hq code-gate test map: <source-or-glob><TAB><test>[<TAB>timeout=<seconds>]. Rows are sorted (LC_ALL=C) and unique.
-# Lines starting with # and blank lines are ignored. The optional third column sets that TEST's time limit in
-# seconds (positive integer; default 120); when several rows name the same test the largest value wins, and the
 # CODE_GATE_TIMEOUT environment variable, if set, overrides every map value. See run-mapped-tests.sh / cg_timeout_for.
-
+# Lines starting with # and blank lines are ignored. The optional third column sets that TEST's time limit in
+# hq code-gate test map: <source-or-glob><TAB><test>[<TAB>timeout=<seconds>]. Rows are sorted (LC_ALL=C) and unique.
+# seconds (positive integer; default 120); when several rows name the same test the largest value wins, and the
 skills/release-track/scripts/check-zephyr-disallowed.sh	skills/release-track/scripts/test_zephyr-guard.sh
 skills/release-track/scripts/zephyr-guard.sh	skills/release-track/scripts/test_zephyr-guard.sh
 skills/security-audit/validate-coverage-ledger.cjs	skills/security-audit/tests/test_validate-coverage-ledger.sh
 skills/security-audit/validate-findings.cjs	skills/security-audit/tests/test_validate-findings.sh
+skills/wave-execution/references/example-spec/tests/run.sh	skills/wave-execution/references/example-spec/tests/run.sh
 tools/check-doc-length.sh	tools/test_check-doc-length.sh
 tools/check-file-length.sh	tools/test_check-file-length.sh
 tools/check-invariants.sh	tools/test_check-invariants.sh

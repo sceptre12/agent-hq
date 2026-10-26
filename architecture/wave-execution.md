@@ -6,12 +6,16 @@ each wave's agents, rendezvous over the swarm bus, gates each wave against its
 own exit criteria, and fix-loops on failure up to an iteration cap before
 escalating.
 
-**Amendment (2026-07-20, ADR 0023):** the spec contract is documented to gain five
-Workflow-inspired capabilities — resume/checkpoint, a `dispatch_budget` preflight, richer
-`gate_type`s, per-`work_item` `output_schema` (all build-now), and `spec_ref` nesting +
-`max_concurrent` (deferred). These are **documented design, not yet implemented** — the
-`SKILL.md` / `references/spec-format.md` edits are a separate build unit. See § Proposed
-capabilities (ADR 0023) below.
+**Amendment (2026-07-20, ADR 0023):** five Workflow-inspired capabilities — resume/checkpoint,
+a `dispatch_budget` preflight, richer `gate_type`s, per-`work_item` `output_schema` (Tier A,
+built: in `SKILL.md` / `references/spec-format.md` with rules 9-11), and `spec_ref` nesting
+(deferred, Tier B). See § Capabilities (ADR 0023, ADR 0054) below.
+
+**Amendment (2026-10-26, ADR 0054, `decisions/0054-adr-0023-amendment-delivery-workflow.md`):**
+skill version 1.1.0 adds bundle `session_id`, `output_topic`, `bus_endpoint`; per-work_item
+`persona`, `lane`, `depends_on`, `done_condition`; `gate_type: step_complete`; DAG-frontier
+waves; invocation arguments `max_concurrent`, `invocation`, `tier_override`; rules 13-15. All
+optional: a bundle declaring none of them runs exactly as 1.0.0.
 
 ## What This Is
 
@@ -38,12 +42,16 @@ Wave 7, each hardcoded" is now "waves 1 through N, each defined by the caller's
 - `skills/wave-execution/references/spec-format.md` — the `spec_root` contract:
   accepted layouts (`waves.md` single-file or `waves/NN-<name>.md`), the six
   required per-wave fields (`goal`, `inputs`, `work_items`, `agents`,
-  `exit_criteria`, `outputs`), two optional fields (`fix_loop_cap`,
-  `output_topic`), and the 8 preflight validation rules the skill enforces
-  before any dispatch.
+  `exit_criteria`, `outputs`), the optional fields (ADR 0023, ADR 0054), the
+  optional `bundle.md` bundle header, and preflight rules 1-11 and 13-15 the
+  skill enforces before any dispatch.
+- `skills/wave-execution/references/frontier-mode.md` — DAG-frontier release
+  loop, admission (`max_concurrent`, `lane`), per-work_item gate and fix loop,
+  agent ids and the dispatch record (ADR 0054).
 - `skills/wave-execution/references/example-spec/` — a small, from-scratch
-  3-wave bundle (audit → fix → verify a directory of Markdown docs) proving the
-  format end to end. Authored fresh for this port; carries no source-repo
+  bundle (audit → fix → verify a directory of Markdown docs, then a frontier
+  build wave) proving the format end to end, with `tests/run.sh` (static rule
+  checker over the example and `tests/fixtures/`). Authored fresh for this port; carries no source-repo
   content.
 
 ## Spec contract (summary — full detail in `references/spec-format.md`)
@@ -59,8 +67,12 @@ preflight rather than being silently accepted.
 
 ADR 0023 extends this contract with optional fields (`gate_type` + `skeptics`/`judges`,
 per-`work_item` `output_schema`, bundle-level `dispatch_budget`, and — deferred —
-`spec_ref` + `max_concurrent`) and preflight rules 9–12, detailed in § Proposed
-capabilities below. Every added field is optional with a behavior-preserving default.
+`spec_ref`) and preflight rules 9–12. ADR 0054 (A0-A9) adds bundle fields `session_id`,
+`output_topic`, `bus_endpoint` (in `bundle.md`), per-work_item `persona`, `lane`,
+`depends_on`, `done_condition`, `gate_type: step_complete`, and rules 13-15; `max_concurrent`,
+`invocation` and `tier_override` are invocation arguments, outside `spec_root` and its hash.
+Rules run 1-10, 13-15, then 11 last; details in § Capabilities below. Every added field is
+optional with a behavior-preserving default.
 
 ## Bus interfaces / topics
 
@@ -68,11 +80,21 @@ Coordination is entirely over swarm-communication-layer
 (`architecture/swarm-communication-layer.md`), one PM2 instance per run
 (`APP_NAME=swarm-mcp-${SESSION_ID}`, `DATA_DIR=/tmp/${SESSION_ID}`), torn down by
 the controller's cleanup trap (registered immediately after `cleanup()` is
-defined, before any resource is acquired — `SIGKILL` cannot be trapped).
-`SESSION_ID = wave-exec-$(date)-$(uuid)`.
+defined, before any resource is acquired — `SIGKILL` cannot be trapped) —
+**unless** the bundle declares `bus_endpoint` (ADR 0054 A9): the skill then
+attaches to the caller-owned bus the file names (`port, data_dir, pm2_app, pid,
+session_id, topic`; port only from `$data_dir/port`), skips its own bootstrap
+and `cleanup()`, still runs the identity preflight and `start_session`, and halts
+before any dispatch if the file's `session_id=`/`topic=` differ from the bundle's
+or a key is missing. It adds no port-claim step; the caller claims and recovers
+its bus. An unattached run under a pinned `session_id` recovers a leftover
+`swarm-mcp-<session_id>` with `pm2 restart` only.
+`SESSION_ID` is the bundle's pinned `session_id` when declared (ADR 0054 A6),
+else `wave-exec-$(date)-$(uuid)` minted per invocation.
 
 | Topic | Written by | Read by |
 |---|---|---|
+| bundle `output_topic` (literal, ADR 0054 A7) | every wave's agents and gate agents; controller final result | controller; the caller |
 | `{SESSION_ID}-wave-{N}-output` | wave N's agents (when the wave declares a dedicated output topic) | controller |
 | `{SESSION_ID}-rendezvous` | any wave's agents (default topic) | controller |
 | `{SESSION_ID}-fix-loop-output` | fix agents | controller |
@@ -83,6 +105,14 @@ preflight samples `/health` 2-3 times requiring both `status: ok` and
 `app_name`/`data_dir` matching this session's own `APP_NAME`/`DATA_DIR`; `pm2
 restart` is the only safe recovery verb (never `reload`); `session_id` is passed
 explicitly on every send/broadcast; the port is read only from `$DATA_DIR/port`.
+A bundle `output_topic` overrides every per-wave value. On that shared topic the
+discriminator is the `from_agent` id (ADR 0054 A7): each agent gets a
+nonce-bearing id (`<work_item>-<nonce>`, `<work_item>-gate-<nonce>`,
+`<work_item>-fix<k>-<nonce>`) with a recorded role, and a post counts only from
+an id assigned in this invocation — with `bus_endpoint`, registered in
+`dirname(bus_endpoint)/dispatch/<invocation>.jsonl` before dispatch (fields
+`agent_id, role, unit, persona, tier, backend, utc`). The skill never reads a
+caller's `status/<agent-id>.verdict` fallback file.
 The bus post to a wave's topic is the sole valid completion signal — the same
 Prohibited Side Channels list as `loop-controller` (no branching on stdout, exit
 code, env vars, task files, sibling files, or named pipes).
@@ -94,11 +124,11 @@ code, env vars, task files, sibling files, or named pipes).
 - One `spec_root` bundle drives one run; concurrent runs against the same
   `spec_root` are not coordinated by this skill. Sequential *resumed* runs
   against the same `spec_root` **are** coordinated, via the checkpoint file
-  (see § Proposed capabilities (ADR 0023) → Resume / checkpoint below) — only
-  true concurrency remains uncoordinated.
-- `fix_loop_cap` (default 3) is enforced per wave, not globally — a bundle with
-  many waves can still exhaust many fix-loop iterations in total; the cap bounds
-  each wave's own retries, not the run as a whole.
+  (see § Capabilities → Resume / checkpoint below) — only true concurrency
+  remains uncoordinated. A pinned resume reuses the same `SESSION_ID`.
+- `fix_loop_cap` (default 3) is enforced per wave in a barrier wave and per
+  work_item in a frontier wave (ADR 0054 A5), not globally — the cap bounds each
+  scope's own retries, not the run as a whole.
 - The skill never reads a wave's target files itself — all domain-level file
   access is delegated to the dispatched wave agents, matching the source's own
   "pure orchestrator, no domain logic" framing (kept unchanged by this port).
@@ -151,31 +181,43 @@ code, env vars, task files, sibling files, or named pipes).
   added per `tools/skill-authoring.md`'s required anatomy (same convention
   already applied to sibling ports `loop-controller`, `swarm-communication`).
 
-## Proposed capabilities (ADR 0023 — Workflow grafts)
+## Capabilities (ADR 0023 Workflow grafts; ADR 0054)
 
-Documented design from ADR 0023, motivated by
+Design from ADR 0023, motivated by
 architecture assessment(s) of wave-execution against Claude Code's closed built-in Workflow
 tool, conducted for this decision (see session record / conversation history — not
 separately filed as an hq artifact) (the grafts flow one direction only — into the skill
-the owner controls). **Not yet
-implemented**: the `SKILL.md` / `references/spec-format.md` edits are a separate build unit
-(Rule 5). Every field below is optional; every default preserves current behavior; new
-preflight rules are numbered 9+ to follow the existing 8. This section is the authoritative
-record of the new field names and rule numbering.
+the owner controls), extended by ADR 0054 for the delivery workflow. **Built:** Tier A
+(`gate_type`, `output_schema`, `dispatch_budget`, rules 9-11, resume/checkpoint) and the
+ADR 0054 fields and rules 13-15 are in `SKILL.md` / `references/spec-format.md` /
+`references/frontier-mode.md`; only `spec_ref` (rule 12) is deferred. Every field below is
+optional; every default preserves 1.0.0 behavior. `references/spec-format.md` is the
+authoritative record of field shapes and rule text.
 
-### New spec fields
+### Spec fields and invocation arguments
 
 | Field | Level | Values / shape | Default when absent | Graft |
 |---|---|---|---|---|
-| `gate_type` | per-wave | `exit_criteria` \| `adversarial_verify` \| `judge_panel` | `exit_criteria` (today's single check) | 3 (D1) |
+| `gate_type` | per-wave | `exit_criteria` \| `adversarial_verify` \| `judge_panel` \| `step_complete` | `exit_criteria` (today's single check) | 3 (D1); 0054 A4 |
 | `skeptics` | per-wave | integer ≥ 1; required iff `gate_type: adversarial_verify` | — | 3 (D1) |
 | `judges` | per-wave | integer ≥ 3, odd; required iff `gate_type: judge_panel` | — | 3 (D1) |
 | `output_schema` | per-`work_item` | a fenced ```json JSON Schema block | absent (free-text post) | 4 (D2) |
 | `dispatch_budget` | bundle | integer max dispatch count | absent (no budget check) | 2 (D4) |
 | `spec_ref` *(deferred)* | per-`work_item` | path to a child `spec_root` | absent (no nesting) | 5 (D5) |
-| `max_concurrent` *(deferred)* | per-wave | integer ≥ 1 | unbounded (today's behavior) | 5 (D5) |
+| `max_concurrent` | invocation argument (not a spec field, no per-wave value) | integer ≥ 1; counts work_item, gate and fix agents | unbounded (today's behavior) | 0054 A0, A1 |
+| `invocation` | invocation argument | `^[0-9]+$`; names `dispatch/<invocation>.jsonl` | — | 0054 A0 |
+| `tier_override` | invocation argument | `<work_item>=<tier>`, repeatable; recorded as `tier` in the dispatch record | none | 0054 A0 |
+| `persona` | per-`work_item` | one-line token, passed verbatim in the brief; does not change the `agents` tier | today's brief | 0054 A2 |
+| `lane` | per-`work_item` | one-line token; one live work_item per lane, busy until its gate passes or it escalates | no lane constraint | 0054 A3 |
+| `depends_on` | per-`work_item` | list of same-wave work_item ids; makes the wave a frontier wave | none (barrier wave) | 0054 A5 |
+| `done_condition` | per-`work_item` | `{"token", "command"}`, both non-empty one-line, no other key; required under `step_complete` | absent | 0054 A4 |
+| `session_id` | bundle | `^[a-z0-9-]+$`; pinned, stable on resume, in the content hash | minted per invocation | 0054 A6 |
+| `output_topic` | bundle | one literal topic, no placeholder; overrides per-wave values | per-wave values | 0054 A7 |
+| `bus_endpoint` | bundle | `$DELIVERY_ROOT`-relative `<run-id>/<subtask>/bus.endpoint` | own bus bootstrap and teardown | 0054 A9 |
 
-In all three `gate_type` modes the caller's `exit_criteria` is supplied verbatim as the
+Bundle fields live in `bundle.md` at the `spec_root` root (both layouts).
+
+In the first three `gate_type` modes the caller's `exit_criteria` is supplied verbatim as the
 rubric — `adversarial_verify` dispatches `skeptics` agents to actively falsify the wave's
 output against it (any sustained falsification = fail); `judge_panel` dispatches `judges`
 agents that each post a pass/fail verdict, majority rules. Gate agents post to the bus like
@@ -186,11 +228,31 @@ verdict payload: `{agent_id, verdict: pass | fail, rationale}`. An `output_schem
 fails to validate against makes that agent's completion **incomplete** (a gate failure, not a
 spec defect — a *malformed* schema in the spec is a spec defect, caught by rule 10).
 
-### Preflight rules 9–12 (extend the existing 1–8)
+`step_complete` (ADR 0054 A4) is the one rubric exception: one gate agent per work_item
+walks that work_item's `done_condition` beside the wave's `exit_criteria`, both verbatim,
+and passes it only if `command` exits 0 and its last stdout line equals `token`. In a
+barrier wave every gate agent must pass (no majority).
 
-9. **`gate_type` validity** (Graft 3 / D1). If present, must be one of the three enum
-   values; `adversarial_verify` requires `skeptics ≥ 1`; `judge_panel` requires an odd
-   `judges ≥ 3`. `exit_criteria` prose remains required in every mode (it is the rubric).
+**Barrier and frontier waves (ADR 0054 A5).** A wave whose work_items declare no
+`depends_on` is a barrier wave and runs as in 1.0.0. A wave with any edge is a frontier
+wave: it enumerates its work_items; a work_item is released when every blocker's gate has
+passed, its lane is free and a `max_concurrent` slot is free; each work_item is gated on its
+own output with its own `fix_loop_cap`; on exhaustion the controller posts
+`{halt_reason: "fix-loop-cap-exhausted", wave, work_item, iterations}` to
+`{SESSION_ID}-escalation` and never releases that work_item's transitive dependents, while
+the others run on. No passed gate is reopened, so cancellation is non-release (never a
+`TaskStop`). When nothing is live or releasable the wave passes if every work_item passed,
+else the run halts. Declared waves stay barriers to each other; there is no cross-wave
+edge and no global barrier-free flag.
+
+### Preflight rules 9–15 (extend the existing 1–8; order 1-10, 13-15, 11 last)
+
+9. **`gate_type` validity** (Graft 3 / D1; ADR 0054 A4, A8). If present, must be one of the
+   four enum values; `adversarial_verify` requires `skeptics ≥ 1`; `judge_panel` requires an
+   odd `judges ≥ 3`; `step_complete` requires a two-key `done_condition` on every work_item.
+   `gate_agents`: 1, `skeptics`, `judges`, and for `step_complete` `work_items_count`
+   (barrier) or 1 per work_item (frontier). `exit_criteria` prose remains required in every
+   mode (it is the rubric).
 10. **`output_schema` validity** (Graft 4 / D2). Any `work_item` `output_schema` block must
     parse as a valid JSON Schema; a malformed schema is `VALIDATION_FAILED` (distinct from a
     runtime non-conforming post, which is a gate failure per above).
@@ -200,16 +262,23 @@ spec defect — a *malformed* schema in the spec is a spec defect, caught by rul
     additional agents in practice; the formula charges 1 as conservative padding),
     `skeptics` (`adversarial_verify`), or `judges` (`judge_panel`). If the sum exceeds
     `dispatch_budget`, `VALIDATION_FAILED` naming the projected count, the budget, and the
-    remedy (split the bundle at a wave boundary) — halt before any dispatch. Computed last,
-    after rules 9–10, so gate-agent counts and schema validity are both known.
+    remedy (split the bundle at a wave boundary) — halt before any dispatch. A frontier wave's
+    term is `work_items_count × (1 + (fix_loop_cap + 1) × g)`, `g` = gate agents per
+    work_item (ADR 0054 A5). Computed last, after rules 9–10 and 13–15, so gate-agent counts,
+    schema validity and each wave's mode are known.
 12. **`spec_ref` recursion** *(deferred, Graft 5 / D5)*. A `work_item` with `spec_ref`
     validates the child bundle by applying rules 1–11 one level deep, refuses cycles, and
     rolls the child's worst-case dispatch count into the parent's `dispatch_budget` across
     the nesting boundary.
+13. **`session_id`** (ADR 0054 A6, A8). When declared, matches `^[a-z0-9-]+$`.
+14. **`output_topic`** (ADR 0054 A7, A8). A bundle `output_topic` is a literal with no
+    placeholder, and no per-wave `output_topic` differs from it.
+15. **`depends_on`** (ADR 0054 A5, A8). Acyclic; every edge names a work_item of the same
+    wave; a wave with edges enumerates its work_items.
 
 ### Resume / checkpoint (Graft 1 / D3 — machinery, no new field)
 
-`SESSION_ID` is generated fresh per invocation (see Bus interfaces / topics above) and its
+Unless the bundle pins `session_id`, `SESSION_ID` is generated fresh per invocation (see Bus interfaces / topics above) and its
 bus data is torn down by the controller's cleanup trap at the end of a run, so a genuinely
 fresh session has no defined path back to a prior run's bus state — resume cannot be keyed
 on `SESSION_ID` reconciliation. Instead, persist a checkpoint file **outside** the volatile
@@ -227,21 +296,28 @@ the hash also refuses resuming a bundle whose spec changed underneath a prior ru
 resumed invocation's checkpoint already shows every wave gate-passed, wave-execution reports
 the run as already complete and exits without dispatching or bootstrapping a new bus session.
 
+ADR 0054 A6: a pinned `session_id` is the exception — a resume reuses it, so every
+`{SESSION_ID}-*` topic is stable (bundles differing only in `session_id` hash differently).
+The checkpoint carries per-work_item entries with their gate verdicts (written on each
+work_item gate pass in a frontier wave) and is the only authority for what has passed: a
+completion post for a work_item it does not record is re-gated.
+
 ### Priority
 
-- **Tier A (build now):** Graft 3 (`gate_type`) and Graft 4 (`output_schema`) — highest
-  generality gain, lowest structural risk — **alongside** Grafts 1 (resume) and 2
-  (`dispatch_budget`).
-- **Tier B (deferred, not scheduled):** Graft 5 (`spec_ref` + `max_concurrent`) — real but
-  no proven production need yet; build when one appears, not speculatively.
+- **Tier A (built):** Graft 3 (`gate_type`) and Graft 4 (`output_schema`) **alongside**
+  Grafts 1 (resume) and 2 (`dispatch_budget`).
+- **Built by ADR 0054:** `max_concurrent` (moved from Tier B, as an invocation argument),
+  `depends_on` frontier waves and the other A0-A9 fields.
+- **Tier B (deferred, not scheduled):** `spec_ref` (rule 12) — real but no proven
+  production need yet; build when one appears, not speculatively.
 
 ### Considered and rejected (not portable)
 
 Recorded so a future reader does not re-litigate — full reasoning in ADR 0023:
 
 - **Pipelined / no-barrier waves** (`pipeline()`): would gut the wave gate, a predicate over
-  collective output. If ever needed, opt-in per-`work_item` `depends_on` edges, not a global
-  flag — and that needs cancellation semantics not worth building speculatively.
+  collective output. The opt-in per-`work_item` `depends_on` edges are now built (ADR 0054
+  A5, within one wave, cancellation = non-release); a global barrier-free flag stays out.
 - **`parallel()` fan-out:** already equivalent to the existing per-wave
   one-agent-per-`work_item` dispatch with bus rendezvous as the barrier. Nothing to port.
 - **Loop-until-dry / count / budget iteration:** belongs to `loop-controller`

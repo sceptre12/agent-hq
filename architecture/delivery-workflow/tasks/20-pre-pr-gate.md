@@ -27,7 +27,7 @@ Directories written: `skills/pre-pr-gate/` only.
 |---|---|---|
 | Step 0 inputs | `RUN_HOME`, `SUBTASK`, `HEAD`, `WORKTREE`, `REPO_PROFILE`, `SECURITY_AUDIT` (`guidance\|full`, enum part-d D2.1); `DELIVERY_ROOT` env; print `INPUT-ERROR <field> <reason>`, one line per failing field, then stop | part-d D1, D2.2 row 10 (AM-1) |
 | Output token | `PREPR: PASS` or `PREPR: STOP <rows>` as line 1 of `RUN_HOME/review/<subtask>/checklist-<subtask>.md`; rows = failed §5.7 row ids | part-d D1.1 |
-| Review record | consumed as written by `pr-review`; the verifying seat appends line 3 and differs from the line-2 seat | part-a A.6, M16 |
+| Review record | consumed as written by `pr-review`; the verifying seat writes line 3 in place (left empty by `pr-review`; never appended at the end) and differs from the line-2 seat | part-a A.6, M16 |
 | Fix and verify records | `fix-<agent-id>-<n>.md` with a non-empty `fix:` field; `verify-<seat-id>-<n>.md`; `<n>` = round 1..3 | part-a A.6, D7 |
 | Gate record | `GATE-PASS` written by a separate gate-runner agent under a `gate-runner` lease; cold run with `--skip-nx-cache` is the first-push `GATE-PASS` | part-a A.7, A.5 |
 | Version bump | every app under `apps/` (not `apps/examples/`, not `e2e`) affected since merge-base has a changed `package.json` `version`; none added for unaffected apps | part-04 §5.8b (B3) |

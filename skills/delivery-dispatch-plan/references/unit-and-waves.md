@@ -31,6 +31,7 @@ Authority is INTERFACES `1.7.0` (1.8.0 AM-8 V13 for blocker placement) part C1 (
 | `output_topic` | `<run-id>-<subtask>-rendezvous`, a literal, never a placeholder (rule 14) |
 | `bus_endpoint` | `<run-id>/<subtask>/bus.endpoint`, `$DELIVERY_ROOT`-relative, never absolute |
 | `dispatch_budget` | the rule 11 sum of the bundle (arithmetic in `references/shared-files-and-parallelism.md`) |
+| `gates_command` | the profile `gates.command` (`repo-profile.md`), one non-empty line; the per-item gate agent runs it (INTERFACES 1.8.0 AM-8 V14, C1.1) |
 
 `max_concurrent` is not a spec field; it is a caller argument of `delivery-run` set to the free slot count at each invocation. Never write `budget`, `budget_min` or `spawns` into the spec (lead-side values, A.3, A.4).
 

@@ -58,38 +58,30 @@ None of these reopens a ruling; each is mechanism only and awaits the owner's si
 - **AM-6 (1.6.0):** (a) the verdict is a C5.1 inbox message, the desk decides no verdict; (b) the `pm` lead creates its detached worktree; (c) Wave 0 per O3; (d) A.8 cron probe first; (e) CV20/CV33 not adopted; (f) `RESUME` semantics, B9 GATE `<run-id>`; (g) `PLAN-REVIEW: STOP round-3`; C-1, C-3..C-7, B-6..B-9; `desk-req-schema.sh` follow-up rows; spec 28 key.
 - **AM-7 (1.7.0):** touch-up 6 `spec_root` = sub-task bundle root (E46); touch-up 7 the owner answers a post-merge row needing a human decision with the desk line `VERDICT <run-id> pm <row-id> <text>`, written as a `pm` inbox `verdict` message, then `RESUME.pm` relaunches the `pm` lead (E47); touch-up 5 C12 keeps both conditions (E48); item 33 consistency fixes listed in the AM-7 bullet.
 
-## 5. Viability ratings (non-author auditors, literal dry read against INTERFACES 1.7.0 and the `wave-execution` EXTEND)
+## 5. Viability ratings (non-author auditors, literal dry read; passes 1-2 against INTERFACES 1.7.0, pass 3 against 1.8.0 (AM-8), then AM-9)
 
-| Group | Items | Pass 1 works / needs rewrite / theater | Pass 2 (after fixes) |
+| Group | Items | Pass 1 works / needs rewrite / theater | Pass 2 (after fixes) | Pass 3 (after AM-8, r3) | After AM-9 |
+|---|---|---|---|---|---|
+| G1 conductors, desk, dispatch-plan, architecture docs | 56 (53 after regrouping) | 22 / 34 / 0 (1 theater row) | 39 / 14 / 0 | 47 / 6 / 0 | 53 / 0 / 0 |
+| G2 other W1 skills, 32 briefs, 12 templates | 55 | 41 / 14 / 0 (1 theater row) | 49 / 6 / 0 | 52 / 3 / 0 | 55 / 0 / 0 |
+| G3 EXTENDs, scripts on `main` | 12 | 7 / 5 / 0 | 8 / 4 / 0 | 12 / 0 / 0 | 12 / 0 / 0 |
+| **Total** | 120 | 70 / 53 / 0 | 96 / 24 / 0 | 111 / 9 / 0 | **120 / 0 / 0** |
+
+Records: `SCRATCH/item33/viability-G{1,2,3}-r{1,2}.md`, pass 3 `SCRATCH/item33/viability-am8-r3.md` (24 re-rated G1/G2 rows: 15 works, 9 needs rewrite) and `viability-G3-r3.md` (4 works; its W-side gaps 3a/3b closed by AM-8 V15 and AM-9 V15b); fixes `SCRATCH/item33/fixlog-{A,B,C,D}.md`. Pass 3 counts the rows not re-rated at their pass 2 rating. "After AM-9" counts the 9 rows below as closed by the AM-9 edits; no non-author auditor re-rated them (the AM-8/9 fix-verify in §13 read the same files). Script tests run in a temp copy: catalog 157, desk-req 558, scope-check 23, port-check 57, hook 43 pass; `wave-execution` example-spec 17/17 (18/18 after AM-8).
+
+The 17 items that were still not `works` after pass 2 (V1-V16) were decided by the lead in AM-8 (INTERFACES 1.8.0, `am8-queue.md`); V17 (`catalog-audit.sh` `bus` verify) was fixed on the build branch (commit `5b8768d`). The pass 3 "needs rewrite" rows and how AM-9 (INTERFACES 1.9.0) closes each:
+
+| Row | Item | Pass 3 gap | Closed by AM-9 |
 |---|---|---|---|
-| G1 conductors, desk, dispatch-plan, architecture docs | 56 (53 after regrouping) | 22 / 34 / 0 (1 theater row) | 39 / 14 / 0 |
-| G2 other W1 skills, 32 briefs, 12 templates | 55 | 41 / 14 / 0 (1 theater row) | 49 / 6 / 0 |
-| G3 EXTENDs, scripts on `main` | 12 | 7 / 5 / 0 | 8 / 4 / 0 |
-| **Total** | 120 | 70 / 53 / 0 | **96 / 24 / 0** |
-
-Records: `SCRATCH/item33/viability-G{1,2,3}-r{1,2}.md`; fixes `SCRATCH/item33/fixlog-{A,B,C,D}.md`. Script tests run in a temp copy: catalog 157, desk-req 558, scope-check 23, port-check 57, hook 43 pass; `wave-execution` example-spec 17/17.
-
-**Still not `works` after two passes, for the owner** (each needs a decision INTERFACES does not make; no wording invented):
-
-| # | Item | Conflict |
-|---|---|---|
-| V1 | `delivery-run`, `delivery-pipeline` | who writes `stale-session` and whether it maps to `stopped` (`delivery-run/references/resume.md` vs `part-a-state.md` A.2 mapping; O-1 is a lead default) |
-| V2 | part A, `delivery-desk` | two writers of `stop_reason`: A.3 "lead only" vs A.8/B9 "the desk clears it on `RESUME`" |
-| V3 | part A.7 vs C1.1 | depth rule: AM-6 C-5 lets a depth-1 unit dispatch its reviewer; C1.1/E16 put units at depth 2 dispatching nothing |
-| V4 | D2.2 row 12 | `post-merge-verify` requires `WORKTREE_BASE`; no amendment names it as an input |
-| V5 | E45 vs skills | version pins: `delivery-dispatch-plan` 0.2.0, `resource-catalog` 0.1.1, `delivery-cleanup` 0.1.1 vs "NEW skills stay 0.1.0" |
-| V6 | part B4 | requesters with no producer: `jira-get` (`delivery-dispatch-plan`), `pr-comment` (`ci-fix-loop`) |
-| V7 | `delivery-desk` | `pr-merge` check 5 code (`schema` vs `repo`); `jira-create` code for a parent missing at re-fetch; B7 log redaction method (mask vs refuse) |
-| V8 | part-03, A.4 vs D2.2 row 14, D3 | clerk seat reserved per sub-task vs clerk runs only in the conductor session |
-| V9 | `pre-pr-gate` | `gate/plan-check.md` is written but nothing reads it (theater until a reader or removal is ruled) |
-| V10 | `post-merge-verify` | verdict agent renames slot rows `.freed`; A.1/C7 say the lead alone frees |
-| V11 | briefs `implementer`, `test-writer`, `e2e-writer` | `HUSKY=0` on commits vs A.7 (non-desk commits run hooks; N10 names desk pushes only) |
-| V12 | template `test-plan.md` | e2e rows and the batched `.feature` list have no writer after stage 2; the desk H-e2e hash and `post-merge-verify` read them |
-| V13 | `wave-execution` | S4a (owner-ruled: a dependent branches only after the Integrator merged its blocker) has no engine step: Integrator items sit in the later barrier wave and rule 15 keeps edges inside a wave |
-| V14 | `wave-execution`, A.7 | no producer of the unit-level `gate-runs/<head>.md` (A.7 names two writers; the gate agent lacks `gates.command` and a lease) |
-| V15 | `pr-review` Step 0 | in-run call requires `REPO_DIR`, `SEAT_ID`, `MEMBER_SESSION_NAME`, `TASK_ID`; `pre-pr-gate` step 11 passes none and D2.3 names no producer |
-| V16 | part D1.1 | `READ-BACK:` is defined in C8 but has no D1.1 token row (pipeline `SKILL.md`, `resume.md`, `stages.md` read it) |
-| V17 | `catalog-audit.sh` (main) | `bus` verify reads the sub-task `bus.endpoint` for every row, so a live review bus reads `GHOST`; A.5.1 now says "beside the row's handle": a follow-up PR |
+| G1/6 | `delivery-run/references/resume.md` | no carrier for `STOP stale-session`; enum and mapping lack it; the conductor would be a second `substate.md` writer | G1/6: carrier `RUN_HOME/pm/outbox/stop-<utc>.md` (C5.1 outbox); the conductor records `stop_reason: stale-session` in `state.md` `subtasks[]` and maps `pm` to `stopped` (A.2, A.3). Consumers: `delivery-run` `resume.md`, `delivery-pipeline` `SKILL.md`, `tick-relay.md`, `stops-and-posts.md`, `resume.md`, `stages.md`, `templates/state-and-substate.md` |
+| G1/14 | `delivery-pipeline/references/stages.md` | `pm` "not relaunched" vs relaunch once after `RESUME.pm` | edit-only set: `stages.md` states the `tick-relay.md` rule (no relaunch until `RESUME.pm.<run-id>.ok`, then once) |
+| G1/38 | `delivery-desk/references/checks.md` | CI logs refused in checks/verbs/B7 vs masked in V7 | edit-only: B7 part-b:147 CI logs are masked, not refused; `checks.md` §Redaction and `verbs.md` `ci-logs` mask and store |
+| G1/42 | part A (`part-a-state.md`) | A.3 "lead only" and S6 vs the desk clear and the conductor write | G1/42: lead writes for lead-detected stops, conductor for conductor-detected stops (stale-session, ledger refusal, relay refusal), desk clears on `RESUME`; S6 carve-out. Consumers: `delivery-desk` `SKILL.md`, `human-gates.md`, pipeline template |
+| G1/43 | part A / C1.1 depth | C1.1:23 and R4-J13 keep the old depth wording | edit-only: C1.1:23 and `INTERFACES.md` R4-J13 use the E50 depth wording |
+| G1/56 | `part-03` / A.3 example | `clerk: 1` left in the A.3 `reserved` example | edit-only: part A:203 drops `clerk: 1` |
+| G2/7 | `pre-pr-gate` | C3 defined three ways; a non-clean plan-check has no action before step 16 | G2/7: C3 = branch rebased AND plan-check PASS (A.6, part-04 5.7, template); a non-clean plan-check before round 1 never blocks by itself, its findings go to the round-1 fixer first. Consumers: `pre-pr-gate` `SKILL.md`, `steps-detail.md`, checklist template |
+| G2/8 | `pre-pr-gate` / `pr-review` | `Reviewed-By` 2-token form vs A.6 3 tokens | edit-only: W' `pr-review` record line 2 is the 3-token form from `SEAT_ID`; V15b adds `RUN_HOME` to the D2.3 in-run inputs (`pre-pr-gate` step 11 producer) |
+| G2/53 | template `test-plan.md` | later A3 columns have no writer | G2/53: A.3 `substate.md` fields `e2e_gherkin_utc`, `e2e_spec_path` (the e2e-writer, after H-e2e) and `e2e_run_result`, `e2e_heal_review` (the lane-runner, after `nl-run-e2e`). Consumers: `test-plan.md` template (the columns point at those fields), briefs `e2e-writer.md`, `lane-runner.md` (COMMON block unchanged, BRIEFS-OK), the `substate.md` template |
 
 ## 6. Cross-reference resolver
 
@@ -150,3 +142,12 @@ Round 1: W 85 broken (48 wrong line/file/path, 31 stale version pins, 6 AM-6 (a)
 1. **`wt/delivery-w0` -> `main` first.** Commit the item 33 edits on `wt/delivery-w0`; rebase or merge `main` (`4ee64a0`) so `tools/delivery/` equals main's (item 32) and `tools/code-gate/test-map.tsv` keeps main's seven rows; `pr-review` on the diff (docs, skills; code-gate scope = release-track scripts + tests); desk posts the full-40-char-sha `CODE-GATE-REVIEW PASS` marker and merges `--no-ff`.
 2. **`ext/delivery-extends` rebased onto the new `main`, then PR.** Expect a `test-map.tsv` conflict (W' lacks main's seven rows) and the stale W' INTERFACES 1.1.0 copy, which main's 1.7.0 supersedes; `pr-review` on the diff vs main; `wave-execution` tests 17/17; EXT-09..13 §9; merge by the desk.
 3. **Follow-up PRs after both:** `desk-req-schema.sh` contract rows (AM-6 scripts); `catalog-audit.sh` `bus` verify per A.5.1 (V17).
+
+## 13. Final sweep (AM-8/9)
+
+- **AM-9 consumer edits (INTERFACES 1.9.0 AM-9, uncommitted on both worktrees):** W: `delivery-run` `resume.md`; `delivery-pipeline` `SKILL.md`, `tick-relay.md`, `stops-and-posts.md`, `resume.md`, `stages.md` (also the `READ-BACK: ok <path>` completion line), `provenance.md`, `templates/state-and-substate.md` (`subtasks[].stop_reason`, `e2e_*` fields, S6 carve-out); `delivery-desk` `SKILL.md`, `human-gates.md`, `checks.md` (clear on `RESUME`, CI logs masked); `pre-pr-gate` `SKILL.md`, `steps-detail.md`, checklist template (C3 both conditions, non-clean plan-check to the round-1 fixer, `RUN_HOME` V15b); `delivery-architecture` template `test-plan.md`; briefs `e2e-writer.md`, `lane-runner.md` (COMMON block untouched); `delivery-dispatch-plan` `unit-and-waves.md` (`gates_command` bundle row, AM-8 V14). W': `pr-review` `SKILL.md`, `references/step0-inputs.md` (3-token `Reviewed-By` from `SEAT_ID`, `RUN_HOME` input).
+- **Fix-verify** (installed `fix-verifier`, Sonnet, non-author; findings list `am8-queue.md` + `am9-queue.md`; W 45 files changed since `bb76ac7` in 2 batches, W' 11 files since `19c8b9a`): W1 `ISSUES_FOUND 3`, W2 `ISSUES_FOUND 3`, W' `CLEAN`. Fixed once: `gates_command` bundle row; `stops-and-posts.md` conductor-recorded stops and the `RESUME` clear of `state.md`; `provenance.md` O-1 carrier. Re-verify (iteration 2): the four fixed, 1 Low (test-plan heal column values `yes|no` -> `reviewed|none`), applied without a third pass. Records `SCRATCH/item33/final-am9/verify-{W1,W2,WP,r2}.md`.
+- **Open, INTERFACES-owned (Low, for the AM-9 author):** part-b:189 says `pr-merge` "check 5" is `repo` (the desk's method check is check 6); part-a:175 A.3 enum list omits `stale-session` (A.8 :375 calls it a new value); E53 writes the 3-token form as `Reviewed-By: <SEAT_ID> head=<sha>` (A.6 and `pr-review` use `<seat-id> <session> <TASK-id>`). W' note: `architecture/wave-execution.md:15,71` ADR 0054 field lists omit `gates_command`.
+- **§9 blocks (final run):** SKILL-14, 15, 16 static part rc=0 (dry-run lines need `FIXTURE_DIR`); SKILL-17..25 OK; DESK-SCHEMAS-OK; 27 template pack rc=0 (12 files, `EXEC-COLUMN` note expected); BRIEFS-OK; VERBATIM-OK + SKILL-28-OK; PIPELINE-29-OK (`TEMPLATES-TOUCHED`, expected; pipeline `SKILL.md` 3799 words, cap 3800); W' EXT-09..13 OK (11-13 static); `wave-execution` tests 18/18.
+- **Lengths:** `check-doc-length.sh` 0 blocking in W and W'; `check-file-length.sh` 0 files over 300 in both.
+- **Sanitization grep** (same pattern and exclusions as §7): W 191 hits, W' 176, the §7 baseline plus one meta hit (this file's §7 rule statement); 0 hits in any AM-8/9 changed line.

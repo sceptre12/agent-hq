@@ -10,7 +10,7 @@ Tier: `execute`: the §3.3 row and §3.6 step 3.
 - Outputs: `.feature` files and the generated spec (§3.6).
 - Done token: `UNIT-VERDICT: ESCALATE gherkin-checkpoint` (reason `gherkin-checkpoint`), then `PASS` after approval.
 - Slot, depth, Agent tool: 1 slot per unit, depth 1, no Agent tool.
-- May write: your own worktree and `status/<own-id>.md`.
+- May write: your own worktree, `status/<own-id>.md`, and the `RUN_HOME/<subtask>/substate.md` fields `e2e_gherkin_utc` (ISO UTC of the Gherkin approval) and `e2e_spec_path` (abs path of the generated spec), after `H-e2e.<subtask>.<run-id>.ok` (A.3, INTERFACES 1.9.0 AM-9 G2/53).
 
 ## COMMON block (verbatim; pass unchanged to any agent you brief)
 

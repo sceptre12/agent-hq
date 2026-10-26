@@ -87,7 +87,7 @@ skill does not prompt for missing inputs.
 ### Local-diff mode (`PR_REVIEW_MODE=local-diff`)
 
 Review a local `git diff` with no GitHub PR; the review record goes to a file instead of a PR
-comment. Authority: `plans/task-pipeline/tasks/12-repo-port-02.md` and ADR 0048:216-222; every
+comment. Authority: `plans/task-pipeline/tasks/12-repo-port-02.md`; every
 choice here is a brain default under R-q (owner may veto). Differences from pr mode, all in one place:
 
 - **Inputs** (replace `REPO`/`PR_NUMBER`, which are absent and not required): `REPO_DIR` (git checkout
@@ -330,7 +330,7 @@ grep -cE 'sk-ant-|gh[opsu]_|github_pat_' "$RECORD_PATH"
 ```
 
 The skill never writes `Verified-By:`; the D10 verifier (a different member) inserts it as line 3. Only a PASS
-record is copied to `.review/`; a FAIL record stays with the author. The copy goes to `task-pipeline/.review/<head-sha>.md` in the merge commit (ADR 0049 §Gate). A grep
+record is copied to `.review/`; a FAIL record stays with the author. The copy goes to `task-pipeline/.review/<head-sha>.md` in the merge commit. A grep
 count other than 0 is a stop-on-anomaly: do not hand the record over.
 
 ### Step 9 — Cleanup

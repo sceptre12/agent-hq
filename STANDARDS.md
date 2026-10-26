@@ -134,5 +134,5 @@ one end-of-session step. If it starts feeling heavy, cut it further.
   singletons, shared mutable mocks, or any other plausible source of order-dependency, and keep
   it non-blocking until the suite has a track record under the practice.
 - Not currently wired into any script or invariant — compliance depends on whoever assembles gate
-  evidence remembering the second command and recording the seed. See ADR 0030 and
+  evidence remembering the second command and recording the seed. See
   Hermes skill `learnings/enforcement-gates` (was learnings/enforcement-gates.md)'s 2026-08-18 entry for the tooling gap this leaves open.

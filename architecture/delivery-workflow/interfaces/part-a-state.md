@@ -1,0 +1,325 @@
+# INTERFACES.md Part A: run state schemas
+
+- **Status:** draft, pending 2b review (design §7 item 2). Integrated 2026-10-26; every former `OPEN` is resolved below with a one-line rationale. `DEFAULT (integrator)` marks a choice the design does not imply; the decisions log in `INTERFACES.md` lists them all. After the freeze a change is a diffed amendment plus a consumer re-check list (`INTERFACES.md` §Change control).
+- **Source:** design v2, chiefly §0 path keys (`architecture/delivery-workflow/part-01-summary-and-process-map.md:7`), §1 (`part-01-summary-and-process-map.md:60-84`), §2.2 cards (`part-02-skill-inventory.md:46-79`), §4 (`part-03-personas-and-concurrency.md:65-95`), §5.0 (`part-04-templates.md:5-7`), §5.6 (`part-04-templates.md:26-28`), §5.11 (`part-04-templates.md:61-72`), §6.3-§6.4 (`part-05-execution-constraints.md:36-57`). Section cites are to the design.
+- **Out of scope here:** `UNIT-VERDICT` and `NEXT:` grammar, control channel and inbox messages (part C); desk verbs and result schemas (part B); status vocabulary, topics, enums, planes (part D).
+
+## A.1 Path rule: `DELIVERY_ROOT` and `RUN_HOME` (M12; design §0 path keys, §5.0, §4, §5.11)
+
+| Name | Value | Rule |
+|---|---|---|
+| `DELIVERY_ROOT` | env var, absolute path, no whitespace (`^/[^[:space:]]+$`) | Set by the executing human at the move. No default; created with `umask 077`. **Every skill fails loudly when it is unset** (Step 0 prints `INPUT-ERROR DELIVERY_ROOT unset` and stops; part D1). |
+| `RUN_HOME` | `$DELIVERY_ROOT/<run-id>` | All durable run state; never `/tmp` or `$TMPDIR` (§5.11). Survives reboot; archived at CYCLE DONE. |
+| `<run-id>` | `<epic-key-lowercased>-<yyyymmdd>`, e.g. `found-1234-20261102` | Matches `^[a-z0-9-]+$` so that `session_id = <run-id>-<subtask>` passes preflight rule 13 (§2.3). Minted by the conductor at stage 1 when it creates `RUN_HOME` (card 1 resume logic implies the conductor owns the run id). The epic key is used only when the human names an existing epic as an intake input; otherwise (the epic is created by the conductor's `jira-create` after H1) the run-id is the provisional `run-<n>-<yyyymmdd>` (`n` the first free integer under `$DELIVERY_ROOT` that day), which also matches the B2 id-form regex. A run-id is **never renamed** (bus `session_id`, worktree and pm2 names carry it); `state.md` `epic` is filled from the `jira-create` read-back. `DEFAULT (integrator)` for the shape and the provisional form. |
+| `<subtask>` | `st<N>`, `N` from 0; `st0` is the plan PR (§1 stage 3, M22); `pm` is the post-merge host of stages 6-7 (A.2) | `^(st[0-9]+\|pm)$` (hyphen-free, so a desk `<id>` parses, part B2); in a desk `<id>` and a catalog row the extra value `run` names run-level work (the reserved desk token, owner 2026-10-26, OP7 A, `architecture/delivery-workflow-sources/owner-decisions.md:69`). `DEFAULT (integrator)` for the prefix and `pm`. |
+| `<epic>` | the epic key exactly as written in Jira, original case, `^[A-Z][A-Z0-9]+-[0-9]+$` | names `plans/<epic>/`; `<run-id>` lowercases it. For a provisional run-id (no epic at stage 1) the plan directory is `plans/<run-id>/` and is not renamed when the key arrives (`plans_dir` in `state.md` is authoritative). `DEFAULT (integrator)`. |
+| token shapes | every sha is full 40-hex `^[0-9a-f]{40}$` (never abbreviated, in files, file names and examples); unit id `^u[0-9]+$`; Integrator work_item id `^i[0-9]+$` (`i<N>` merges unit `u<N>` into the sub-task branch, part C1.2), so wherever a dispatch record, slot row, catalog row, C2 record or `ANSWER` line carries a unit the form is `^[ui][0-9]+$` (`DEFAULT (integrator)`); `agent_id` `^[a-z0-9-]+$` (no dot, no space; for a dispatched worker it is the controller-minted `from_agent`, part C1.1); release step id `step_id` `^[a-z0-9-]+$` (minted in the `release-plan.md` step table, A.6); `JIRA-KEY` `^[A-Z][A-Z0-9]+-[0-9]+$`; `session` (launcher session name) `^[a-z0-9-]+$`, distinct from the bus `session_id` (A.3) | `DEFAULT (integrator)`; producers and consumers are the skills that write and read each file below. |
+| `<slug>` | `^[a-z0-9][a-z0-9-]*$`, never `index` (reserved for `drafts/index.md`) | a draft ticket slug is the stem of `drafts/<slug>.md`, minted by `delivery-architecture`; a review-tailor slug is `<subtask\|run>-<kind>-<n>` (`kind` per D2.1, `n` a per-run counter), minted by the caller and passed to `review-tailor` as its `SLUG` input (part D2.2 row 4); `review-tailor` itself writes `review-tailor-<slug>.md`. `DEFAULT (integrator)`. |
+| timestamps | ISO 8601 UTC `YYYY-MM-DDTHH:MM:SSZ` in every file body; the compact `yyyymmddThhmmssZ` only inside identifiers and file names (desk `<id>`, catalog `row_id`, inbox file names; permission-tiers-02 envelope) | `DEFAULT (integrator)`; one format per place, never mixed. |
+
+Derived paths (writer in parentheses):
+
+| Path | Writer | Source |
+|---|---|---|
+| `$DELIVERY_ROOT/desk-inbox/<id>.req` | desk only, dir 0700; kept until the run is archived at CYCLE DONE | §5.0, §6.3 (`DEFAULT` for name and retention) |
+| `$DELIVERY_ROOT/desk-log/<run-id>.jsonl` | desk only; one JSON line per request and per result, after redaction (part B7) | §6.3 "logged" (`DEFAULT` for path) |
+| `$DELIVERY_ROOT/machine/<session>.row`, lock `machine/.lock` | each session its own row; `mkdir` lock (`owner` file as `substate.lock`, A.3) | §4 Numbers |
+| `$DELIVERY_ROOT/homes/<agent>` | launcher (scratch `HOME` for `claude -p` children) | §6.4 |
+| `$DELIVERY_ROOT/pw-browsers` | desk `INSTALL` (`PLAYWRIGHT_BROWSERS_PATH`) | §3.6 step 7 |
+| `worktree_base` (profile) | under `$DELIVERY_ROOT` | §5.8 |
+| `RUN_HOME/state.md` | conductor | §5.0 |
+| `RUN_HOME/gates/<gate-file>` | desk | §5.0, A.2 |
+| `RUN_HOME/desk/<id>.req`, `<id>.out` | requester; desk (`.out` atomic, 0600) | §6.3 |
+| `RUN_HOME/review/<subtask>/` | `pr-review`, fixer, `fix-verifier`, Verified-By seat, `pre-pr-gate` (`checklist-<subtask>.md`, `pr-body.md`) | card 10 (`DEFAULT`: checklist and body live here, so `body_path` resolves under `review/`) |
+| `RUN_HOME/bodies/` | writers of PR comments, Jira bodies, test-report payloads (redaction-scanned by the desk) | §6.3 |
+| `RUN_HOME/capture/` | capture agent (queue until the Hermes port is on) | §0 line 9 |
+| `RUN_HOME/catalog.tsv` | `catalog.sh` only; **one file per run** (rows carry `subtask`, §5.6; §1 stage 3 creates it empty with the plan) | §5.6 |
+| `RUN_HOME/review-tailor-<slug>.md` (`review-tailor`), `RUN_HOME/ticket-events.cursor` (`ticket-clerk`), `RUN_HOME/pm/new-units.md` (`post-merge-verify`), `RUN_HOME/plan-check.md`, `RUN_HOME/ci/<pr>.md`, `RUN_HOME/merge-<sha>.md`, `RUN_HOME/cleanup-<run-id>-<subtask\|final>.md`, `RUN_HOME/postmerge-<sha>.md`, `RUN_HOME/release-<sha>.md`, `RUN_HOME/tickets.tsv`, `RUN_HOME/ticket-events.log` | Plan-checker; `ci-fix-loop`; conductor; `delivery-cleanup`; `post-merge-verify`; `release-track`; `ticket-clerk`; conductor | §1 Artifacts (`DEFAULT`: all under `RUN_HOME`, the records plane of §5.11) |
+| `RUN_HOME/<subtask>/substate.md`, `substate.lock/`, `substate.seed.md` (copied from the plan at lead start) | lead | §5.0, §4 |
+| `RUN_HOME/<subtask>/slots/<agent-id>.row` / `.stale` / `.freed` | lead | §4 |
+| `RUN_HOME/<subtask>/bus.endpoint`, `bus/` (bus `data_dir`) | lead | §5.0, card 6, §5.11 (card 6 path governs; the §5.11 row is errata) |
+| `RUN_HOME/<subtask>/inbox/*.md`, `outbox/<id>.desk` (renamed `.desk.relayed` by the conductor), `outbox/register` (renamed `register.consumed` after the desk's `REGISTERED ... ok`, or `register.refused`, by the conductor, part C5.1), `escalations/<unit>.md`, `RUN_HOME/pm/outbox/<seq>.conductor-request` (renamed `.sending-<id>`, then `.sent-<id>`, or `.refused`, by the conductor, part C5.1) | conductor and desk; lead; lead; lead; pm lead, conductor (rename) | card 6, §5.0, part C5 (`DEFAULT (integrator)` for the rename set) |
+| `RUN_HOME/<subtask>/dispatch/<invocation>.jsonl` | `wave-execution` (controller); read by the lead | ADR 0054 A7 (`DEFAULT (integrator)`, part C1.1) |
+| `RUN_HOME/<subtask>/gates/H-e2e.<subtask>.ok` | desk | §5.0 |
+| `RUN_HOME/<subtask>/gate-runs/<sha>.md` | gate runner (`GATE-PASS` records, A.7) | card 10 (`DEFAULT` for path) |
+| `RUN_HOME/<subtask>/status/<agent-id>.md`, `.verdict`, `.verdict.consumed` | each agent, own file; lead renames consumed verdicts | §5.0, §3.0 (`RUN_HOME/<subtask>/` is the base, §5.0 implies) |
+| `RUN_HOME/<subtask>/shepherd/ticks.md` | shepherd | card 7 (same base) |
+| `RUN_HOME/<subtask>/lanes/` | E2E lane runner | §3.1, §3.6 step 6 |
+
+**Namespacing (M12, §4):** every pm2 app, bus `data_dir`, temp dir and worktree name carries `<run-id>-<subtask>`.
+**Multi-repo epic (§5.0):** the primary repo governs; other repo profiles are linked from it (`linked_profiles[]`, A.2.2). The human names it at stage 1 as the `PRIMARY_REPO` input of `delivery-pipeline` (part D2.2 row 1), the conductor records it as `state.md` `primary_repo` before it creates `plans_dir`, and `architecture.md` §3 restates it and names the other repos (`DEFAULT (integrator)`, r3b V3-4).
+**Atomic writes (`DEFAULT (integrator)`):** `state.md`, `substate.md`, gate files, slot rows, `bus.endpoint` and every `.out` are written to a temp file in the same directory and `mv`d into place. A file written by several agents of one kind is named `<agent-id>-<purpose>-<n>.md`. If `RUN_HOME` already exists for a freshly minted `<run-id>` with a different epic, the conductor appends `-2`, `-3` (still `^[a-z0-9-]+$`).
+
+## A.2 `state.md` (conductor; design §5.0, M21, M30)
+
+Writer: conductor only (§3.1). Readers: conductor at resume, `delivery-run` Step 0 (`interfaces_version` only, part D2.2 row 6), `delivery-desk` (gate pointers, `plans_dir`, `repo_profile` pinned `@<sha>` for the A.2.2 profile resolution; never sender ids, which the desk holds itself, part B1, owner 2026-10-26, OP3 B, `architecture/delivery-workflow-sources/owner-decisions.md:65`), the human. Serialization: **one YAML document**; the `.md` name is the design's and is kept (`DEFAULT (integrator)`).
+
+| Field | Type | Meaning / constraint | Source |
+|---|---|---|---|
+| `run_id` | `^[a-z0-9-]+$` | last path segment of `RUN_HOME` | §5.0 |
+| `epic` | `<epic>` (A.1) | original-case epic key; `<run-id>` cannot be reversed to it | `DEFAULT (integrator)` |
+| `plans_dir` | abs path | the primary repo's `plans/<epic>/` (read by the desk for H0 `ref`, by resume, shepherd and cleanup); created by the conductor at stage 1 together with `RUN_HOME`, and passed to `delivery-intake` as `PLANS_DIR` (part D2.2 row 2) | `DEFAULT (integrator)` |
+| `primary_repo` | abs path | the primary repo clone root, from the `PRIMARY_REPO` input at stage 1 (A.1 multi-repo rule) | §5.0 (`DEFAULT` field) |
+| `repo_profile` | `<abs path>@<sha>` | link plus sha, never a copy (D22); copied by the conductor from the intake `PROFILE:` token (part D1.1) (`DEFAULT (integrator)` source) | §5.0, §5.3 |
+| `delivery_root` | abs path | equals `$DELIVERY_ROOT` at write time | §5.0 |
+| `stage` | enum `1\|2\|3\|4\|4b\|5\|5a\|5b\|5c\|6\|7\|8\|done\|stopped` | §1 stage; `done` after CYCLE DONE, `stopped` after a run-level stop (`DEFAULT` for the two terminal values) | §5.0, §1 |
+| `gates` | map: `H0`, `H1` scalar; `H-e2e`, `H-pr`, `H-prod` lists | each value a **path to a gate file or an external-evidence pointer** (A.2.1), never a verdict | §5.0 (M30) |
+| `subtasks` | list of objects | one per sub-task | §5.0 |
+| `skill_versions` | map `name: <version>@<sha256 of SKILL.md>` | version from frontmatter plus the installed-target hash (`ls -L`, `shasum -a 256`), so §6.5's hash has a home (`DEFAULT`: encoded in the value) | §5.0, §6.5, A6 |
+| `interfaces_version` | `<version>@<sha256>` of the frozen `INTERFACES.md` | consumers re-check against it after an amendment (part D7) | `DEFAULT (integrator)` |
+| `machine_ledger_row` | abs path | the conductor session's `machine/<session>.row` | §5.0, §4 |
+
+`subtasks[]` object:
+
+| Field | Type | Meaning | Source |
+|---|---|---|---|
+| `id` | `<subtask>` | | §5.0 |
+| `session` | `session` token (A.1) | the lead's launcher session name; names its `machine/<session>.row`; never the bus `session_id` | §5.0 |
+| `lead_id` | string or `-` | the conductor's own record of the lead's `SendMessage` identity (`-` for `claude -p`), filled from the lead's `REGISTER` line (part C5.1) and re-sent to the desk as `REGISTER-SENDER` after a conductor resume (part B1); the desk never reads it | §5.0 (`DEFAULT (integrator)`) |
+| `backend` | `agent-tool\|claude-p` | | §5.0, §6.4 |
+| `state` | enum `planned\|released\|building\|pr-open\|merged\|stopped\|cleaned` | `released` only after `RELEASE` (part C6); `stopped` on a stop-the-line or D7 stop (`DEFAULT` set) | §5.0, §4 8b |
+| `pr` | int or empty | PR number once opened (from the `pr-create` `.out`) | §5.0 |
+| `merge_sha` | sha or empty | set from the desk `pr-merge` result; its presence gates `RELEASE` of a successor; cleared by the conductor when it sends `INVALIDATE ... predecessor-reentered` for this sub-task's successors (part C6) | §5.0, §4 8b |
+| `released_utc` | ISO UTC or empty | when `RELEASE` was written | §5.0 |
+
+**`subtasks[].state` transitions and their source (conductor writes; `DEFAULT (integrator)`):** `planned` at stage 3; `released` when it writes `RELEASE` (or at launch for an independent sub-task); `building` when it reads `phase: building` in the lead's `substate.md` (A.3); `pr-open` from the `pr-create` `.out` (`pr` set); `merged` from the `pr-merge` `.out` (`merge_sha` set); `stopped` from `substate.md` `stop_reason` non-empty; `cleaned` from `CLEANUP DONE <subtask>` in the cleanup record. **Back-edge (`DEFAULT (integrator)`):** `pr-open` or `merged` -> `building` when the sub-task re-enters stage 4 and the conductor sends `INVALIDATE ... predecessor-reentered` to its successors (part C6), clearing `merge_sha` in the same write. **Post-merge re-entry (`DEFAULT (integrator)`):** on `POSTMERGE: FAIL` the conductor (never the `pm` lead) reads `RUN_HOME/pm/new-units.md`, adds `subtasks[]` entry `st<N>` (`N` the next free integer, state `planned`) and re-invokes `delivery-dispatch-plan` with `NEW_UNITS` (part D2.2 row 5); its outputs for `st<N>` are those of stage 3 (seed, `waves/`, `.tasks` files, unit-table rows with `ticket`, `plan-check.md`), and the run continues at stage 4 for `st<N>`.
+
+**Stages 6-7 host (`DEFAULT (integrator)`, from §5.0 "a lead session on a detached worktree of main"):** after the last sub-task merges the conductor adds `subtasks[]` entry `id: pm` and starts its lead with inbox `RELEASE pm` (same launch and backend rules as any lead, part C5.2); that lead runs `post-merge-verify` then `release-track` and reports through its `substate.md`. `<sha>` in `postmerge-<sha>.md` and `release-<sha>.md` is `pm_sha`: the `merge_sha` of the last sub-task merge, the one that triggered `RELEASE pm`; the conductor passes it as the `delivery-run` input `PM_SHA` (part D2.2 row 6; `RELEASE pm` carries no sha) and the `pm` lead records it and both record paths in its `substate.md` (`pm_sha`, `postmerge_record`, `release_record`), where the conductor reads them. **Modes (`DEFAULT (integrator)`):** `delivery-run` takes `mode` `build|plan-pr|post-merge`; `st0` runs `plan-pr` (no seed, no waves, no bus: it opens the plan PR through `pre-pr-gate` and `pr-create`), `pm` runs `post-merge` (no seed, no waves, no bus), every other sub-task runs `build`. In `plan-pr` and `post-merge` the lead initializes `substate.md` from `subtask_id`, `session_id` and `phase: seeded` only.
+
+### A.2.1 Human gate files and pointers (M30, §5.0, §0.1)
+
+The desk writes a gate file after the human types a `GATE` line in the desk session (grammar and gate x verdict matrix in part B8). Agents never write under `gates/` (§5.0, M30: the desk is the only writer). `by=` is the OS login of the desk session (`id -un`) and `ref=` is computed by the desk from the named artifact (below) (`DEFAULT (integrator)` for both); `text=` is the typed text. A Jira-side H1 approval is recorded only by the human typing `GATE <run-id> H1 ok ref=jira:<KEY>@<comment-id> <text>`, so the pointer lives in the file; `state.md` holds no separate Jira pointer.
+
+| Gate | File or pointer | Content |
+|---|---|---|
+| H0 | `RUN_HOME/gates/H0.ok` | key=value lines: `utc=`, `by=<human login>`, `ref=<sha256 of state.md plans_dir/brief.md>`, `text=<typed confirmation>` (`DEFAULT` content) |
+| H1 | `RUN_HOME/gates/H1.ok`, or `H1.changes` / `H1.reject` with `notes=<path>` | same key=value form; `ref=` the sha256 of `h1-packet.md` (or the typed `jira:<KEY>@<comment-id>`); `notes=` is `RUN_HOME/gates/H1.notes.md`, the desk writes the typed `text` there for both `changes` and `reject`; a later `GATE ... H1` first renames any existing `H1.ok|.changes|.reject` and `H1.notes.md` to `<name>.<yyyymmddThhmmssZ>` (history kept, one live H1 file; `DEFAULT (integrator)`); only `.ok` satisfies the gate and unlocks `jira-create`; `.changes` re-enters stage 2 with `notes` binding (§1 back-edges) |
+| H-e2e | `RUN_HOME/<subtask>/gates/H-e2e.<subtask>.ok` | same form; `ref=` is the sha256 of the batched `.feature` list named in `test-plan.md` for that sub-task |
+| H-pr | pointer only: `gh:<owner>/<repo>#<pr>@<commit_id>` from the desk read-back (part B5) | no file |
+| H-prod | `RUN_HOME/gates/H-prod.<step_id>.ok`, one per human release step (§5.5), including a `tag-push` whose profile `release_tags.approval` is `human` (A.2.2; `DEFAULT (integrator)`) | same form; `ref=` is the release-plan `step_id` |
+
+Enforcement: the desk refuses `jira-create` until `H1.ok` exists and `publish` (and, `DEFAULT (integrator)` per row R40-1, a `tag-push` under `release_tags.approval: "human"`) until the step's `H-prod` file exists; the **lead** (not the desk) refuses to start e2e generation until `H-e2e.<subtask>.ok` exists, because generation is a lead-side NLTA step (design errata: §5.0 says "the desk refuses generation").
+
+### A.2.2 Profile keys read by INTERFACES (`DEFAULT (integrator)` key names; fields from §5.8, `architecture/delivery-workflow/part-04-templates.md:33`)
+
+**Serialization (`DEFAULT (integrator)`, row R4-J1):** `repo-profile.md` is one YAML document, as `state.md`; a dotted key name is a nested map (`ci.required_checks[]` = key `required_checks` under map `ci`), `[]` marks a YAML list, the closed values `yes`/`no` are quoted strings (`"yes"`, `"no"`, never YAML booleans), and regex values are single-quoted. Writer of every key: `delivery-intake` (it writes `release_tags.used: "no"` when the repo uses no release tags). Regex dialect: POSIX ERE (`INTERFACES.md` §Regex dialect).
+
+| Key | Type | Readers |
+|---|---|---|
+| `clones[]` | list of abs paths: the clone roots of this repo on this machine (the registered clones of B1 and B4 `repo`) | desk (B3 step 6) |
+| `linked_profiles[]` | primary profile only: list of `{clone: <abs path>, profile: <abs path>@<sha>}`, one per other repo of a multi-repo epic (A.1) | desk (profile resolution below), conductor |
+| `worktree_base` | abs path under `$DELIVERY_ROOT` | lead, `catalog.sh` |
+| `merge_method` | `squash\|merge\|rebase` | conductor (`pr-merge` `method`), desk (B4) |
+| `merge_reach` | one-line string | desk (B5, B6 `pr-merge`) |
+| `ci.required_checks[]` | list of check names | desk (B5 CI, B6 `ci-status` aggregate), `ci-fix-loop` |
+| `ci.min_push_spacing_s`, `ci.max_open_pr_pipelines` | int | desk (B4 `push`, `pr-create`) |
+| `merge_pipeline.stages[]` | list of stage names | desk (B6 `ci-status-main`), `post-merge-verify` |
+| `jira.status_map` | map: D3 canonical status -> Jira status string | desk (`jira-transition`), `ticket-clerk` |
+| `jira.archive_status` | Jira status string | desk (`jira-transition` `to: archive`, part D3) |
+| `secrets.pattern_file` | abs path of an ERE pattern file, one pattern per line | desk (B7), `pre-pr-gate` |
+| `gates.command`, `gates.parallel`, `gates.min_free_kb`, `gates.runner_slots` | string; int; int; int | gate runner, lead (A.7, A.5 leases) |
+| `node.prefix_cmd` | string | gate runner (A.7) |
+| `zephyr.read_ops` | list of strings | `release-track` |
+| `durations.pr_review_min`, `durations.ci_round_min`, `durations.unit_median_min` | int minutes | lead (slot row `budget_min`, A.4) |
+| `release_tags.used` | `"yes"\|"no"` (closed set) | desk (B4 `tag-push`), `release-track` |
+| `release_tags.pattern` | anchored ERE `'^...$'` the `tag` must match (the push rule); required when `used` is `"yes"` | desk (B4 `tag-push`), `release-track` |
+| `release_tags.approval` | `none\|human` (closed set; `human` = `RUN_HOME/gates/H-prod.<step_id>.ok`, A.2.1); required when `used` is `"yes"` | desk (B4 `tag-push`, B8), `release-track` |
+
+A missing key fails the reader's Step 0 as `INPUT-ERROR <key> missing` (part D1), except the `release_tags.*` keys: per the owner's ruling "With no profile entry, tag-push is refused." (`owner-decisions.md:84`), so the desk answers `REJECTED policy` for a missing entry (B4; the key names and sets are `DEFAULT (integrator)`, row R40-1). **Malformed entry (`DEFAULT (integrator)`, row R4-J4):** with `used: "yes"`, an absent `pattern`, a `pattern` that does not compile as ERE or is not anchored `^...$`, or an `approval` absent or outside `none|human` is `REJECTED policy` with the key in `detail`; an absent `approval` is never read as "no gate".
+
+**Profile resolution (`DEFAULT (integrator)`, row R4-J2; per-repo per the owner's N11 ruling, `owner-decisions.md:81-84`):** the desk reads `state.md` `repo_profile` (the primary profile, pinned `@<sha>`); for a request `repo` it uses the primary profile when `repo` is under one of its `clones[]`, else the `linked_profiles[]` entry whose `clone` contains `repo` (read at its pinned sha). A `repo` that resolves to no profile is not a registered clone: `REJECTED repo` (B3 step 6) for every verb; a linked profile that cannot be read at its sha is `REJECTED policy` for `tag-push` and `REJECTED repo` otherwise.
+
+Example:
+```yaml
+run_id: found-1234-20261102
+epic: FOUND-1234
+plans_dir: /abs/dgc-dev-proof-ecomm-web/plans/FOUND-1234
+primary_repo: /abs/dgc-dev-proof-ecomm-web
+repo_profile: /abs/dgc-dev-proof-ecomm-web/plans/repo-profile.md@3f2a9c1e5b7d9f0a2c4e6b8d0f1a3c5e7b9d1f20
+delivery_root: /abs/delivery
+stage: 4
+gates: {H0: /abs/delivery/found-1234-20261102/gates/H0.ok, H1: /abs/delivery/found-1234-20261102/gates/H1.ok, H-e2e: [/abs/delivery/found-1234-20261102/st1/gates/H-e2e.st1.ok], H-pr: ["gh:org/repo#812@9be01d4c2a7f3e5b6d8c0a1f2e3d4c5b6a7f8e90"], H-prod: []}
+subtasks: [{id: st0, session: lead-st0-a1, lead_id: lead-st0, backend: agent-tool, state: merged, pr: 812, merge_sha: 9be01d4c2a7f3e5b6d8c0a1f2e3d4c5b6a7f8e90, released_utc: 2026-11-02T10:14:00Z}]
+skill_versions: {delivery-pipeline: 0.1.0@5c1e..., delivery-run: 0.1.0@a90b...}
+interfaces_version: 0.1.0@77d2...
+machine_ledger_row: /abs/delivery/machine/conductor-a0.row
+```
+
+## A.3 `substate.md` (sub-task lead; design §5.0, §4, M21, B5)
+
+Writer: the lead only. Header under `substate.lock`. Two writers on one `substate.md` is stop-the-line (§1). Readers: conductor (never the bus), shepherd tick, lead at resume. Seed: `substate.seed.md` written by `delivery-dispatch-plan` into the plan plane and copied verbatim into `RUN_HOME/<subtask>/` at lead start (part D6); it is one YAML document with exactly the keys `subtask_id`, `session_id`, `reserved`, `frontier` (the initial frontier), `interfaces_version` (as `state.md`, A.2; row R4-J23) and `phase: seeded`; the lead creates `substate.md` from it, adds every other field below empty or derived, and never edits the seed copy (`DEFAULT (integrator)`). One YAML document, as `state.md`.
+
+| Field | Type | Meaning / constraint | Source |
+|---|---|---|---|
+| `subtask_id` | `<subtask>` | | §5.0 |
+| `session_id` | `<run-id>-<subtask>` | bus `session_id`, pinned, stable across resume | §5.0, card 6, ADR 0054 A6 |
+| `live` | `<n>/30` | **derived** from the count of `slots/*.row`; never hand-set | §5.0, §4 |
+| `reserved` | map | `shepherd: 1`, `clerk: 1`, `ci: 1`, `review: 10` per concurrent `pr-review` | §5.0, §4 |
+| `spawns` | `<n>/<cap>` | total spawns against `CLAUDE_CODE_MAX_SUBAGENTS_PER_SESSION`; cap value measured at P0 (unmeasured, verify at move); the lead stops dispatching at `cap - 5` | §4 |
+| `frontier` | list of unit ids | current DAG frontier | §5.0 |
+| `waves_done` | int | completed lane-waves (count) | §5.0 (`DEFAULT` type) |
+| `stop_reason` | enum or empty | `stop-the-line:<row>` \| `d7-round3` \| `invalidate` \| `spawn-cap` \| `human` (`DEFAULT` set); `<row>` is an id of the stop-the-line table below, regex `^stop-the-line:[A-Z]+[0-9]+[a-z]?$` | §5.0, §1, §4 |
+| `invocation` | int, from 0 | the `wave-execution` invocation counter: incremented and written **before** each call and passed as the caller input `invocation` (part C1.1, D2.3) | `DEFAULT (integrator)`, row R4-J12 |
+| `lock_breaks` | list of ISO UTC | one entry per stale-lock break (lock rule below) | `DEFAULT (integrator)` |
+| `pm_sha`, `postmerge_record`, `release_record` | sha; abs path; abs path (empty until known) | `pm` lead only (A.2 stages 6-7 host) | `DEFAULT (integrator)` |
+| `phase` | enum `seeded\|building\|integrating\|prepr\|pr-open\|ci\|merged\|post-merge\|release\|done` | the lead's current phase; the conductor maps it to `subtasks[].state` (A.2) | `DEFAULT (integrator)` |
+| `prepr` | `PASS\|STOP` or empty | the `pre-pr-gate` verdict for `head` (part D1 token `PREPR:`) | card 10 |
+| `head` | sha (A.1) or empty | the sub-task branch head the `prepr` verdict and the review record cover | `DEFAULT (integrator)` |
+| `pr` | int or empty | copied by the lead from its `pr-create` `.out` | `DEFAULT (integrator)` |
+| `review_record` | abs path or empty | `RUN_HOME/review/<subtask>/record-<head>.md` (A.6) | card 10 |
+| `integrated` | list of `<unit> <sha>`, each entry `^u[0-9]+ [0-9a-f]{40}$` | one entry per unit the Integrator merged into the sub-task branch (part D1 `INTEGRATED:`); source: the Integrator posts **one C2 record per merged unit** under its own work_item id (`unit` = `i<N>` for merged unit `u<N>`, A.1; `head` = the sub-task branch head after that merge), and the lead appends `u<N> <head>` per accepted record | `DEFAULT (integrator)` |
+| `ci` | `GREEN <sha>\|HUMAN <reason>` or empty | the last `ci-fix-loop` token (part D1) | card 11 |
+| `postmerge` | `PASS\|FAIL` or empty | `pm` lead only: `POSTMERGE:` token of `postmerge-<sha>.md` | card 12 |
+
+**Stop-the-line row ids (`DEFAULT (integrator)`, row R4-J11; closed; the items of design §1, `part-01-summary-and-process-map.md:79`, design ids kept):** `S1` classifier or harness block; `S2` a failed gate; `S3` authoring on main; `S4` a spawn without a free slot; `S5` a verifier who authored the code; `S6` two writers on one `substate.md`; `S7` an unrecorded production write; `G1` a build or publish from the main checkout; `G3` a release step before its simulation; `G4` hooks skipped without a recorded pass; `G5` fix commits left unpushed; `D23` a pipeline-definition edit by an agent; `S8` the sub-task bus down after two failed restarts (part C7; an instance of a failed gate kept apart so the human sees the cause).
+
+`substate.md` is the lead-to-conductor transport for `PREPR`, `INTEGRATED`, `CI` and `POSTMERGE` results (`DEFAULT (integrator)`): producers `pre-pr-gate`, `delivery-run` (Integrator step), `ci-fix-loop`, `post-merge-verify`, each through the lead; consumer the conductor (`delivery-pipeline`) on its tick. The lead sends `pr-create` only after `prepr: PASS` for `head`; the conductor sends `pr-merge` only after it reads `pr` set and `ci: GREEN <head>` (part B4 requester column).
+
+**Lock (§4; lifetime lock, `DEFAULT (integrator)`):** the lead runs `mkdir RUN_HOME/<subtask>/substate.lock` at start and holds it for its whole lifetime (header writes need no second lock). It writes `owner` (`<pid> <ISO UTC>`, regex `^[0-9]+ [0-9TZ:-]+$`) to a temp file in the lock directory and `mv`s it to `owner`. The lock is stale when the `owner` pid fails `kill -0`, or when `owner` is missing or unparsable and the directory is older than 120 s; a stale lock is broken and the break is logged in `substate.md` (`lock_breaks: [<utc>]`). **Break (`DEFAULT (integrator)`, all four `mkdir` locks: `substate.lock`, `machine/.lock`, `catalog.lock`, `desk/.lock`):** `mv <lock> <lock>.broken-<pid>-<yyyymmddThhmmssZ>` (an atomic rename; only one breaker's `mv` succeeds), then reads `owner` inside the renamed directory: if it is not the `<pid> <utc>` it tested stale (another breaker's fresh lock was moved), it renames the directory back to `<lock>` (a plain rename, never `mv` into an existing directory) and starts over (row R4-J10); else `mkdir <lock>`; a breaker whose `mv` or `mkdir` fails starts over from the stale test; a waiter retries every 1 s and gives up after 60 s (`catalog.sh` and `desk-req.sh` exit 4, INTERFACES.md script table); the renamed directory is removed after the new lock is held. Hand-over on the spawn-cap path: the old lead writes `stop_reason: spawn-cap`, removes its lock and exits; the new lead refuses to start while the lock exists and is not stale (part C5.3). The new lead is a new session, so its per-session spawn count starts at 0.
+
+**`bus.endpoint` (§5.0, §3.0, B1):** key=value lines `port=`, `data_dir=`, `pm2_app=`, `pid=`, `session_id=`, `topic=`; written atomically (temp file plus `mv`) by `delivery-run` after it starts the bus and before any dispatch. `session_id=` must equal the bundle `session_id` and `topic=` the bundle `output_topic` (`DEFAULT (integrator)`: the bundle is the source of truth; a mismatch is a stop row). `data_dir=` is absolute; `wave-execution` reads `port` from `$data_dir/port` (ADR 0054 A9, part C1.1). `session_id` and `topic` are added because §3.0 says the done token is posted "on the topic named in `bus.endpoint`" (design errata: §5.0 lists four fields).
+
+Example:
+```yaml
+subtask_id: st1
+session_id: found-1234-20261102-st1
+live: 17/30
+reserved: {shepherd: 1, clerk: 1, ci: 1, review: 10}
+spawns: 41/<cap>
+frontier: [u07, u09]
+waves_done: 2
+stop_reason:
+```
+
+## A.4 Slot row file (design §5.0, §4, B5, A3, D25)
+
+One file per dispatched agent: `RUN_HOME/<subtask>/slots/<agent-id>.row`, written by the lead **before** the dispatch for every agent the lead dispatches itself, except reserved-seat agents (shepherd, clerk, ci, review seats), which are counted by A.3 `reserved` and get no row; the gate runner and every other agent get a row (`DEFAULT (integrator)`). Agents dispatched by `wave-execution` (worker, gate and fix agents) count toward the invocation's `max_concurrent` (owner 2026-10-26, ADR 0054 Q3, `architecture/delivery-workflow-sources/owner-decisions.md:74`; `decisions/0054-adr-0023-amendment-delivery-workflow.md:55-61`), so the controller itself keeps them within the free slots the lead passed (part C1.1) and no reservation is needed. The lead writes one row per agent the dispatch record (part C1.1) names, stem the controller-minted `agent_id`, as the record line appears (`DEFAULT (integrator)`: the controller mints the id, so these rows follow the dispatch; the ceiling holds through `max_concurrent`). A `claude -p` row is written with `pid=pending` and rewritten once the child exists. After an accepted result (the `UNIT-VERDICT` `head` verified in the worktree, M15) or a `TaskStop`, the lead renames it `.freed`. The shepherd never writes rows; it flags `FREE-CANDIDATE <agent>`.
+
+Format: one line, 9 space-separated fields in §5.0 order (§4 omits `agent_id`; §5.0 is authoritative).
+
+| # | Field | Type | Constraint |
+|---|---|---|---|
+| 1 | `agent_id` | `^[a-z0-9-]+$` (A.1) | equals the file stem |
+| 2 | `persona` | persona token (part D2.1) | a persona from §3.1-§3.3 |
+| 3 | `unit` | `^([ui][0-9]+\|-)$` | `-` for an agent that serves no unit (e.g. the gate runner) (`DEFAULT (integrator)`) |
+| 4 | `tier` | `design\|execute\|verify\|mechanical` | never a model (M19) |
+| 5 | `taken_utc` | ISO UTC | |
+| 6 | `budget_min` | int | from the profile `durations.*` keys (A.2.2; M15) |
+| 7 | `worktree` | abs path | |
+| 8 | `backend` | `agent-tool\|claude-p` | |
+| 9 | `pid` | `claude-p`: child pid or `pending`; `agent-tool`: `<lead-pid>/<agent-id>` | `agent-tool` rows are all dead on lead restart (A3); separator `/` is `DEFAULT (integrator)` |
+
+Resume (M15, §4): step 1 renames every `.row` to `.stale`; step 2 re-verifies by `kill -0`; a live row is renamed back to `.row`, a dead one to `.freed`, before any dispatch (`DEFAULT` encoding by rename). `claude -p` children are also catalog `process` rows (§4, D25). A per-unit trio runs in sequence inside one slot. The lead's own seat is not counted.
+
+Free slots: `max_concurrent = 30 - live_rows - sum(A.3 reserved)`, where `live_rows` counts `.row` files; that value is the caller argument of part C1.1 (owner 2026-10-26, ADR 0054 Q3 and Q9, `owner-decisions.md:74`: the caller passes its free slot count and gate and fix agents count toward it; the formula is `DEFAULT (integrator)`).
+
+Example: `impl-u07 implementer u07 execute 2026-11-02T10:31:00Z 45 /abs/delivery/wt/found-1234-20261102-st1-u07 claude-p 48213`
+
+**Machine ledger row (§4, A4):** `$DELIVERY_ROOT/machine/<session>.row`, key=value on one line: `session=<session> pid=<pid> live_count=<n> build=<0|1> utc=<ISO>` (`DEFAULT` format; `session` per A.1). Summed under `mkdir machine/.lock` before every launch against 200 per machine and rule 8 (at most 3 rows with `build=1`). **Reaper (`DEFAULT (integrator)`):** while holding the lock, a row whose `pid` fails `kill -0` is renamed `.dead` and not counted; `machine/.lock` breaks as `substate.lock` does.
+
+## A.5 `catalog.tsv` (design §5.6, cards 8 and 9, M26, D8, D9)
+
+Writer: `catalog.sh` only, single-line `>>` append; the one append-only file every agent may write through the script, exempt from the serial rule (§4, A3). Readers: `delivery-cleanup`, lead reconcile and resume, shepherd, `pre-pr-gate` (no `planned` rows, §5.7), `catalog.sh audit`.
+
+**Column decision (M26):** `verify_cmd` is dropped. §5.6's column list and its sentence "no executable column" contradict each other; M26 (the panel fix the owner accepted) wins, so the per-kind table inside the script supplies both the verify and the cleanup commands (design errata: §5.6 column list). Rows have **12 tab-separated fields**.
+
+Rejected by `catalog.sh`: a control character; a row over 400 bytes; a `handle` whose realpath is not under `RUN_HOME` or the registered `worktree_base` (path kinds only).
+
+| # | Column | Type / enum |
+|---|---|---|
+| 1 | `ts` | ISO UTC |
+| 2 | `run_id` | `<run-id>` |
+| 3 | `subtask` | `<subtask>` or `run` for run-level rows (`DEFAULT`) |
+| 4 | `row_id` | `<yyyymmddThhmmssZ>-<owner_agent>-<n>`, minted by `catalog.sh`; `n` is the per-file sequence (count of rows + 1) read and appended under `mkdir RUN_HOME/catalog.lock` (`DEFAULT`) |
+| 5 | `correlation_id` | `<JIRA-KEY>` \| `PR-<n>` \| `run` (`DEFAULT`; cleanup keys on it, §0.5) |
+| 6 | `kind` | `worktree\|branch\|tag\|process\|pm2-app\|port\|bus\|tmpdir\|container\|image\|lane-lease\|db\|clone\|cron\|bgtask\|file\|workspace` |
+| 7 | `handle` | per-kind grammar below |
+| 8 | `owner_agent` | `agent_id` |
+| 9 | `unit` | `^([ui][0-9]+\|-)$`: the unit id, the Integrator work_item id `i<N>` for an Integrator row, or `-` for run-level and unit-less rows (`DEFAULT (integrator)`) |
+| 10 | `state` | `planned\|live\|released\|failed\|kept` |
+| 11 | `keep_reason` | text, required when `state=kept` (D8 flag), else `-` |
+| 12 | `source` | the skill or script that appended (`DEFAULT`, from §5.6's `source` column) |
+
+**Handle grammar per kind (`DEFAULT (integrator)`):** path kinds (`tmpdir`, `file`, `clone`, `bus` = its `data_dir`) take an absolute path; `branch` and `tag` take `<repo-abs-path>#<ref>@<base>` (`base` the branch it must be content-merged into; `-` for a tag); `worktree` takes `<abs-path>#<repo-abs-path>@<base>`; `process` a pid; `port` an int; `pm2-app`, `container`, `image`, `workspace`, `db` a name `^[A-Za-z0-9._/:-]+$`; `cron`, `bgtask` the tool id; `lane-lease` `gate-runner/<n>` or `lane/<name>`. The realpath rule above applies to path kinds and to the path part of `worktree`.
+
+**Lifecycle and subcommands (card 8):** `register` (`planned`) before start; `start` (`live`) after; `release`, `keep <reason>`, `fail`; `list --live`; `audit`. **Supersede key: `kind` + `handle`**; the latest row for that pair is the resource's state (`DEFAULT`; `row_id` identifies the event, not the resource). `audit` classifies `MATCH`, `GHOST`, `SQUATTER` against `kill -0`, `lsof`, `git worktree list`. **Leases:** the `gate-runner` lease is `kind=lane-lease`, `handle=gate-runner/<n>` for `n` in `1..gates.runner_slots`; e2e lanes are `lane-lease` `lane/<name>` (`DEFAULT`). Acquire is compare-and-append under `catalog.lock`: `catalog.sh register lane-lease <handle> <unit|-> <correlation_id> <source> <subtask|run> <owner_agent>` (full argument list, INTERFACES.md script table) succeeds only when the latest row for that handle is neither `planned` nor `live`, else it exits 3 (part INTERFACES.md script table); for `kind=lane-lease`, `register` writes `state=live` directly (no `start` step), so no window exists between register and start (`DEFAULT (integrator)`). Lanes are leased by the lead per lane name per `wave-execution` invocation (part C1.1) (`DEFAULT (integrator)`).
+
+### A.5.1 Per-kind table (fixed inside `catalog.sh`; M26)
+
+General rules (card 9): read-only dry run first; the lead approves an explicit list; a separate executor re-measures, then deletes by literal path, one `rm` per path; catalog rows only, non-catalog finds reported never deleted (D9); never touched: ledger and records, other sessions' worktrees, open PR branches, credentials. The dry run states both the bytes basis (`du -sk`) and the file-count basis (`find <path> -type f | wc -l`, `.git` included) (`DEFAULT`: `.git` included, stated on every row).
+
+| kind | verify (liveness) | cleanup |
+|---|---|---|
+| `worktree` | `git worktree list` names it | `git worktree remove <path>` only if `git status --porcelain` is clean, `git status --ignored` shows no uncaptured ignored files, and its PR is open or merged (`DEFAULT (integrator)`) |
+| `branch` | `git show-ref --verify refs/heads/<branch>` (local), desk `fetch` for remote (`DEFAULT`) | local delete (`git branch -D` after the check) and remote delete via desk `branch-delete`, **both only when content-merged into main** (part B5: ancestor, per-commit patch-id, or squash patch-id); else `kept` plus flag (D8) (`DEFAULT (integrator)`: D8 gates local and remote alike) |
+| `process` | `kill -0 <pid>` | `kill <pid>`, `kill -0` before and after; never by pattern; cleanup acts only on rows already in `catalog.tsv` (the C7 orphan sweep registers each orphan before killing it) (`DEFAULT (integrator)`) |
+| `port` | `lsof -nP -iTCP:<port> -sTCP:LISTEN` | `port-claim release <port>` (the register's release subcommand; `DEFAULT` name, verified at W1 item 5 against the installed skill) |
+| `pm2-app` | `pm2 jlist` lists the exact name | `pm2 delete <exact name>` (`DEFAULT`) |
+| `bus` | `kill -0` on the `bus.endpoint` pid | `pm2 delete <pm2_app>`, then `rm` of `data_dir` by literal path after `pm2 jlist` no longer lists it (`DEFAULT`) |
+| `tmpdir`, `file`, `clone` | `test -e <path>` | delete by literal path, one `rm` per path (`DEFAULT (integrator)`) |
+| `tag` | `git tag -l <tag>` | no delete verb exists; `kept` and reported to the human with the correlation id (`DEFAULT`; tag deletion is a human step) |
+| `container`, `image`, `workspace` | not verifiable from a lead session (docker and Harness workspaces are unmeasured, verify at move) | `kept` and reported (`DEFAULT`) |
+| `db` | the profile lane's `verify_cmd` for that lane | the profile lane's `cleanup_cmd`; both are profile strings, not catalog columns (`DEFAULT`) |
+| `cron` | `CronList` shows the id | `CronDelete <id>` (`DEFAULT`) |
+| `bgtask` | `TaskList` shows the id | `TaskStop <id>`, then the orphan sweep (part C7) |
+| `lane-lease` | the latest row is `live` | write a `released` row (`DEFAULT`) |
+
+## A.6 Artifact names (design §1 Artifacts column, §2.2 cards, §5)
+
+Planes are in part D6. Names are exact; `<x>` is a substitution.
+
+| Artifact | Writer | Path | Source |
+|---|---|---|---|
+| `brief.md`, `facts.md` | intake | repo `plans/<epic>/` | §1, card 2 (`DEFAULT` plane) |
+| `repo-profile.md` | intake; sole authority, linked `@<sha>` | repo `plans/` or context store per its header; a new profile is created at `<primary_repo>/plans/repo-profile.md` (`DEFAULT (integrator)`) | §5.8, D22 |
+| `architecture.md`, `contracts/`, `test-plan.md` v0, `release-plan.md` v0, `review-architecture.md` (stage 2 review record), `h1-packet.md`, `drafts/<slug>.md` (local tickets) | `delivery-architecture` | repo `plans/<epic>/` (`contracts/` at repo root) | §1 stage 2, card 3 (`DEFAULT` names for the record, packet and drafts) |
+| `dispatch-plan.md`, `.tasks/<unit>-<slug>.md` (`<slug>` the unit's ticket slug, A.1), `subtasks/<subtask>/substate.seed.md`, `subtasks/<subtask>/waves/`, empty `catalog.tsv` (RUN), `plan-check.md` (RUN) | `delivery-dispatch-plan`, Plan-checker | repo `plans/<epic>/` and `.tasks/`; RUN for the two run files | §1 stage 3, card 5 |
+| `drafts/index.md` (`DRAFTS:` line 1; `index` is a reserved slug) | `delivery-architecture` | repo `plans/<epic>/drafts/` | part D1.1 |
+| `review-tailor-<slug>.md` (`RUNG:` line 1 plus seat table) | `review-tailor` (the caller mints `<slug>`, A.1) | RUN | part D1.1 |
+| `.decisions/<unit>.md` | fork entry by the unit agent; resolution by the lead or the human | repo | §5.10 |
+| `status/<agent-id>.md`, `status/<agent-id>.verdict` | each agent, own file | RUN `<subtask>/status/` | §5.0, §3.0 |
+| `shepherd/ticks.md` | shepherd | RUN `<subtask>/shepherd/` | card 7 |
+| `record-<head>.md` (the review record), `fix-<agent-id>-<n>.md`, `verify-<seat-id>-<n>.md` (`<n>` the review round 1..3, D7; `agent-id`/`seat-id` make parallel writers disjoint, `DEFAULT (integrator)`), `checklist-<subtask>.md`, `pr-body.md` | record: line 1 `pr-review`, line 2 `pr-review`, line 3 the verifying seat; the rest `pre-pr-gate` and its seats | RUN `review/<subtask>/` | card 10 |
+| `gate-runs/<sha>.md` | gate runner | RUN `<subtask>/gate-runs/` | card 10, A.7 |
+| `ci/<pr>.md` | `ci-fix-loop` | RUN | card 11 |
+| `merge-<sha>.md` | conductor, from the desk `pr-merge` result | RUN | §1 stage 5b |
+| `cleanup-<run-id>-<subtask\|final>.md` | `delivery-cleanup` | RUN | card 9 |
+| `tickets.tsv` | `ticket-clerk` | RUN | card 14 |
+| `ticket-events.log` | conductor | RUN | card 14 |
+| `postmerge-<sha>.md` | `post-merge-verify` | RUN | card 12 |
+| `release-<sha>.md`, `release-plan.md` v1 | `release-track` | RUN (`RUN_HOME/release-plan.md`); RUN-only in this contract version (row R4-J19) | card 13 |
+| `pr-body.md` names lane files only by their `lanes/` file names | `pre-pr-gate` | RUN `review/<subtask>/` | §6.3 |
+| `retro.md`, `execution-log.md` (rows), capture record | conductor (stage 8) | RUN; `capture/` | §1 stage 8, §5.9 |
+
+**Plan-plane commit after the run (`DEFAULT (integrator)`, row R4-J19):** `release-plan.md` v1, `retro.md` and `execution-log.md` stay in RUN; no desk verb carries a plan-plane commit after stage 5, so committing them to `plans/<epic>/` is a human step after CYCLE DONE, listed in the conductor's final status post (design errata E17).
+
+**`release-plan.md` step table (`DEFAULT (integrator)`, row R4-J3):** the plan carries a table with one row per release step, first column `step_id` (`^[a-z0-9-]+$`, unique in the plan), then the step, its owner (`agent\|human`, D2.1) and, for a tag, the `tag`; `delivery-architecture` mints the ids in v0 and `release-track` keeps them unchanged in v1. `H-prod.<step_id>.ok`, the `GATE ... H-prod.<step_id>` line, `publish`/`tag-push` `step_id` and `bodies/test-report-<step_id>.json` all name a row of this table; the human reads the id from the plan.
+
+**`dispatch-plan.md` additions (`DEFAULT (integrator)`, rows R4-J17, R4-J23):** the header carries `interfaces_version: <version>@<sha256>` (copied from `state.md`); the sub-task table gains columns `ticket` (the sub-task's `JIRA-KEY` from `tickets.tsv`; the epic key for `st0`), `branch` (`<key>-<slug>`, matching the B4 `branch` regex) and `repo` (the clone root: `primary_repo`, or a `linked_profiles[].clone`, A.2.2). The sub-task worktree is `<worktree_base>/<run-id>-<subtask>` on that branch (each unit worktree is `<worktree_base>/<run-id>-<subtask>-<unit>`, A.4 example); for `st0` the lead copies the `PLANS_DIR` files onto the branch before `pre-pr-gate`.
+
+**Review record (`DEFAULT (integrator)`):** one file `RUN_HOME/review/<subtask>/record-<head>.md`; line 1 `CODE-GATE-REVIEW: PASS head=<sha> blocking=0 medium=0` (`^CODE-GATE-REVIEW: PASS head=([0-9a-f]{40}) blocking=0 medium=0$`) and line 2 `Reviewed-By: <seat-id> <session> <TASK id>` (`^Reviewed-By: ([a-z0-9-]+) ([a-z0-9-]+) ([A-Za-z0-9_-]+)$`; `session` per A.1, `TASK id` the review task id) (writer `pr-review`); line 3 `Verified-By: <seat-id> head=<sha>` (`^Verified-By: ([a-z0-9-]+) head=([0-9a-f]{40})$`; writer the verifying seat, whose `seat-id` must differ from line 2's) (regexes `DEFAULT (integrator)`; consumer the desk, part B5). The record with the current `head` governs. The desk reads it via `record_path` (part B5).
+
+**`merge-<sha>.md` (`DEFAULT (integrator)`):** `<sha>` is the `merge_sha`; four key=value lines in order `pr=<int>`, `merge_sha=<40-hex>`, `method=<squash|merge|rebase>`, `merge_reach=<profile row verbatim>`, copied by the conductor from the `pr-merge` `.out` and written atomically (A.1). Readers: `delivery-cleanup` (merge evidence) and the desk (B5 squash check).
+
+**`cleanup-<run-id>-<subtask|final>.md` (`DEFAULT (integrator)`):** line 1 `CLEANUP DONE <subtask|final>` (part D1.1), then sections `## dry-run`, `## approved`, `## executed`, `## residual` in that order; the executor writes the whole file to a temp name and `mv`s it into place after `## residual` is complete (A.1 atomic write), so a reader that sees line 1 sees every section.
+
+**`tickets.tsv` (`DEFAULT (integrator)`):** tab-separated `slug key parent status utc`, one row per ticket event, latest row per `slug` governs; `-` is the absence token for `key` (not yet created) and `parent` (an epic); `slug` per A.1; writer `ticket-clerk` (from `jira-create` / `jira-transition` `.out` read-backs), which runs **only in the conductor session**, so `tickets.tsv`, `ticket-events.cursor` and every `jira-*` request (`<subtask>` `run`) have one writer (`DEFAULT (integrator)`); readers the lead, `feature-change` (branch `<key>-<slug>`), `delivery-dispatch-plan`. `status` is a D3 canonical status; the prior status for `unblocked` is the latest non-`Blocked` row. **Cursor:** `RUN_HOME/ticket-events.cursor`, one line `^[0-9]+$`, the number of the last `ticket-events.log` line fully processed; `ticket-clerk` rewrites it atomically (A.1) after the event's `tickets.tsv` row, and on start resumes from the next line.
+
+## A.7 `HUSKY=0` and the per-push affected gate (the single statement; M7, D21, R2-3)
+
+This is the only place the rule is stated. `repo-profile.md` (§5.8), the COMMON block (§3.0), the `feature-change` EXTEND (§2.3), `ci-fix-loop` (card 11) and the stage 5 desk flow (§1) link here and never restate it.
+
+> **`HUSKY=0` (the hook skip) is set on every desk push: "ALWAYS HUSKY=0 on desk pushes" (owner 2026-10-26, N10, `architecture/delivery-workflow-sources/owner-decisions.md:80`); it is only ever an inline per-command assignment on the desk's `git push` (and on PR creation, D21), never exported (`DEFAULT (integrator)` form). Commits made outside a desk push are not named by that ruling and follow D21 as written, "HUSKY=0 skip on PR creation/first push is allowed" (`owner-decisions.md:28`), so they run the hooks (`DEFAULT (integrator)` reading; a wider skip is an owner question). Before every push the gate runner runs the repo profile's exact affected lint, test and typecheck command once for that push or batch, at unit end, and records the pass (`DEFAULT (integrator)` wording of the following owner quote and of R2-3): "The recorded affected lint/test/typecheck pass before each push (D21/R2-3) still applies." (owner 2026-10-26, `owner-decisions.md:80`; R2-3, `owner-decisions.md:37`). The `GATE-PASS` record (keyed by the head sha) gates the push, the PR creation and the desk (default path, below). `--no-verify` is never used (`DEFAULT (integrator)` reading of D21, `owner-decisions.md:28`). The secret and SAST pre-checks still run in `pre-pr-gate` (default).**
+
+| Element | Value | Source |
+|---|---|---|
+| Record | `RUN_HOME/<subtask>/gate-runs/<sha>.md`, **written only on a pass** (a failure writes no file; its output goes to the runner's `status/` file): line 1 `GATE-PASS <sha> <cmds>` (`^GATE-PASS ([0-9a-f]{40}) (.+)$`), line 2 `utc=<ISO>`, line 3 `runner=<agent-id>`, then the command output tail (`DEFAULT` path and body) | §3.0 |
+| Writer | the gate runner, a separate mechanical-tier agent, never the author | card 10 (`enforcement-gates:10`) |
+| Cadence | once per push or batch, at unit end and before each push | R2-3, §1 stage 5, §4 |
+| Command | `repo-profile.md` `gates.command`, e.g. Proof Web `pnpm nx affected -t lint test typecheck --base=$NX_BASE --head=HEAD --parallel=<gates.parallel>` | §4, §5.8b |
+| Preconditions | a `gate-runner` lane-lease (A.5); `df -k` free space above `gates.min_free_kb`; node activated by `node.prefix_cmd` | §4, §5.8, §3.0 |
+| `pre-pr-gate` cold run | the `--skip-nx-cache` CI-parity run of card 10 step 2 **is** the `GATE-PASS` for the PR's first push (same command, same runner); no second run (`DEFAULT (integrator)`) | card 10 |
+| Checked by | §5.7 row "a `GATE-PASS` record for every pushed batch on the branch"; the desk accepts `push` only when `gate-runs/<expect_head>.md` exists (part B5) | §5.7, §6.3 |
+| Violation | hooks skipped without a recorded pass = stop-the-line (G4) | §1 |
+
+Design errata (listed in `INTERFACES.md`): card 11 "before each commit (D21)" and the changelog D21 row "per commit" predate R2-3.

@@ -6,23 +6,23 @@ Authority is INTERFACES `1.3.0` part C1, C1.1, C1.2 and part A.3, A.6. This file
 
 | File | Where | Notes |
 |---|---|---|
-| `dispatch-plan.md` | `PLANS_DIR/` | template: `references/templates/dispatch-plan.md` (item 27 writes it) |
+| `dispatch-plan.md` | `PLANS_DIR/` | template: `references/templates/dispatch-plan.md` (this skill does not write into `references/templates/`) |
 | `.tasks/<unit>-<slug>.md` | primary repo root | `<slug>` is the unit's ticket slug (A.1), never `NN-slug` |
-| `subtasks/<subtask>/substate.seed.md` | `PLANS_DIR/` | exactly the seed keys below |
+| `subtasks/<subtask>/substate.seed.md` | `PLANS_DIR/` | build-mode sub-tasks only; exactly the seed keys below |
 | `subtasks/<subtask>/bundle.md` | `PLANS_DIR/` | the bundle header (bundle fields below), at the bundle root next to `waves/` (C1, AM-3 errata (c)) |
 | `subtasks/<subtask>/waves/` | `PLANS_DIR/` | Option B layout of the spec format; waves numbered from 1 |
-| `subtasks/<subtask>/constitution.md` | `PLANS_DIR/` | only when the repo has no profile; not a wave file (C1, AM-3 errata (d)) |
+| `subtasks/<subtask>/constitution.md` | `PLANS_DIR/` | only when the repo has no profile yet (C1); not a wave file (C1, AM-3 errata (d)) |
 | `catalog.tsv`, `plan-check.md` | `RUN_HOME/` | the first created empty by this skill; the second written by the Plan-checker |
 
-## Wave files per sub-task (C1)
+## Wave files per build-mode sub-task (C1)
 
 - `01-build.md`: one DAG wave holding every unit of the sub-task, with `depends_on` edges. Successive frontiers live inside this file. Do not write numbered "lane-wave" files.
 - `02-integrate.md`: the Integrator work_items `i<N>` (one per unit `u<N>`, merging serially into the sub-task branch) and the `pre-pr-gate` hand-off.
-- `constitution.md` (bundle root, next to `waves/`; not a wave file, since spec-format rule 4 numbers waves from 1): only when `REPO_PROFILE` shows the repo has no profile content to lean on, the serial constitution-and-contracts agent, which the lead runs before `01-build.md`. Otherwise absent. Never `00-constitution.md`.
+- `constitution.md` (bundle root, next to `waves/`; not a wave file, since spec-format rule 4 numbers waves from 1): only when the repo has no profile yet (C1's condition; this skill does not define its test), the serial constitution-and-contracts agent, which the lead runs before `01-build.md`. Otherwise absent. Never `00-constitution.md`.
 - Wave 0 setup (worktrees, baseline gates, lane leases) is not a wave file; `delivery-run` performs it. Do not add it.
-- `st0` (plan PR) and `pm` have no `waves/`; their seeds hold only the seed keys.
+- `st0` (`plan-pr`) and `pm` (`post-merge`) have no seed, no `waves/` and no sub-task bus (A.2 modes; `st0`'s `pre-pr-gate` review still claims a `review-bus` port, port table in `references/shared-files-and-parallelism.md` section 3); their leads initialize `substate.md` from `subtask_id`, `session_id` and `phase: seeded` only. `pm` is added by the conductor post-merge, not by this plan.
 
-## Bundle fields (written once per sub-task, in `bundle.md` at the bundle root, the bundle header the spec format defines)
+## Bundle fields (written once per build-mode sub-task, in `bundle.md` at the bundle root, the bundle header the spec format defines)
 
 | Field | Value this skill writes |
 |---|---|
@@ -40,7 +40,7 @@ Authority is INTERFACES `1.3.0` part C1, C1.1, C1.2 and part A.3, A.6. This file
 - `lane` is a lane name from the lane table; one live work_item per lane is the controller's rule.
 - `depends_on` lists `u<M>` ids of the same wave. A unit blocked by another sub-task is not an edge: it is the sub-task ordering of the dispatch plan.
 - `done_condition` is `{"token": "<last stdout line on success>", "command": "<verifier command>"}`, two non-empty one-line strings, no other key. Every work_item of a `step_complete` wave carries it (rule 9). Do not write `done_token`.
-- Wave `agents` names a tier, never a model. Wave `gate_type: step_complete`. `fix_loop_cap` stays at the spec default unless the profile measures otherwise.
+- Wave `agents` names a tier, never a model. Wave `gate_type: step_complete`. `fix_loop_cap` stays at the spec default.
 - The tests the unit runs belong in the `.tasks` file section 9 and in `command`, not in free text.
 
 ## Seed keys (A.3)

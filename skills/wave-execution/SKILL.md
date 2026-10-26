@@ -55,7 +55,10 @@ Establish this before doing anything else — it decides every dispatch call bel
    § Preflight validation rules, in order 1-10, 13-15, then rule 11 last; also
    validate the invocation arguments as passed (`max_concurrent`, `invocation`,
    `tier_override`). Any failure is `VALIDATION_FAILED`, naming the check and
-   wave; halt before any dispatch.
+   wave; halt before any dispatch. A declared `bus_endpoint` with no bundle
+   `session_id` or `output_topic`, or no `invocation` argument, halts here
+   before any dispatch with the one line `BUNDLE-ERROR <field>` (INTERFACES
+   1.5.0 C1.1).
 
 3. **Derive `SESSION_ID`** before the bus step. If the bundle declares
    `session_id`, use it verbatim — the same value on every invocation, resume
@@ -110,9 +113,10 @@ Establish this before doing anything else — it decides every dispatch call bel
       not change the `agents` tier). Admission, for work_item, gate and fix
       agents alike: never more than `max_concurrent` agents live at once — an
       agent with no free slot waits for one; at most one live work_item per
-      `lane` within one run (one invocation of the skill) — the others wait. In a frontier wave
-      the lane stays busy from dispatch until that work_item's gate passes or
-      it escalates (`references/frontier-mode.md`).
+      `lane` within one run (one invocation of the skill) — the others wait. In
+      a barrier and a frontier wave alike the lane stays busy from dispatch
+      until the holder's gate passes or it escalates (INTERFACES 1.5.0 C1.1;
+      `references/frontier-mode.md`).
    3. **Rendezvous:** poll the topic — the bundle `output_topic` when declared
       (it overrides every per-wave value), else the wave's `output_topic`, else
       `{SESSION_ID}-rendezvous`. The bus post is the sole completion signal.

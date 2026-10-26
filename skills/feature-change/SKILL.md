@@ -60,19 +60,20 @@ arrival duty is surface-only (report the output, never fix or stop on the lead's
    needs a layer outside this repo (backend migration, another repo, prod config): STOP and hand
    back `HANDBACK: <layer> needed — <evidence file:line>`; do not reach across. Dispatch shape:
    `superpowers:subagent-driven-development` (fresh implementer, exact brief, no session history).
-   team: confirm the Agent tool first (verifier, review path); absent = `ESCALATE` per the failure table, before any edit.
+   team: confirm the Agent tool first (review path; the unit dispatches no verifier); absent = `ESCALATE` per the failure table, before any edit.
 4. **Tests.** Follow `superpowers:test-driven-development`: a failing test per AC item first,
    watched fail, then pass. Adjust existing tests only where the AC change their expectation.
 5. **Repo gates.** In the worktree run every command in `GATES`, each as its own call, capturing
    exit code and counts (e.g. `npm run lint`, `npm test`, `npx tsc --noEmit`, `npm run build`
    ONLY if those are what `GATES` names). Any non-zero exit = fix in the worktree, re-run all gates.
    Baseline pre-existing failures on `origin/main` first so they are not attributed to this change.
-   team: run the checks locally while working; the final record is the gate runner's `gate-runs/<head>.md` (Step 10).
+   team: run the checks locally while working; the engine's gate agent writes the record `gate-runs/<head>.md` after the post (Step 10).
 6. **Distinct verifier (Rule 4).** A separate agent instance (never the implementer) re-runs
    `GATES` in the worktree and checks each AC item against the diff
    (`git -C <WT> diff origin/main...HEAD`), reporting `AC-n: MET|NOT MET <evidence>`. Brief it
    without expected values (external memory note `dont-seed-expected-values-in-briefs`). Per
    `superpowers:verification-before-completion`: no claim without fresh output.
+   team: the distinct verifier is `wave-execution`'s per-work_item gate agent (INTERFACES 1.5.0 A.7); dispatch none.
 7. **Review rung (Rule 12).** Pick from `tools/review-ladder.md`: small or
    mechanical diff = Rung 0 direct review by a distinct agent; substantial diff or any PR-flow repo
    = `pr-review` (Rung 3); agent-hq executable code = `pr-review` mandatory (Rule 10). Merge only at
@@ -95,8 +96,8 @@ arrival duty is surface-only (report the output, never fix or stop on the lead's
     verifier verdict, review rung); no plan ledger = skip and say so. Update the ticket: Status to
     the tracker's existing done option (`Done`) and a comment with the merge sha / PR URL.
     team: skip the ledger row and ticket update (the lead owns the record); instead run the ordered Unit end of
-    `references/team-mode.md`: commit, verifier, review, read `head`, read and cite the gate runner's `gate-runs/<head>.md`
-    (never write `GATE-PASS`), then post the `UNIT-VERDICT` JSON with the `swarm-communication` `broadcast` tool on
+    `references/team-mode.md`: commit, review, read `head` (never write, request or wait for `GATE-PASS`: the engine's gate
+    agent writes `gate-runs/<head>.md` for that head after the post, A.7), then post the `UNIT-VERDICT` JSON with the `swarm-communication` `broadcast` tool on
     `<run-id>-<subtask>-rendezvous` (coordinates from `bus.endpoint`), or write `status/<agent-id>.verdict` if the bus is unreachable.
     Verdict and reason come only from the failure table there (C2 pairs).
 11. **No scope creep.** Defects found outside the AC are NAMED in the report and the ticket
@@ -114,7 +115,7 @@ arrival duty is surface-only (report the output, never fix or stop on the lead's
 | "Small diff, but pr-review to be safe." | Rung follows the ladder: lowest rung covering the risk (Rule 12). |
 | "The ticket probably doesn't exist yet, I'll just create it." | Query exact Name + Project first; duplicates are the failure mode. |
 | "Merge is done, I'll delete the branch too." | Remove the worktree, keep the branch. |
-| team: "I'll write GATE-PASS myself, the gates passed." | Only the gate runner writes it; read and cite `gate-runs/<head>.md`. |
+| team: "I'll write GATE-PASS myself, the gates passed." | Never: the engine's gate agent writes `gate-runs/<head>.md` after your post (A.7). |
 | team: "I'll merge or remove the worktree, it's done." | Integration and cleanup belong to the Integrator and `delivery-cleanup`. |
 | team: "UNIT-VERDICT: {...} as text is fine." | Bare four-key JSON on the rendezvous topic, or the `.verdict` file. |
 | team: "`ROLLED` with `spec-gap` is close enough." | `ROLLED` takes only `budget`, `lane-unavailable`, `env-bug`, `merge-conflict` (C2); use the failure table. |

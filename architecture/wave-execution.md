@@ -208,14 +208,17 @@ authoritative record of field shapes and rule text.
 | `invocation` | invocation argument | `^[0-9]+$`; names `dispatch/<invocation>.jsonl` | — | 0054 A0 |
 | `tier_override` | invocation argument | `<work_item>=<tier>`, repeatable; recorded as `tier` in the dispatch record | none | 0054 A0 |
 | `persona` | per-`work_item` | one-line token, passed verbatim in the brief; does not change the `agents` tier | today's brief | 0054 A2 |
-| `lane` | per-`work_item` | one-line token; one live work_item per lane within one run; in a frontier wave busy until its gate passes or it escalates | no lane constraint | 0054 A3 |
+| `lane` | per-`work_item` | one-line token; one live work_item per lane within one run; busy until the holder's gate passes or it escalates, in barrier and frontier waves alike (INTERFACES 1.5.0 C1.1); runtime-generated work_items and fix agents may carry `persona` and `lane` | no lane constraint | 0054 A3 |
 | `depends_on` | per-`work_item` | list of same-wave work_item ids; one edge makes the wave a frontier wave (`[]` declares none) | none (barrier wave) | 0054 A5 |
 | `done_condition` | per-`work_item` | `{"token", "command"}`, both non-empty one-line, no other key; required under `step_complete` | absent | 0054 A4 |
 | `session_id` | bundle | `^[a-z0-9-]+$`; pinned, stable on resume, in the content hash | minted per invocation | 0054 A6 |
 | `output_topic` | bundle | one literal topic, no placeholder; overrides per-wave values | per-wave values | 0054 A7 |
-| `bus_endpoint` | bundle | `$DELIVERY_ROOT`-relative `<run-id>/<subtask>/bus.endpoint` | own bus bootstrap and teardown | 0054 A9 |
+| `bus_endpoint` | bundle | `$DELIVERY_ROOT`-relative `<run-id>/<subtask>/bus.endpoint`; declared without bundle `session_id`/`output_topic` or the `invocation` argument it halts before any dispatch with `BUNDLE-ERROR <field>` (INTERFACES 1.5.0 C1.1) | own bus bootstrap and teardown | 0054 A9 |
 
-Bundle fields live in `bundle.md` at the `spec_root` root (both layouts).
+Bundle fields live in `bundle.md` at the `spec_root` root (both layouts). With `bus_endpoint` the
+dispatch record line per agent carries `unit` = the served work_item id, or `wave-<N>` for a
+wave-level gate agent, and `persona` = the work_item's persona, `none` when undeclared
+(INTERFACES 1.5.0 C1.1).
 
 In the first three `gate_type` modes the caller's `exit_criteria` is supplied verbatim as the
 rubric — `adversarial_verify` dispatches `skeptics` agents to actively falsify the wave's

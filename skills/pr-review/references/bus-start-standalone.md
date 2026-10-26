@@ -2,7 +2,7 @@
 
 Standalone use outside a run. Inside a run use `bus-start-run.md` instead. Compared with the 1.0.0
 script, the one change is the pre-bind port check of owner rule R-x as made binding by OQ-2 (INTERFACES
-1.3.0 A.5.2, D2.3 `BUS_PORT` "the same rule applies standalone"): check the candidate port, retry once
+1.5.0 A.5.2, D2.3 `BUS_PORT` "the same rule applies standalone"): check the candidate port, retry once
 at +10, then start the bus pinned to that port. Everything else (session id, `/tmp` data dir, pm2
 start, health, identity and loopback checks, outputs) is unchanged. This flow is for sessions where
 `/tmp` is writable (the unchanged 1.0.0 flow, spec Q10-5); a sandboxed session (executor tier) cannot

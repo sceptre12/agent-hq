@@ -1,15 +1,16 @@
 # Delivery doc checks (stage 2): DOC-1 to DOC-4
 
 Applies when the document under review is a delivery stage 2 artifact: `architecture.md`,
-`dispatch-plan.md`, a task spec, or an epic/child ticket draft. There is no input and no
+`dispatch-plan.md`, a delivery task spec, or an epic/child ticket draft (DOC findings apply to
+delivery task specs only, INTERFACES 1.5.0 D2.3, AM-4 12). There is no input and no
 mode flag; the document itself decides. These checks run in Phase A step 2 next to Checks
 1-14 and report in the same findings table (`# | Issue | Severity | Check | Recommended Fix`)
 with the label `DOC-<n>` in the Check column. They add no severity and no verdict word.
 
 Severity is the existing scale (Blocking / Medium / Advisory, `references/checks.md`
-"Severity Classification"): Blocking for a missing `architecture.md` section or a child
-without AC; Medium for an uncommanded `(fact)` and for a template-format miss; Advisory for
-wording. Every severity below is a plan-check default: a default, not an owner rule; the
+"Severity Classification"): Blocking for a missing `architecture.md` section, a child
+without AC or a sub-task with no child draft (INTERFACES 1.5.0 D2.3, AM-4 12); Medium for
+an uncommanded `(fact)` and for a template-format miss; Advisory for wording. Every severity below is a plan-check default: a default, not an owner rule; the
 caller may override it.
 
 Sources (repo-relative): `architecture/delivery-workflow/part-04-templates.md` sections 5.1
@@ -79,6 +80,10 @@ every part that the available documents allow. An unverifiable part is not a fin
   rule; Pre-dispatch checklist; Stop-the-line table; Review rung table; Throughput formula.
 - Ticket drafts: not a DOC-1 target; see DOC-4.
 
+**`security_sensitive` line (`architecture.md` only; INTERFACES 1.5.0 D2.3, AM-4 12, AM-3; design
+§5.2 per erratum E29):** the doc carries exactly one line `security_sensitive: yes` or
+`security_sensitive: no`. Absent, repeated or another value is graded as a missing section.
+
 **Pass rule:** every required section exists as a heading (or a named part for a split
 epic) and is non-empty. A heading that holds only "TBD" or a placeholder is missing, with
 one exception: in `architecture.md`, sections 12 (Review record) and 13 (Human acceptance
@@ -144,13 +149,14 @@ only (see Applicability).
 **Finding text:** `DOC-3: <orphan draft <id> | sub-task <id> has no draft | child <id> has no
 AC>.`
 
-**Severity (plan-check default):** Blocking for a child without AC; Medium for a sub-task
-with no draft or a draft not in the tree; Advisory (wording) for a title mismatch between
+**Severity:** Blocking for a child without AC and for a sub-task with no child draft (stage 3
+would dispatch nothing for it; INTERFACES 1.5.0 D2.3, AM-4 12, which labels this case DOC-4);
+Medium (plan-check default) for a draft not in the tree; Advisory (wording) for a title mismatch between
 tree and draft when the id matches.
 
 **Worked example.** The tree lists sub-tasks S1, S2, S3; drafts exist for S1 and S2, and the
 S2 draft has an empty "Acceptance criteria" heading. Findings: `| 3 | DOC-3: sub-task S3
-has no child draft | Medium | DOC-3 | Draft S3 or remove it from the tree |` and `| 4 |
+has no child draft | Blocking | DOC-3 | Draft S3 or remove it from the tree |` and `| 4 |
 DOC-3: child S2 has no AC | Blocking | DOC-3 | Add Gherkin AC (happy, failure or edge,
 observability) |`.
 

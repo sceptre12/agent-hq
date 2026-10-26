@@ -1,7 +1,7 @@
 # PR Review — Step 0 input table (D1)
 
 Run before Step 1. Print one `INPUT-ERROR <field> <reason>` line per failing field (reason in
-`missing|enum|path|unset|format`; that is the full D1 enum, and no row below currently uses `unset`), then
+the D1 enum `missing|enum|path|unset|format|sha`; no row below uses `unset` or `sha`), then
 stop: claim no port, register no catalog row, start no bus. "Unset" means the field is absent from the
 dispatch prompt; an empty value is a set value and is validated like any other.
 
@@ -23,7 +23,8 @@ dispatch prompt; an empty value is a set value and is validated like any other.
 | `TASK_ID` | local-diff (record line 2): `^[A-Za-z0-9_-]+$` (A.6) | `missing`, `format` |
 
 `ROLES` derives from the seat table of `review-tailor-<slug>.md` (lines 2+, `seat-id<TAB>role<TAB>reason`).
-The D2.3 `pr-review` inputs are `ROLES`, `BUS_PORT`, `SECURITY_AUDIT`, `PR_REVIEW_MODE`, `STACK_BASE`,
-`STACK_HEAD` and `RECORD_PATH`. The other rows are dispatch-prompt fields validated here; `SEAT_ID`,
-`RUN_ID` and `SUBTASK` are declared dispatch-prompt fields (lead decision OQ-10-2: to be added to D2.3;
-the INTERFACES 1.4.0 D2.3 row does not yet name them). `BUS_PORT` is optional standalone (lead decision OQ-10-3; 1.4.0 D2.3 still reads "absent standalone"). Record line 2 is never written with an empty field.
+The D2.3 `pr-review` inputs (INTERFACES 1.5.0, AM-5 10-B2) are `ROLES`, `SEAT_ID`, `RUN_ID`, `SUBTASK`,
+`BUS_PORT`, `SECURITY_AUDIT`, `PR_REVIEW_MODE`, `STACK_BASE`, `STACK_HEAD` and `RECORD_PATH`; `RUN_ID` and
+`SUBTASK` are the in-run identity of the review-bus path `RUN_HOME/review/<subtask>/<review-id>/bus/`
+(A.1, D5), and `BUS_PORT` is required when `RUN_HOME` is set, optional standalone (D2.3). The other rows
+are dispatch-prompt fields validated here. Record line 2 is never written with an empty field.

@@ -66,7 +66,7 @@ stage 2 artifact.
 | 12 | Within-Document Value Consistency | Multi-section specs |
 | 13 | AC Runability Check | Specs with command ACs |
 | 14 | Flow-Scope Check | Specs/skills with bus topics or message flows |
-| DOC-1..DOC-4 | Delivery docs (stage 2): required sections, `(fact)` commands, child coverage, ticket-template format (`references/delivery-doc-checks.md`) | Delivery stage 2 artifacts: `architecture.md`, `dispatch-plan.md`, a task spec, an epic/child ticket draft |
+| DOC-1..DOC-4 | Delivery docs (stage 2): required sections, `(fact)` commands, child coverage, ticket-template format (`references/delivery-doc-checks.md`) | Delivery stage 2 artifacts: `architecture.md`, `dispatch-plan.md`, a delivery task spec, an epic/child ticket draft |
 
 **Phase A — Discovery (find every issue)**
 
@@ -82,7 +82,7 @@ stage 2 artifact.
    for any skill/doc that defines, produces, or consumes bus topics or inter-agent message
    flows. Full definitions, verdict scales, and examples: `references/checks.md`. When the
    document under review is a delivery stage 2 artifact (`architecture.md`, `dispatch-plan.md`,
-   a task spec, or an epic/child ticket draft; identified by path or self-description as in
+   a delivery task spec, or an epic/child ticket draft; identified by path or self-description as in
    `references/delivery-doc-checks.md`), also run DOC-1..DOC-4 from that file; no input is
    needed, the document decides. The `DOC-` labels appear only in finding rows, never in the
    report header or prose; report a delivery-check miss once, under its `DOC-` row.

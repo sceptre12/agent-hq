@@ -1,11 +1,12 @@
 # Port registry — architecture
 
 One-line summary: an agent-hq-owned, append-only record of **host-visible TCP port claims** across
-every project under `~/projects/`, plus the check-before-bind skill that reads it — so an agent
+every project under `~/projects/`, plus the check-before-bind script (and a `port-claim` skill
+that wraps it; skill lands separately) — so an agent
 about to bind a port discovers another project's claim *before* picking, instead of after.
 
 - **Scope:** host port bindings on this machine. Not a devops platform — see §6.
-- **Provenance:** ported from hq `architecture/port-registry.md`. Ported into agent-hq 2026-10-26 (delivery workflow, port guard). Personal-project blocks were removed whole; references to `plans/`, `inbox/`, survey files and `raw-lsof.txt` point at hq-only records.
+- **Provenance:** ported from hq `architecture/port-registry.md`. Ported into agent-hq 2026-10-26 (delivery workflow, port guard). Personal-project blocks were removed whole; references to `plans/`, `inbox/` and survey files point at hq-only records.
 
 ## 1. Location and format
 
@@ -15,8 +16,8 @@ about to bind a port discovers another project's claim *before* picking, instead
 
 `agent-hq/CLAUDE.md` fixes the folder map and requires an ADR for a new top-level folder ("If you make
 or suggest a structural change to agent-hq — a new folder … propose an ADR"). `tools/` already holds
-non-script data files — verified by `ls tools/`: `scratch-sim-allowlist.txt`,
-`ccusage-baseline-pre-stack.txt`. So `tools/ports.tsv` is precedented and needs no ADR, and the
+non-script data files (for example `tools/code-gate/test-map.tsv` and
+`tools/hermes/digest-set.txt`). So `tools/ports.tsv` is precedented and needs no ADR, and the
 build is not blocked on one. A dedicated `registry/` folder would read better; it is raised as a
 recommendation in §8 rather than taken unilaterally.
 
@@ -49,11 +50,11 @@ Neither `tools/check-doc-length.sh` nor `tools/check-file-length.sh` covers `.ts
 `check-doc-length.sh:43` sets `LIMIT=500` and scans `.md/.markdown/.mdx` only. No agent-hq rule governs
 a registry data file.
 
-**Decision: a soft budget of 200 active rows, warned (not failed) by the checker script; no hard
-cap.** Reasoning: the doc cap exists because a long document costs *reader context* — a human or
+**Decision: a soft budget of 200 active rows, no hard cap. Planned, not built: `port-check.sh`
+does not warn at 200 rows today; until it does, compaction is prompted by hand.** Reasoning: the doc cap exists because a long document costs *reader context* — a human or
 agent reads it end to end. Nobody reads `ports.tsv` end to end; they grep one port, so length
 does not carry that cost and the doc-cap rationale does not transfer. What length *does* degrade
-is compaction and the audit run, which are O(rows). A warn at 200 active rows prompts compaction
+is compaction and the audit run, which are O(rows). The planned warn at 200 active rows would prompt compaction
 without ever blocking a claim — a hard cap here would fail closed on the exact action (claiming a
 port) the registry exists to make easy. This is stated so the next agent does not reach for the
 `.doc-length-allowlist`, which does not apply to this file at all.
@@ -67,12 +68,13 @@ Nine tab-separated columns. Header line is a single `#`-prefixed row; readers us
 |---|---|---|---|
 | 1 | `port` | The key. Single port (`9000`) or a declared range (`7777-7800`, `11100-11179`) — ranges are real claims here and dropping them would hide the two biggest ones. **Always numeric — `NNNN` or `NNNN-NNNN`, never a placeholder or sentinel.** | — |
 | 2 | `bind` | `127.0.0.1` / `0.0.0.0` / `*`. Two services *do* collide on the same port regardless of bind address, but the bind address is what decides reachability, and it is free — `lsof` already prints it. | — |
+| 3 | `container_port` | The container-side target of a host mapping, or `-`. This is the mitigation for §3: someone reading `- "127.0.0.1:9100:9000"` in a compose file and grepping `9000` still finds the row whose host port is `9100`. `--claim` accepts only `-`, a port, or a numeric range. | — |
 | 4 | `service` | Which process. Without it a row is an unactionable number. | — |
 | 5 | `project` | The owning project — the field that makes this *cross*-project rather than N per-project docs. | — |
 | 6 | `status` | `live` / `claimed` / `reserved` / `unmerged` / `released` / `UNVERIFIED`. Closed enum — see §2.1. | — |
 | 7 | `source` | Provenance: `file:line`, or `lsof` / `docker` for a live capture. An uncited row is a rumour; §5's whole falsifiability mechanism keys off this. | — |
 | 8 | `verified` | `YYYY-MM-DD` the row was last checked against its source. Turns "is this stale?" from a judgement call into a subtraction. | — |
-| 9 | `note` | Free text, no tabs. Kept because the interesting rows (remaps, bans, unknown owners) are exactly the ones a fixed schema flattens. | — |
+| 9 | `note` | Free text, no tabs or other control characters (`--claim` refuses them, and refuses an empty field: use `-`). Kept because the interesting rows (remaps, bans, unknown owners) are exactly the ones a fixed schema flattens. | — |
 
 **Deliberately excluded:** `pid` and `owner_agent`. A PID changes on every restart and an agent id
 is gone when the session ends; nothing would maintain either, and a permanently-wrong field is
@@ -83,14 +85,15 @@ worse than an absent one. Live PID lookup is one `lsof` away when actually neede
 - `live` — a listener was observed by `lsof`/`docker` on the `verified` date.
 - `claimed` — declared in a config file that is currently checked out, but not currently bound
   (service is down). Still blocks: starting it later will take the port.
+- `reserved` — deliberately held or banned (a port a project says must never be used). Blocks a
+  claim like `claimed`, and predicts nothing about `lsof`.
 - `released` — a supersession marker retiring earlier non-`released` rows with the identical `port` AND `source`.
 - `unmerged` — **a claim that exists only in a branch or worktree that is not checked out anywhere
   on this machine.**
 - `UNVERIFIED` — asserted by a source but not confirmed against it, or a live listener whose owner is
   unidentified. Uppercase deliberately: a defect marker, not a steady state. It is what §7's
   seed rule ("anything unconfirmed is carried as `UNVERIFIED` rather than dropped or guessed")
-  produces; **The enum is
-  closed** — any other value is malformed and fails the whole registry closed (§5.3); no sentinel or
+  produces. **The enum is closed**: any other value is malformed and fails the whole registry closed (§5.3); no sentinel or
   "not applicable" value exists, because no row needs one.
 
 ## 3. Scope: host ports only, container-internal ports excluded
@@ -100,7 +103,28 @@ as the `container_port` attribute of a host row, never as rows of their own.**
 
 The argument, with evidence:
 
-## 4. The skill's read/write contract
+1. **Container-internal ports cannot collide across projects.** A container port is namespaced to
+   its container: a container that exposes `9000/tcp` internally coexists with a host process
+   listening on `9000`, and a container port that falls inside another tool's declared host range
+   is equally harmless. Recording such ports as rows would generate *false collisions*, the exact
+   opposite of the goal.
+2. **The maintenance cost is real and the signal is zero.** In the hq port survey roughly a third
+   of one compose project's ports were container-internal duplicates carrying no collision signal.
+3. **Mixing the two kinds causes errors.** The same survey reported a host claim on a port by
+   citing a compose-file *comment* about an old mapping; one table holding both port kinds is what
+   made a container-side number readable as a live host claim.
+
+**How the exclusion avoids misleading a compose reader.** Someone opens `docker-compose.yml`, sees
+`9000`, and greps the registry for `9000`. The `container_port` field (§2, field 3) is the
+mitigation: a row `9100 … container_port=9000 …` is found by a grep for `9000` without a `^`
+anchor, and the row itself says the host side is `9100`. `port-check.sh <port>` makes this
+explicit by reporting container-side matches separately from host-side ones ("registry
+(container-side, informational only)").
+
+## 4. The read/write contract
+
+The `port-claim` skill wraps `tools/port-check.sh` (skill lands separately; it is not in this
+change). The contract below is the script's, and holds with or without the skill.
 
 ### Check, before binding anything
 
@@ -113,14 +137,19 @@ It does **both** halves, because either alone is what failed on 2026-09-04:
 2. Live truth — `lsof -nP -iTCP:<port> -sTCP:LISTEN`.
 
 Exit codes: `0` free in both, `1` taken (registry or live), `2` **disagreement** between registry and
-live — the staleness signal, a hard stop, not a warning — and `3` the registry itself is unusable
-(missing, empty, or carrying a malformed row: §5.3).
+live — the staleness signal, a hard stop, not a warning — and `3` no verdict: the registry is
+unusable (missing, empty, or carrying a malformed row: §5.3), a usage error, or `lsof` is missing
+or failed. Only `lsof` exit 1 with empty output reads as "nothing listening"; any other `lsof`
+failure exits `3`, never `0`.
 
 ### Claim, after binding
 
 `tools/port-check.sh --claim <port> <bind> <container_port> <service> <project> <status> <source> <note>`
 
-which appends exactly one line with `>>` (§1). Two properties matter:
+which appends exactly one line with `>>` (§1). Before anything is written it refuses (exit `3`)
+an empty field, any field holding a tab, newline or other control character, and a
+`container_port` that is not `-`, a port, or a numeric range: one such row would change the field
+count, fail every later read closed, or forge an extra row. Two properties matter:
 
 - **No read-modify-write**, so two agents claiming different ports concurrently cannot lose each
   other's row.
@@ -130,12 +159,13 @@ which appends exactly one line with `>>` (§1). Two properties matter:
   visible, not to arbitrate them.
 
 `--claim` re-runs the check first and refuses to append on a live conflict unless given an
-explicit `--force` (which records `note=forced`), so the ordinary path cannot register a claim
+explicit `--force` (which records `note=forced`), and a check that exits `3` (for example a
+failed `lsof`) refuses too, so the ordinary path cannot register a claim
 that is already false at the moment it is written.
 
 ### Use by the delivery workflow
 
-Every port a delivery run binds (lanes, dev servers, review buses) is claimed through `port-check` before launch: the run refuses on a collision and never auto-picks another port. The claimed port is recorded as a resource-catalog `port` row and released at cleanup. The PreToolUse hook catches launches made outside that path. At the move to the work machine, the operator fills `tools/ports.tsv` and `tools/app-ports.tsv` for that machine.
+Every port a delivery run binds (lanes, dev servers, review buses) is claimed through `port-check` before launch: the run refuses on a collision and never auto-picks another port. The claimed port is also recorded as a resource-catalog `port` row and released at cleanup (the resource catalog lands separately with the delivery workflow). The PreToolUse hook catches launches made outside that path. At the move to the work machine, the operator fills `tools/ports.tsv` and `tools/app-ports.tsv` for that machine.
 
 ## 5. Staleness: how a wrong row gets caught
 
@@ -146,9 +176,12 @@ and being believed. Two mechanisms, both mechanical.
 
 `tools/port-check.sh --audit`
 
-walks every non-`released` row and compares it to `lsof -nP -iTCP -sTCP:LISTEN`, classifying:
+reads the active rows (non-`released`, not superseded by a later same-port, same-`source` release)
+and compares them to `lsof -nP -iTCP -sTCP:LISTEN`. Only `live` rows are classified MATCH or GHOST;
+every active row (and its `container_port`) can account for a listener. It classifies:
 
-- **MATCH** — registry says `live`, something is listening. Refresh `verified`.
+- **MATCH** — registry says `live`, something is listening. The audit does not rewrite the row;
+  refreshing `verified` is a manual new row.
 - **GHOST** — registry says `live`, nothing is listening. The row is stale.
 - **SQUATTER** — something is listening that no row accounts for. The registry is incomplete.
 - **CONFLICT** — two non-`released` rows claim the same host port (a row superseded by a later
@@ -160,8 +193,8 @@ skipped rather than reported as a ghost.
 
 ### 5.2 A docker healthcheck is not evidence of a host binding
 
-Stated in the skill's `## Red flags` table as a named rationalization, because it is exactly what
-happened. `docker-compose.yml:125` health-tests `http://localhost:9000/minio/health/live` from
+Stated in the `port-claim` skill's `## Red flags` table (skill lands separately) as a named
+rationalization, because it is exactly what happened in hq. `docker-compose.yml:125` health-tests `http://localhost:9000/minio/health/live` from
 *inside* the container. It passes whether the host mapping is `9000:9000`, `9100:9000`, or absent
 entirely. Likewise `docker ps` reporting `healthy` says nothing about the host side.
 
@@ -209,11 +242,13 @@ Explicit non-goals, so the next agent does not grow this into a devops platform:
 Rules for the seed: every row traces to a `file:line` or a live capture; anything unconfirmed is
 carried as `UNVERIFIED` rather than dropped or guessed.
 
-### 7.1 agent-hq / system — live
+### 7.1 Shipped rows
 
-| port | bind | container | service | project | status | source | verified |
-|---|---|---|---|---|---|---|---|
-| 7777-7800 | 127.0.0.1 | - | swarm-communication bus range | agent-hq | claimed | `architecture/swarm-communication-layer.md:81-82`; `swarm-communication-layer/.env.example:17-18` | 2026-09-04 |
+`tools/ports.tsv` is the only source of truth for the seed; this section does not copy or count
+its rows. agent-hq ships generic and agent-hq-shipped service rows only: the swarm-communication
+bus range (`architecture/swarm-communication-layer.md:79-81`), the Hermes gateway and the retired
+Hermes H1 proxy (cited to `tools/hermes/`), and macOS system listeners from a 2026-09-04 `lsof`
+capture. The work environment fills its own rows at the move.
 
 ## 8. Open questions and recommendations
 
@@ -230,4 +265,10 @@ carried as `UNVERIFIED` rather than dropped or guessed.
    (not in agent-hq) covers onboarding a second machine; whether ports.tsv should ever be machine-scoped is deferred until that matters.
 
 ## Source lineage
+
+- Ported from hq `architecture/port-registry.md` on 2026-10-26; the hq incident narrative,
+  per-project seed sections and survey captures are hq-only and not mirrored.
+- Code: `tools/port-check.sh`, `tools/lib/port-check-lib.sh`, `tools/hooks/port-precheck.sh`;
+  tests: `tools/test_port-check.sh`, `tools/hooks/tests/port-precheck/test_port-precheck.sh`.
+- agent-hq conventions: `tools/check-doc-length.sh:43`, `tools/check-file-length.sh`.
 

@@ -1,10 +1,10 @@
 #port	bind	container_port	service	project	status	source	verified	note
-# Generic rows only (swarm-bus range, macOS system listeners). The work environment fills its own rows at the move.
-7777-7800	127.0.0.1	-	swarm-communication bus range	agent-hq	claimed	architecture/swarm-communication-layer.md:81-82; swarm-communication-layer/.env.example:17-18	2026-09-04	-
-5000	*	-	ControlCe (macOS Control Center)	system	live	raw-lsof.txt:4-7 (PID 688)	2026-09-04	-
-7000	*	-	ControlCe (macOS Control Center)	system	live	raw-lsof.txt:4-7 (PID 688)	2026-09-04	-
-60064	*	-	rapportd	system	live	raw-lsof.txt:2-3 (PID 642)	2026-09-04	-
-32222	127.0.0.1	-	OrbStack management	system	live	raw-lsof.txt:19-21 (PID 94490)	2026-09-04	-
-52322	127.0.0.1	-	OrbStack management	system	live	raw-lsof.txt:19-21 (PID 94490)	2026-09-04	-
-11330	127.0.0.1	-	H1 CONNECT logging proxy (hermes)	agent-hq	released	~/claude-profiles/hermes/bin/H1-connect-log.py; hq plans/hermes-agent/evidence/H1-token-path.md (Part A, proxy)	2026-10-08	T-125 Part A; release when H1 step 10 stops the proxy released 2026-10-09T11:44Z (T-135 pause; proxy pid 38643 stopped; H1 parked after M1 ACCEPTED)
-8642	127.0.0.1	-	Hermes gateway API	agent-hq	claimed	LaunchAgent local.hq.hermes-up (T-20261014-05)	2026-10-14	-
+# Generic and agent-hq-shipped service rows only (swarm-bus range, Hermes, macOS system listeners). The work environment fills its own rows at the move.
+7777-7800	127.0.0.1	-	swarm-communication bus range	agent-hq	claimed	architecture/swarm-communication-layer.md:79-81	2026-09-04	-
+5000	*	-	ControlCe (macOS Control Center)	system	live	lsof capture 2026-09-04	2026-09-04	-
+7000	*	-	ControlCe (macOS Control Center)	system	live	lsof capture 2026-09-04	2026-09-04	-
+60064	*	-	rapportd	system	live	lsof capture 2026-09-04	2026-09-04	-
+32222	127.0.0.1	-	OrbStack management	system	live	lsof capture 2026-09-04	2026-09-04	-
+52322	127.0.0.1	-	OrbStack management	system	live	lsof capture 2026-09-04	2026-09-04	-
+11330	127.0.0.1	-	H1 CONNECT logging proxy (hermes)	agent-hq	released	tools/hermes/README.md; tools/hermes/setup/README.md (H1 setup proxy, retired)	2026-10-08	released 2026-10-09 (H1 proxy stopped)
+8642	127.0.0.1	-	Hermes gateway API	agent-hq	claimed	tools/hermes/setup/README.md; tools/hermes/setup/hermes-up.plist.example (gateway, default 127.0.0.1:8642 per architecture/hermes-agent.md:94)	2026-10-14	-

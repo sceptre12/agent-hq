@@ -1,6 +1,6 @@
 # Task Spec 22: `ticket-clerk` (NEW skill, all stages, Jira only)
 
-Spec of record for W1 item 22 (design part-06 §7 row "14-22"; card 14 in part-02 §2.2 item 14). Authority: `INTERFACES.md` (FROZEN, plus 1.1.0). Anchors are `interfaces/part-X` sections.
+Spec of record for W1 item 22 (design part-06 §7 row "14-22"; card 14 in part-02 §2.2 item 14). Authority: `INTERFACES.md` 1.5.0 (FROZEN; AM-1 to AM-5). The clerk is a NEW skill at `version: 0.1.0` (E32; INTERFACES §Build branch and version rule). Anchors are `interfaces/part-X` sections.
 
 ## 1. Objective
 Author `skills/ticket-clerk/SKILL.md` (plus `references/*.md`) so the conductor session creates and updates Jira epics, stories and sub-tasks and their statuses only through desk requests, in batches on the D62 cadence, and records every result in `tickets.tsv`.
@@ -9,7 +9,7 @@ Author `skills/ticket-clerk/SKILL.md` (plus `references/*.md`) so the conductor 
 - Card 14; ticket shape part-04 §5.1; statuses part-d D3; Jira verbs part-b B4 rows `jira-get`, `jira-create`, `jira-update`, `jira-transition` and the closed `fields` allowlist `summary, description, issuetype, parent, labels, priority, components` (M29); readable set for `jira-get` `summary, description, issuetype, parent, labels, priority, components, status`.
 - Host: the conductor session only (part-a A.6); every `jira-*` request carries `<subtask>` = `run`; the desk requires the transport sender to be the registered conductor (part-b B1). The epic itself is created from the conductor with `<subtask>` `run`.
 - Inputs: `RUN_HOME`, `PLANS_DIR` (holds `drafts/<slug>.md` and `drafts/index.md`, line 1 `DRAFTS: <n> drafts`); derived `RUN_HOME/ticket-events.log` and cursor `RUN_HOME/ticket-events.cursor` (part-d D3, part-a A.6).
-- Outputs: desk `.req` files via `desk-req.sh` (ids per part-b B2); `RUN_HOME/tickets.tsv` rows `slug key parent status utc`, tab-separated, latest row per `slug` governs, `-` = absent (part-a A.6); cursor rewritten atomically after the row.
+- Outputs: desk `.req` files via `desk-req.sh` (ids per part-b B2); `RUN_HOME/tickets.tsv` rows `slug key parent status utc`, tab-separated, latest row per `slug` governs, `-` = absent, the `parent` column holding the parent's Jira key (part-a A.6; part-d D3 "Ticket parents", amended: AM-4 22); cursor rewritten atomically after the row.
 - Event grammar: `^TICKET-EVENT ([a-z0-9-]+|[A-Z][A-Z0-9]+-[0-9]+) (published|dispatched|prepr-pass|blocked|unblocked|verified|done|archive)$`; mapping to canonical status per part-d D3: `published` Backlog, `dispatched` In Progress, `prepr-pass` In Review, `blocked` Blocked, `unblocked` prior non-Blocked status from `tickets.tsv`, `verified` Verified, `done` Done, `archive` the profile's `jira.archive_status` sent as `to: archive`. Profile key `jira.status_map` is applied by the desk, not the clerk.
 
 ## 3. Scope
@@ -23,8 +23,8 @@ Directories written: `skills/ticket-clerk/` only.
 |---|---|---|
 | Step 0 inputs | `RUN_HOME`, `PLANS_DIR`; `DELIVERY_ROOT` env; `INPUT-ERROR <field> <reason>` one line each then stop | part-d D1, D2.2 row 14 |
 | Cadence | write at loop hand-back or about every 30 minutes, batched; never per step (D62) | card 14; part-d D3 |
-| Create gate | `jira-create` is refused by the desk until `RUN_HOME/gates/H1.ok` exists (M30); the clerk checks the file first and does not send before it | part-a A.2.1; part-b B4 |
-| Parent | every create names its parent; the desk re-fetches the parent first; parent unresolved = stop | card 14 |
+| Create gate | `jira-create` is refused by the desk until `RUN_HOME/gates/H1.<run-id>.ok` exists (M30) (gate-file names carry the run id; amended: AM-5 26, A.2.1); the clerk checks the file first and does not send before it | part-a A.2.1; part-b B4 |
+| Parent | every create names its parent in the top-level `parent` field, the only carrier, never a `fields` entry; `summary` and `issuetype` are required, every other allowlisted field optional; the desk re-fetches the parent first; parent unresolved = stop; a draft whose `parent` or `issuetype` changes after creation is a draft defect the clerk reports, not an update (amended: AM-4 22, B4 `jira-create`) | card 14; part-b B4 |
 | Order | local drafts publish after H1 in dependency order (parent before child) | part-04 §5.1 |
 | Fields | closed allowlist above; ids are Jira-assigned, plans use the slug until then | card 14; part-a A.1 |
 | Never delete | archive via `to: archive` | card 14 |
@@ -54,7 +54,7 @@ Anatomy per `tools/skill-authoring.md` §2-§5. Provenance: the recorded tracker
 - [ ] Steps: read new `ticket-events.log` lines past the cursor; read `drafts/index.md`; wait for `H1.ok` before any create; score and compose bodies; send creates in dependency order with parents named; apply the seven events plus `archive` as `jira-transition`; read back with `.out`; append `tickets.tsv`; advance the cursor atomically.
 - [ ] A batch rule states what flushes: loop hand-back, or the 30-minute mark, whichever first; no other trigger.
 - [ ] Rejection handling table keyed by the ten reason codes of part-b B2.1 (terminal vs curable as classed there, quoted not invented).
-- [ ] Stop conditions: parent unresolved; desk `REJECTED` (terminal class).
+- [ ] Stop conditions: parent unresolved. A terminal desk `REJECTED` or a no-reply on `jira-create` is reported once and the clerk moves past it (amended: AM-4 22, B4); a run-level escalation is written to `RUN_HOME/escalations/<unit>.md` (amended: AM-4 22, C2); a repeat `blocked` for a ticket already `Blocked` is absorbed (amended: AM-5 29-8).
 - [ ] No cost metric, no personal-project term, no `/Users/xavier` path.
 
 ## 9. Verification commands
@@ -85,7 +85,7 @@ Stop and write `.decisions/22.md` if: a status or event is needed that part-d D3
 ## Metadata
 - Tier: execute (author); runtime: execute creates, mechanical updates (card 14).
 - Review rung: Rung 1 trio, up to 3 rounds then the owner (D7).
-- Dependencies: INTERFACES 1.1.0 (hard); item 7 (`desk-req.sh`) and item 26 (`delivery-desk`) for names only, soft; item 27 ticket template soft. Consumed by item 29 `delivery-pipeline` (appends `ticket-events.log`) and item 17 `delivery-dispatch-plan` (reads `tickets.tsv`).
+- Dependencies: INTERFACES 1.5.0 (hard); this skill is NEW at `0.1.0` (E32); item 7 (`desk-req.sh`) and item 26 (`delivery-desk`) for names only, soft; item 27 ticket template soft. Consumed by item 29 `delivery-pipeline` (appends `ticket-events.log`) and item 17 `delivery-dispatch-plan` (reads `tickets.tsv`).
 - Not a split item.
 
 ## Plan-check resolutions (2026-10-26; report `reviews/plan-check-w1-specs.md`)

@@ -1,11 +1,11 @@
 # Task Spec: T19 `delivery-cleanup` (W1 item 19, stage 5c and the second pass)
 
-> Written 2026-10-26 (W0 item 2b) from design card 9 (`part-02-skill-inventory.md` §2.2), `part-01` §1 stage 5c and the two exits, INTERFACES `1.1.0` (FROZEN; amendment AM-1 landed: A.5.1 `port` row, A.5.2, A.5.3), owner rulings D8 and D9 (`architecture/delivery-workflow-sources/owner-decisions.md:18-19`).
+> Written 2026-10-26 (W0 item 2b) from design card 9 (`part-02-skill-inventory.md` §2.2), `part-01` §1 stage 5c and the two exits, INTERFACES `1.5.0` (FROZEN; amendment AM-1 landed: A.5.1 `port` row, A.5.2, A.5.3; AM-5 19, 19-F6, 10-B2 reconciled below), owner rulings D8 and D9 (`architecture/delivery-workflow-sources/owner-decisions.md:18-19`).
 > Author: one execute-tier agent, about 1 h. Not split, no integration step. Reviewer path: Rung 1 trio, at most 3 rounds, then the owner (D7).
 
 **Done condition (one, machine-checkable):** the command block in section 9 exits 0 and its last stdout line is `SKILL-19-OK`.
 **Tier:** execute (the executor persona it describes is mechanical, §3.1). **Rung:** 1.
-**Depends on:** INTERFACES 1.1.0 (done); item 18 (`resource-catalog`, called by name); item 5 (`catalog.sh`, for `list --live` and `release`/`fail`/`keep`); item 8 (`port-claim`). Desk verbs `branch-delete`, `fetch` are specified by ADR 0055 and INTERFACES part B (item 26 builds the desk; no runtime dependency in the checks).
+**Depends on:** INTERFACES 1.5.0 (done); item 18 (`resource-catalog`, called by name); item 5 (`catalog.sh`, for `list --live` and `release`/`fail`/`keep`); item 8 (`port-claim`). Desk verbs `branch-delete`, `fetch` are specified by ADR 0055 and INTERFACES part B (item 26 builds the desk; no runtime dependency in the checks).
 
 ## 1. Objective
 Write the skill `delivery-cleanup`: after a sub-task merges, or a run is abandoned, remove only what `catalog.tsv` says the run created (D9), through a read-only dry run, an explicit approved list, a separate executor that re-measures and deletes by literal path, and a different agent's spot check; it releases `port` rows with their registry claims; it deletes branches only when content-merged (D8).
@@ -34,13 +34,13 @@ Write the skill `delivery-cleanup`: after a sub-task merges, or a run is abandon
 | Roles | approver: sub-task lead (mode `subtask`) or conductor (mode `final`); executor: a separate mechanical-tier agent (`cleanup-executor`); spot-check: a different agent | D2.2 row 9; `part-03` §3.1 |
 | Triggers | inbox `MERGED <subtask> <merge_sha>` runs mode `subtask`; the `pm` lead runs mode `subtask` for `pm` once `release-<pm_sha>.md` line 1 is `RELEASE: LIVE` or `RELEASE: ROLLED-BACK`; the conductor runs mode `final` once every `subtasks[]` entry is `cleaned`, before `stage: done` | C5.1 |
 | Merge evidence | `merge-<sha>.md` four lines `pr=`, `merge_sha=`, `method=`, `merge_reach=` | A.6 |
-| Catalog use | read rows by `kind`+`handle` latest state; act via `catalog.sh release`/`fail`/`keep`; `list --live --subtask <st>` must be empty of build resources at exit; run `audit` first | A.5; Script interfaces table |
-| Per-kind cleanup | the table in A.5.1 (worktree, branch, process, port, pm2-app, bus, tmpdir/file/clone, tag, container/image/workspace, db, cron, bgtask, lane-lease) | A.5.1 |
+| Catalog use | read rows by `kind`+`handle` latest state; act via `catalog.sh release`/`fail`/`keep`; `list --live --subtask <st>` (latest row `planned` or `live`, AM-4 row 20) must be empty of build resources at exit; run `audit` first; `audit` exit 5 (`lsof` missing or failing) is no verdict and is handled by this skill as a caller (amended: AM-5 PR10-M4) | A.5; Script interfaces table |
+| Per-kind cleanup | the table in A.5.1 (worktree, branch, process, port, pm2-app, bus, tmpdir/file/clone, tag, container/image/workspace, db, cron, bgtask, lane-lease); `cron` and `bgtask` rows (the lead's merged-tick cron and controller tasks) are stopped by the host session (`CronDelete`, `TaskStop`); a `db` lane uses the profile `lanes[].db.cleanup_cmd`; the detached `pm` worktree (stages 6-7) passes the worktree-removal guard without a PR; a failed cleanup makes the approver send `ESCALATE human-step` (amended: AM-5 19, 19-F6, 28-CV4/CV16; A.5 lead rows, A.5.1, A.2.2) | A.5.1 |
 | Port rows | liveness `lsof -nP -iTCP:<port> -sTCP:LISTEN`; only after the listener is stopped, `port-check.sh --claim <port> <bind> <container_port> <service> <project> released <source> <note>` with the claim's `port` and `source` (a `released` row supersedes the claim), then `catalog.sh release`; never a hand edit of `ports.tsv` | A.5.1 `port` row; A.5.2 |
 | security-audit output | `RUN_HOME/<subtask>/security-audit/run-<N>/` is a RUN record (full mode only), not a catalog build resource: never deleted by cleanup; any process or tmpdir its agents registered is a normal catalog row | A.5.3; D6 row; card 9 never-touch |
 | Branch delete | desk `branch-delete` `{repo, branch, merged_into, merge_sha}`; the executor writes the `.req`, the host session (lead or conductor) sends the `DESK` line; `DONE` carries `deleted` and `merged_check` in `ancestor\|patch-id\|squash`; `REJECTED marker` means keep and flag | B4, B5, B6; R3 H4 |
-| `fetch` | desk verb `{repo, ref}` used to verify the remote branch | B4 |
-| Never touch | ledger and records (`state.md`, `substate.md`, `catalog.tsv`, `merge-*`, `review/`, `desk/`, `gates/`, `cleanup-*`), other sessions' worktrees, open PR branches, credentials | card 9; A.5.1 |
+| `fetch` | desk verb `{repo, ref}` used to verify the remote branch; a repo with no remote (`merge_reach: local`) gets local-only branch deletion, no desk `fetch` or `branch-delete`, and the record says "no remote" (amended: AM-5 19-F6, A.5.1) | B4 |
+| Never touch | ledger and records (`state.md`, `substate.md`, `catalog.tsv`, `merge-*`, `review/` records, `desk/`, `gates/`, `cleanup-*`; the in-run review-bus `data_dir` `RUN_HOME/review/<subtask>/<review-id>/bus/` is a catalog `bus` row and is cleaned per A.5.1, amended: AM-5 10-B2, E42), other sessions' worktrees, open PR branches, credentials | card 9; A.5.1 |
 | Count bases | bytes `du -sk`; files `find <path> -type f \| wc -l`, `.git` included, stated on every row | A.5.1 |
 
 ## 5. Inherited module API
@@ -106,7 +106,7 @@ echo SKILL-19-OK
 Write in `~/projects/agent-hq-worktrees/delivery-w0` (branch `wt/delivery-w0`). No `git add`, commit, branch or push (integrator Worker1 commits). No symlinks, installs or web.
 
 ## 11. Decision Gate reminder
-Stop and report `STUCK` (or write `.decisions/T19.md`) if: a catalog kind has no row in the A.5.1 table (RESOLVED Q2: the executor applies A.5.1 by citation); a guard would need deletion of a non-catalog path; the 1.1.0 amendment contradicts section 4; a criterion cannot be checked with section 9; you must edit outside section 3.
+Stop and report `STUCK` (or write `.decisions/T19.md`) if: a catalog kind has no row in the A.5.1 table (RESOLVED Q2: the executor applies A.5.1 by citation); a guard would need deletion of a non-catalog path; an INTERFACES amendment (AM-1 to AM-5, version 1.5.0) contradicts section 4; a criterion cannot be checked with section 9; you must edit outside section 3.
 
 ## Plan-check resolutions (2026-10-26; report `reviews/plan-check-w1-specs.md`)
 1. RESOLVED (INTERFACES A.5.1 general rules "never touched: ledger and records"; D6 row `security-audit/run-<N>/` is a RUN record): never deleted, never archived by cleanup; the RUN plane is archived as a whole at CYCLE DONE (A.1).

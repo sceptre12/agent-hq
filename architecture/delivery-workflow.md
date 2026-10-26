@@ -2,6 +2,7 @@
 
 - **Status:** accepted by the owner (H1) 2026-10-26.
 - **Date:** 2026-10-26. Design v2, revised after the 11-agent panel and the owner's rulings D1-D25.
+- **Consolidated:** 2026-10-26 (W3 item 33): the INTERFACES design errata E1-E42 are applied to the parts, and every sentence an INTERFACES amendment (AM-1 to AM-5, `delivery-workflow/INTERFACES.md` at version 1.5.0) superseded is rewritten and tagged "(amended: AM-n)". Where a part and INTERFACES still differ, INTERFACES wins.
 
 ## Summary
 
@@ -18,7 +19,7 @@ The design text was split at section boundaries to stay within the document leng
 | 3 | §3 personas (§3.0 to §3.6), §4 the 30-agent concurrency model | [part-03-personas-and-concurrency.md](delivery-workflow/part-03-personas-and-concurrency.md) |
 | 4 | §5 templates (§5.0 to §5.11, including §5.8b Proof Web repo-profile seed) | [part-04-templates.md](delivery-workflow/part-04-templates.md) |
 | 5 | §6 execution constraints and profile mapping (§6.1 to §6.5) | [part-05-execution-constraints.md](delivery-workflow/part-05-execution-constraints.md) |
-| 6 | §7 build plan, §7b grounding in learnings, §8 open items, §9 sources | [part-06-build-plan-and-sources.md](delivery-workflow/part-06-build-plan-and-sources.md) |
+| 6 | §7 build plan and build record, §7b grounding in learnings, §8 open items, §9 sources | [part-06-build-plan-and-sources.md](delivery-workflow/part-06-build-plan-and-sources.md) |
 | Changelog | v1 to v2: every panel finding and ruling mapped to a section (its `§` references use the original section numbers; map them with the table above) | [changelog.md](delivery-workflow/changelog.md) |
 
 Evidence files cited by the design live in `architecture/delivery-workflow-sources/`.

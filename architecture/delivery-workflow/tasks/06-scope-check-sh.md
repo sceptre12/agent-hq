@@ -1,10 +1,10 @@
 # Task Spec: T06 `scope-check.sh` (W1 item 6, scope-creep checker)
 
-> Written 2026-10-26 (W0 item 2b) from design `part-06` §7 row 5-7, `part-03` §4 rule 2 and 8d, card 7 (`part-02` §2.2), INTERFACES 1.1.0 (Script interfaces; C1.1 scope globs row; C7 `CREEP` row; R4-J21), `part-05` §6.1 row 3 / runtime matrix.
+> Written 2026-10-26 (W0 item 2b) from design `part-06` §7 row 5-7, `part-03` §4 rule 2 and 8d, card 7 (`part-02` §2.2), INTERFACES 1.5.0 (Script interfaces; C1.1 scope globs row; C7 `CREEP` row; R4-J21), `part-05` §6.1 row 3 / runtime matrix.
 > Author: one execute-tier agent, about 1 h with its tests; integrate serially (0.3 h). Not split. Review path: code gate (PR, `pr-review` 7 seats, mapped hermetic tests).
 
 **Done condition (one, machine-checkable):** the command block in section 9 exits 0 and its last stdout line is `SCRIPT-06-OK`.
-**Tier:** execute. **Rung:** code gate. **Depends on:** INTERFACES 1.1.0 only. Consumers: item 23 (`delivery-shepherd`, `CREEP` flag), item 20 (`pre-pr-gate`, preventive check).
+**Tier:** execute. **Rung:** code gate. **Depends on:** INTERFACES 1.5.0 only. Consumers: item 23 (`delivery-shepherd`, `CREEP` flag), item 20 (`pre-pr-gate`, preventive check).
 
 ## 1. Objective
 Write `tools/delivery/scope-check.sh <tasks-file> <worktree> <base-sha>`: print `CREEP <path>` for every path changed in the worktree since `<base-sha>` that matches none of the unit's scope globs, under `/bin/bash` 3.2 and BSD userland.

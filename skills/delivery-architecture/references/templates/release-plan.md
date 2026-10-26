@@ -2,14 +2,14 @@
 
 Purpose: what ships, in what order, who runs each step, and how to undo it. v0 is written at stage 2 at `plans/<epic>/release-plan.md`; v1 is written by `release-track` at `RUN_HOME/release-plan.md` (RUN only in this contract version, INTERFACES A.6). Step ids are minted in v0 and kept unchanged in v1.
 
-**Writer / Reader:** v0 writer `delivery-architecture`; v1 writer `release-track`; readers the human (reads each `step_id` before writing `H-prod.<step_id>.ok`), the desk (`tag-push`, `publish`), the conductor.
+**Writer / Reader:** v0 writer `delivery-architecture`; v1 writer `release-track`; readers the human (reads each `step_id` before writing `H-prod.<step_id>.<run-id>.ok`), the desk (`tag-push`, `publish`), the conductor.
 
 ## The step_id table (INTERFACES A.6, R4-J3)
 - First column `step_id`: `^[a-z0-9-]+$`, unique in the plan.
 - `owner`: `agent` or `human` (INTERFACES D2.1).
   - `agent`: staging deploy, polling, reporting.
   - `human`: production deploy, flag flip, money, production data, external publication, store submission (D15).
-- Every `human` step, and any `tag-push` whose profile `release_tags.approval` is `human`, is gated by `RUN_HOME/gates/H-prod.<step_id>.ok` (INTERFACES A.2.1, A.2.2). The id in the gate file name, the `GATE <run-id> H-prod ok ...` line, `publish` and `tag-push` `step_id`, and `bodies/test-report-<step_id>.json` all name a row of this table.
+- Every `human` step, and any `tag-push` whose profile `release_tags.approval` is `human`, is gated by `RUN_HOME/gates/H-prod.<step_id>.<run-id>.ok` (INTERFACES A.2.1, A.2.2). The id in the gate file name, the `GATE <run-id> H-prod ok ...` line, `publish` and `tag-push` `step_id`, and `bodies/test-report-<step_id>.json` all name a row of this table.
 - `command` is the exact prepared command, copied from the repo profile or written out in full; a human step shows it for the human to run. Unknown parts are `FILL_IN_BEFORE_DISPATCH`.
 - `tag` is filled only for a tag step and must match `release_tags.pattern` of the profile; with no profile entry a tag step is refused (INTERFACES N11).
 

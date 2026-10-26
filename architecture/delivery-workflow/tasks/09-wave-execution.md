@@ -9,7 +9,7 @@
 Extend `skills/wave-execution` (SKILL.md, `references/spec-format.md`, `references/example-spec/` with tests) and `architecture/wave-execution.md` so they implement every ADR 0054 decision A0-A9 and owner answers Q1-Q11, with all new fields optional and a bundle that declares none validating and running exactly as today.
 
 ## 2. Context package
-- Authority: `decisions/0054-adr-0023-amendment-delivery-workflow.md` (A0-A9; "What changes in `skills/wave-execution`" lists the edit sites by line at `c1ba30e`); INTERFACES part C1.1 (values), C1.2 (`done_condition`, `persona`, `lane`, `depends_on`), C1.3 (rules 13-15), C2 (record, controller side R4-J15), part A `bus.endpoint` and `dispatch/<invocation>.jsonl`, part D2.3 (input names, transport rule R4-J22: `wave-execution` keeps snake_case), D topic table.
+- Authority: `decisions/0054-adr-0023-amendment-delivery-workflow.md` (A0-A9; "What changes in `skills/wave-execution`" lists the edit sites by line at `c1ba30e`); INTERFACES part C1.1 (values), C1.2 (`done_condition`, `persona`, `lane`, `depends_on`), C1.3 (rules 13-15), C2 (record, controller side R4-J15), part D §D5 `bus.endpoint` (E30, AM-4 9), part A `dispatch/<invocation>.jsonl`, part D2.3 (input names, transport rule R4-J22: `wave-execution` keeps snake_case), D topic table.
 - Existing: `skills/wave-execution/SKILL.md` (294 lines, 2623 words, `c1ba30e`), `references/spec-format.md` (141 lines), `references/example-spec/` (waves 01-03 plus README), `architecture/wave-execution.md` (261 lines), `decisions/0023-*`.
 - Standards: `tools/skill-authoring.md` §2-§5 (SKILL.md body at or under 5k tokens; depth in `references/`), `tools/check-doc-length.sh`.
 - Dependencies: none beyond the frozen files. Port guard (AM-1, INTERFACES 1.1.0): no claim step in this skill (RESOLVED Q1).
@@ -41,10 +41,11 @@ P2 and P3 take the field names, enum values, regexes and rule numbers from ADR 0
 | ADR 0054 A0 | bundle fields: `session_id`, `output_topic`, `bus_endpoint`; per-work_item: `persona`, `lane`, `depends_on`, `done_condition`; invocation args: `max_concurrent`, `invocation`, `tier_override` | ADR 0054 A0; C1.1; D2.3 |
 | `session_id` | `^[a-z0-9-]+$`, in `spec_root` hash, stable on resume (rule 13) | A6, A8, C1.3 |
 | `output_topic` | literal, no placeholder; differing per-wave value is `VALIDATION_FAILED` (rule 14) | A7, A8, Q8 |
-| `bus_endpoint` | `$DELIVERY_ROOT`-relative `<run-id>/<subtask>/bus.endpoint`; keys `port, data_dir, pm2_app, pid, session_id, topic`; port only from `$data_dir/port`; `session_id=`/`topic=` equal the bundle's | C1.1, part A `bus.endpoint` |
+| `bus_endpoint` | `$DELIVERY_ROOT`-relative `<run-id>/<subtask>/bus.endpoint`; keys `port, data_dir, pm2_app, pid, session_id, topic`; port only from `$data_dir/port`; `session_id=`/`topic=` equal the bundle's | C1.1, part D §D5 `bus.endpoint` (E30) |
 | `done_condition` | `{"token": <str>, "command": <str>}`, both non-empty one-line, no other key; gate passes only if `command` exits 0 and its last stdout line equals `token`; required under `step_complete` (rule 9) | C1.2, Q2 |
 | `gate_type` enum | `exit_criteria, adversarial_verify, judge_panel, step_complete`; `step_complete` `gate_agents` = `work_items_count` (barrier), 1 per work_item (frontier) | A4, D2.1 |
-| rule 15 | `depends_on` acyclic; edges name work_items of the same wave; a wave with edges enumerates its work_items | A5, A8, Q4 |
+| rule 15 | `depends_on` acyclic; edges name work_items of the same wave; a wave with edges enumerates its work_items, and so does a `step_complete` wave (E30, AM-4 9) | A5, A8, Q4 |
+| engine details | a wave-level gate agent's dispatch-record `unit` is `wave-<N>`; `persona` is `none` when undeclared; a declared `bus_endpoint` missing `session_id`, `output_topic` or an invocation value halts before any dispatch with `BUNDLE-ERROR <field>`; runtime fix work_items may carry `persona` and `lane`; a barrier-wave `lane` is released when the holder's gate passes or escalates (amended: AM-4 9) | C1 "Engine details" |
 | rule order | 1-10, then 13-15, rule 11 last | A8 |
 | `max_concurrent` | integer >= 1, validated where passed; absent = unbounded | A1 |
 | dispatch record | `dirname(bus_endpoint)/dispatch/<invocation>.jsonl`, one JSON line per agent before dispatch, fields `agent_id, role, unit, persona, tier, backend, utc`; only with `bus_endpoint` | C1.1 (R4-J12) |

@@ -27,7 +27,7 @@ Add a `FILE_SET` input to `skills/fix-verifier/` so that any change outside the 
 | Contract | Field / value | Authority |
 |---|---|---|
 | D2.3 `fix-verifier` row | input `FILE_SET`, comma list of repo-relative paths; outside = `ISSUES_FOUND` | `interfaces/part-d-enums-topics.md` D2.3 (line 100) |
-| D1 Step 0 | a malformed `FILE_SET` prints `INPUT-ERROR FILE_SET <reason>` (`missing\|enum\|path\|unset\|format`), one line per failing field, then stops with no retry and no prompt; absent `FILE_SET` is valid (today's behaviour) | part-d D1 |
+| D1 Step 0 | a malformed `FILE_SET` prints `INPUT-ERROR FILE_SET <reason>` (`missing\|enum\|path\|unset\|format\|sha`; `sha` added by AM-4 20), one line per failing field, then stops with no retry and no prompt; absent `FILE_SET` is valid (today's behaviour); an `INPUT-ERROR` reply is not an iteration and writes no `verify-*` record (amended: AM-4 11-Q11-R1, D2.3) | part-d D1, D2.3 |
 | Existing output contract | `verdict`, `findings[]` with `check`, `severity`, `description`, `file`, `recommended_fix`; `CLEAN` only with zero Blocking/Medium | `skills/fix-verifier/SKILL.md` "Output Contract" |
 | A.6 | caller writes `verify-<seat-id>-<n>.md` for round `n` (1..3) | `interfaces/part-a-state.md` A.6 |
 | M18 / part-03 rule 8c | `file_set` is per fixer | `part-03-personas-and-concurrency.md` Parallelization rules |
@@ -57,7 +57,7 @@ Existing input contract and path-canonicalization rules apply unchanged: `FILE_S
 - [ ] With `FILE_SET` set, every `changed_files` entry whose canonical repo-relative path is not in the set yields one finding naming that file, severity per Q11-2, and the verdict is `ISSUES_FOUND`.
 - [ ] With every changed file inside the set, the new check adds no finding.
 - [ ] With `FILE_SET` absent, output is identical to the unmodified skill for the same input (no regression).
-- [ ] A path-traversal entry or an empty list is `INPUT-ERROR`, not a verdict.
+- [ ] A path-traversal entry or an empty list is `INPUT-ERROR`, not a verdict; it counts as no iteration and no `verify-*` record is written for it (amended: AM-4 11-Q11-R1).
 - [ ] Red flags row: "the extra file edit was needed for the fix, treat it as inside the set" maps to "report it; the lead widens `FILE_SET` or the fixer reverts"; Exit criteria row added; Provenance line cites M24 and D6 and states `class_sweep` is dropped.
 - [ ] `version: 1.1.0` (RESOLVED, PC-1: the unversioned base at `c1ba30e` or the item 8 port counts as 1.0.0; an EXTEND is a minor bump) (RESOLVED Q11-4). Five anatomy sections still present; `SKILL.md` under 500 lines or the overflow moved to `references/`.
 

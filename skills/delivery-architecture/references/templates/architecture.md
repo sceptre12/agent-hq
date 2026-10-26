@@ -14,7 +14,7 @@ security_sensitive: yes|no
 - The `epic:` and `repo_profile:` header lines are template-local (no INTERFACES key); only `security_sensitive` is read by a consumer (INTERFACES A.2).
 - `epic` is the original-case epic token (INTERFACES A.1).
 - `repo_profile` links the profile with its full 40-hex sha and never copies it (D22).
-- `security_sensitive: yes|no` is required: exactly one such line, `no` allowed (INTERFACES 1.3.0 A.2, AM-3, owner OQ-1). Write `yes` when the epic touches any of:
+- `security_sensitive: yes|no` is required: exactly one such line, `no` allowed (INTERFACES 1.5.0 A.2, AM-3, owner OQ-1). Write `yes` when the epic touches any of:
   - auth;
   - secrets;
   - money;

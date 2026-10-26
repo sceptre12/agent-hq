@@ -34,7 +34,7 @@ Add a `UNIT_MODE` input to `skills/feature-change/` (`solo` default = today's be
 | C3 `NEXT:` | `^NEXT: (u[0-9]+)\.([0-9]+) .+$`, one current line overwritten in `RUN_HOME/<subtask>/status/<agent-id>.md`; `<n>` is the step number in the unit's `.tasks/<unit>-<slug>.md` §9, `0` before the first step | part-c C3 |
 | D5 `bus.endpoint` | bus coordinates read from `RUN_HOME/<subtask>/bus.endpoint`, never guessed | part-d D5 |
 | A.5 / A.5.1 | `catalog.sh register worktree <handle> <unit> <correlation_id> <source> <subtask> <owner_agent>` before `git worktree add`, `start` after; handle under the registered worktree base | part-a A.5, script table in `INTERFACES.md` |
-| A.7 | `GATE-PASS <sha> <cmds>` at `RUN_HOME/<subtask>/gate-runs/<sha>.md`, written ONLY by the gate runner (separate mechanical agent), once per push or batch; commits outside a desk push run hooks; `HUSKY=0` is never set by this skill | part-a A.7 (lines 308-325) |
+| A.7 | `GATE-PASS <sha> <cmds>` at `RUN_HOME/<subtask>/gate-runs/<sha>.md`, written ONLY by the gate runner, which for a team unit is `wave-execution`'s per-work_item gate agent (depth 1, the unit's distinct verifier): the unit never requests a gate run, it posts its `UNIT-VERDICT` with its head and the gate agent runs the gate command and writes the record; "gate runner absent" is not a unit failure class and has no `ESCALATE contract-gap` path; `HUSKY=0` applies to unit commits and desk pushes alike, as an inline per-command assignment, never exported, never `--no-verify` (amended: AM-4 13, owner N10) | part-a A.7 ("Unit gates and `HUSKY=0` scope") |
 | A.1 | `<JIRA-KEY>` is a profile/ticket fact (`^[A-Z][A-Z0-9]+-[0-9]+$`); branch created only after the key is read back from the desk (COMMON block §3.0) | part-a A.1, part-03 §3.0 |
 
 ## 5. Inherited Module API
@@ -55,7 +55,7 @@ Add a `UNIT_MODE` input to `skills/feature-change/` (`solo` default = today's be
 | `head` | `git rev-parse HEAD` in the unit worktree at posting | the base sha or a pushed-remote sha | C2 lead handling |
 | `reason` with `PASS` | `none` | omitted | C2 |
 | `GATE-PASS` writer | the gate runner (A.7) | this skill (author claim) | A.7, card wording (see Q13-3) |
-| `HUSKY=0` | not set here (desk push and PR creation only) | exported or on a local commit | A.7 |
+| `HUSKY=0` | inline per-command on unit commits (amended: AM-4 13) | exported, or `--no-verify` | A.7 |
 | `NEXT:` file | own `status/<agent-id>.md` only | another agent's file | C3, §3.0 |
 | Unit id | `^u[0-9]+$`; Integrator `i<N>` is not this skill | `U1`, `unit-1` | A.1 |
 
@@ -64,7 +64,7 @@ Add a `UNIT_MODE` input to `skills/feature-change/` (`solo` default = today's be
 - [ ] `team`: Step 1 (ticket) skipped with the line "ticket owned by the conductor"; Step 8 (integrate) and Step 9 (cleanup) skipped; branch is `<JIRA-KEY>-<slug>` from the ticket read-back, created only after the key exists; if the key is absent, emit `ESCALATE` reason `spec-gap` (RESOLVED Q13-4, INTERFACES C2 closed reason set; PLAN-CHECK DEFAULT: `spec-gap`, because tickets exist before dispatch, so a missing key is a plan defect).
 - [ ] `team`: before `git worktree add`, `catalog.sh register worktree ...` with `WORKTREE_BASE` passed inline from the profile (T05 Q2); `start` after; the same for the branch row. A catalog failure (exit 2, 3, 4) stops the unit (no add).
 - [ ] `team`: `NEXT:` line written to the agent's own `status/<agent-id>.md` after each step of the unit's §9 list, matching C3's regex.
-- [ ] `team`: affected lint+test+typecheck is requested from the gate runner once per push or batch at unit end; the skill reads `gate-runs/<head>.md` and cites it; it never writes `GATE-PASS`. RESOLVED Q13-3 (INTERFACES A.7 "Writer: the gate runner ... never the author"; card 10; PC-7): the §2.3 card wording "record `GATE-PASS`" reads as "obtain from the gate runner and cite" (design erratum, AM-2 row 16).
+- [ ] `team`: affected lint+test+typecheck is run by `wave-execution`'s per-work_item gate agent on the head the unit posts, never requested by the unit (amended: AM-4 13); the skill reads `gate-runs/<head>.md` and cites it; it never writes `GATE-PASS`. RESOLVED Q13-3 (INTERFACES A.7 "Writer: the gate runner ... never the author"; card 10; PC-7): the §2.3 card wording "record `GATE-PASS`" reads as "obtain from the gate runner and cite" (design erratum, AM-2 row 16).
 - [ ] `team`: ends by posting the C2 record on the bus named in `bus.endpoint` (or writing `status/<agent-id>.verdict`, C4), `PASS` only after a distinct verifier reported every AC MET and `head` is the worktree head; else `ROLLED`/`ESCALATE` with a C2 reason. Step 10 (ledger row, ticket update): skipped in team mode, the lead owns the record (RESOLVED Q13-5, INTERFACES A.6: `ticket-clerk` runs only in the conductor session; PLAN-CHECK DEFAULT).
 - [ ] Step 0 repo policy lookup in team mode reads `GATES` from the repo profile `gates.command` and `ROUTE` is moot (RESOLVED Q13-2, INTERFACES A.7 "Command: `repo-profile.md` `gates.command`").
 - [ ] Port guard (AM-1, A.5.2 scope "e2e lanes, dev servers"): recorded as a no-op line, "this skill binds no port; any dev server a unit starts is claimed per A.5.2 through `port-claim` first" (no new step). `security-audit` (AM-1): not used by this skill (the security seat belongs to the review step).
@@ -77,7 +77,7 @@ grep -q 'UNIT_MODE' $S/SKILL.md; grep -q 'INPUT-ERROR UNIT_MODE enum' $F
 test "$(grep -n -i -E 'team' $F | grep -i -E 'skip' | grep -i -E 'ticket|integrat|cleanup' | grep -c .)" -ge 3
 for t in rendezvous 'NEXT:' '\.verdict' bus.endpoint 'catalog.sh register worktree' WORKTREE_BASE gate-runs; do grep -q -- "$t" $F || { echo "MISSING $t"; exit 1; }; done
 if grep -n 'GATE-PASS' $F | grep -v -i 'runner\|gate-runs\|read\|cite\|never'; then echo "FAIL: author-written GATE-PASS"; exit 1; fi
-if grep -n -E 'HUSKY|--no-verify' $F | grep -v -i 'never\|not set'; then echo "FAIL: hook-skip text"; exit 1; fi
+if grep -n -E 'export HUSKY|--no-verify' $F | grep -v -i 'never'; then echo "FAIL: hook-skip text"; exit 1; fi   # amended: AM-4 13 (inline HUSKY=0 on commits is allowed)
 test "$(git diff $B -- $S/SKILL.md | grep -E '^-[^-]' | grep -vcE '^-(version|description)')" -eq 0   # solo lines kept
 # fixture: the verifier dispatches a feature-change agent on a 1-AC toy repo with UNIT_MODE=team, a stub RUN_HOME and a
 # bus.endpoint pointing nowhere, then copies RUN_HOME/catalog.tsv and RUN_HOME/<subtask>/status/ into $R

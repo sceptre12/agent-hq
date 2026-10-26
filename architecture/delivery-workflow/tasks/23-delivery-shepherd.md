@@ -1,6 +1,6 @@
 # Task Spec: 23 `delivery-shepherd` (W1 pilot draft)
 
-Dispatch: execute-tier author. Branch: `wt/delivery-w0` (integrator commits; the author never does). Source: design part-02 §2.2 card 7, part-06 §7 row 23-25, INTERFACES 1.1.0 (AM-1 port guard and security-audit, re-read at spec finish; rows D2.2 7, C7, A.5.1 unchanged by AM-1).
+Dispatch: execute-tier author. Branch: `wt/delivery-w0` (integrator commits; the author never does). Source: design part-02 §2.2 card 7, part-06 §7 row 23-25, INTERFACES 1.5.0 (AM-1 port guard and security-audit, re-read at spec finish; rows D2.2 7, C7, A.5.1 unchanged by AM-1; AM-3 OQ-3 and AM-4 23 reconciled below).
 
 ## 1. Objective
 Author the skill `skills/delivery-shepherd/`: a tick-driven (every 10 minutes, D10) checker that, for a sub-task with 3 or more live agents, raises the shepherd-half flags `DRIFT`, `CREEP` and `FREE-CANDIDATE` and also `STALLED` and `PROMPT-OPEN` (INTERFACES 1.3.0 AM-3 / owner OQ-3), sends fixed-template nudges, and never decides `TaskStop` or re-dispatch (the lead does). `Provenance: pending pilot` (D14, M31).
@@ -11,7 +11,7 @@ Author the skill `skills/delivery-shepherd/`: a tick-driven (every 10 minutes, D
 - Flag authority: INTERFACES `interfaces/part-c-waves-control.md` C7 (flag table, nudge template, "Not a stall", "After every TaskStop", "Observation means", "Merged tick").
 - Status line: C3 (`NEXT: <unit>.<n> <one line>`, `^NEXT: (u[0-9]+)\.([0-9]+) .+$`, file `RUN_HOME/<subtask>/status/<agent-id>.md`).
 - Inputs: D2.2 row 7 (`RUN_HOME` path, `SUBTASK`, `PLANS_DIR` path); Step 0 per D1 (`INPUT-ERROR <field> <reason>`, line regex in D1). Path rule A.1 (`DELIVERY_ROOT` env, unset = `INPUT-ERROR DELIVERY_ROOT unset`).
-- Derived inputs: `dispatch-plan.md` in `PLANS_DIR`; slot rows A.4; `dispatch/*.jsonl` and `status/*.verdict` for `FREE-CANDIDATE` (C2 reader idiom: `peek:true`, fresh `agent_id`, `limit 200`; C4); `catalog.tsv` A.5; `scope-check.sh` (INTERFACES "Script interfaces").
+- Derived inputs: `dispatch-plan.md` in `PLANS_DIR`; slot rows A.4; `dispatch/*.jsonl` and `status/*.verdict` for `FREE-CANDIDATE` (C2 reader idiom: `peek:true`, fresh `agent_id`, `limit 200`; C4); the shepherd also reads the sub-task bus peek-only to see terminal records for `FREE-CANDIDATE` (amended: AM-4 23, C2, D4); `catalog.tsv` A.5; `scope-check.sh` (INTERFACES "Script interfaces").
 - Anatomy: `tools/skill-authoring.md` §2-§5 (frontmatter "Use when", `## Trigger`, `## Steps`, `## Red flags`, `## Exit criteria`, `## Provenance`; body under 5k tokens; depth in `references/`).
 - Dependencies: none blocking. Needs `scope-check.sh` and `catalog.sh` to exist only at run time (W1 items 5-7 / script items), not for authoring; cite their CLI from INTERFACES.
 
@@ -27,7 +27,7 @@ Do NOT create: scripts, hooks, a `disable-model-invocation` key (D16), any file 
 | Contract | Value | Authority |
 |---|---|---|
 | Flag line | `<FLAG> <agent-id>` appended to `RUN_HOME/<subtask>/shepherd/ticks.md` only when something changed | C7 |
-| Flags raised | `DRIFT`, `CREEP`, `FREE-CANDIDATE`, and `STALLED` (past `budget_min` with no result), `PROMPT-OPEN` (a pending tool call with no result) alongside the watchdog half; two flags for one agent collapse to one lead action | C7 table and authority line (AM-3, OQ-3); D2.2 row 7 |
+| Flags raised | `DRIFT`, `CREEP`, `FREE-CANDIDATE`, and `STALLED` (past `budget_min` with no result), `PROMPT-OPEN` (a pending tool call with no result) alongside the watchdog half; two flags for one agent collapse to one lead action; Integrator rows (`unit` `i<N>`) and `wave-controller` rows (`unit` `-`) get no `DRIFT` or `CREEP` check; a cleared flag that returns is not re-flagged; exactly one nudge per flag, sent by whichever side (watchdog or shepherd) writes the flag line (amended: AM-4 23, C7 "Flag discipline") | C7 table and authority line (AM-3, OQ-3); D2.2 row 7 |
 | Nudge | `NUDGE <agent-id> \| <FLAG> \| next: <unit>.<n> \| <one line copied from the plan>`, `SendMessage`, no free text | C7 |
 | `CREEP` source | `scope-check.sh <tasks-file> <worktree> <base-sha>`; tasks file `<primary_repo>/.tasks/<unit>-<slug>.md`; `primary_repo` = parent of `PLANS_DIR`'s `plans/`; `base-sha` = `git -C <worktree> merge-base HEAD <sub-task branch>`, never stored; exit 1 = creep, lines `CREEP <path>` | C7, R4-J21 |
 | `FREE-CANDIDATE` | terminal record (bus post or `.verdict`) exists and slot row not yet `.freed`; the shepherd never frees | C7, A.4 |

@@ -28,3 +28,4 @@ Intent: add a Badge widget with three sizes to demo-widgets.
 - `durations.pr_review_min`: median PR review minutes (run history lives on the hosting service); the human answers.
 - `durations.ci_round_min`: median CI round minutes (run history lives on the hosting service); the human answers.
 - `durations.unit_median_min`: median unit build minutes (no local record); the human answers.
+- `commands.pack`: the pack command (no pack script in package.json); the human answers.

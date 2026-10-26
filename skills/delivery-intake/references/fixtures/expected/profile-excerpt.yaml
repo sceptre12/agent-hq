@@ -12,6 +12,15 @@ zephyr:
 clones: [<PRIMARY_REPO>]                         # measured: facts.md row git rev-parse --show-cdup; no other clone, brief.md Q5
 linked_profiles: []                              # single-repo epic, brief.md Q5
 worktree_base: <DELIVERY_ROOT>/worktrees         # human-answered, brief.md Q2
+default_branch: main                             # measured: ci.yml on: push: branches: [main]
+e2e:
+  harness: none                                  # measured: no e2e harness in the repo
+commands:
+  install: pnpm install --frozen-lockfile --ignore-scripts   # measured: packageManager pnpm@9.15.3, pnpm-lock.yaml present
+  pack: FILL_IN_BEFORE_DISPATCH                  # no pack script in package.json; brief.md open items
+repo:
+  consumer_repos: []                             # human-answered, brief.md Q5
+lanes: []                                        # no lane has a db
 merge_method: squash                             # measured: grep -i merge docs/CONTRIBUTING.md
 merge_reach: 'a merge to main deploys nothing'   # measured: facts.md rows sed -n '/^on:/,/^jobs:/p', grep -rliE 'deploy|publish|release', grep -i merge
 ci:

@@ -29,7 +29,8 @@ the review: this skill selects, the caller dispatches.
    `design`, move one rung up (INTERFACES D2.2 row 4, part A.2 `orchestrator_tier`, AM-3
    errata (g)), except `KIND=diff` (stays 3) and Rung 4 (top). Rung 0 moves to 1, so a Rung 0
    record always says `modifier: none`. `design`: no shift.
-4. **Pick the lowest rung** that covers the named risks. Write down, in one line each, the
+4. **Pick the lowest rung** that covers the named risks, never below the epic floor (an epic
+   is at least 2b, `rung-rules.md` §1; INTERFACES D8, AM-5 15). Write down, in one line each, the
    rubric inputs that decided it. Escalation triggers (`rung-rules.md` §4) are for the
    caller mid-review; never start high to be safe.
 5. **Select seats** from `references/seat-catalog.md` by risk surface present (task spec 16

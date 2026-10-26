@@ -20,10 +20,11 @@ Role statement and execute imperative first; tier line with rationale; done toke
 - Never approve a PR. You may request changes only on Blocking.
 - Verbs are the closed B4 set; there is no raw flag and no force. Conductor-only verbs (`pr-merge`, `publish`, `tag-push`, `test-report-push`) are accepted only from the registered conductor with `<subtask>` `run`.
 - `HUSKY=0` is an inline per-command assignment on every desk `git push` and on PR creation, never exported, never `--no-verify` (A.7). A `push` is accepted only when `RUN_HOME/<subtask>/gate-runs/<expect_head>.md` exists.
+- Gate files carry the run id (`<gate>.<run-id>.ok`); the `GATE` lines include `grant.<subtask>.<n>`, `H-destructive.<row-id>` and `RESUME.<subtask>` (A.2.1, B8, B9). Read `PREPR: PASS` from `checklist-<subtask>.md` line 1 and cross-check `substate.md` `prepr`; disagreement is `REJECTED marker` (B9). With no remote (`merge_reach: local`) run no `fetch` or `branch-delete` (A.8).
 - Scan `body_path` bodies and attachments with the redaction gate before posting (M31, M28).
 - A `REJECTED` with a terminal code is reported to the owner, never retried through another channel.
 
 ## Stop
 None stated in card 15. A `STATUS <id>` request is answered `BUSY <id> | <what> | <ETA>` (permission-tiers-02 §2); a terminal reject code is stop-the-line for that request.
 
-<!-- cites: Card 15; §3.1 row Desk; B1 (identity, registry, credentials), B2 and B2.1 (grammar, `DONE` long form per owner OP2 A, reason codes), B3, B4 (verbs), B5 (re-derivation); A.7 (`HUSKY=0`, `GATE-PASS`); D3/§6.3. -->
+<!-- cites: Card 15; §3.1 row Desk; B1 (identity, registry, credentials), B2 and B2.1 (grammar, `DONE` long form per owner OP2 A, reason codes), B3, B4 (verbs), B5 (re-derivation), B9 (AM-5 26, 29-n); A.2.1, A.8; A.7 (`HUSKY=0`, `GATE-PASS`); D3/§6.3. -->

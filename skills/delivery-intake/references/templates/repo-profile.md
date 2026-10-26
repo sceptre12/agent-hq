@@ -23,6 +23,7 @@ profile_version: 1                           # template-local (not an A.2.2 key)
 measured_utc: FILL_IN_BEFORE_DISPATCH        # template-local (not an A.2.2 key); YYYY-MM-DDTHH:MM:SSZ of the last full measure
 project_root: FILL_IN_BEFORE_DISPATCH        # a feature worktree, never the main checkout
 worktree_base: FILL_IN_BEFORE_DISPATCH       # abs path under $DELIVERY_ROOT (A.2.2)
+default_branch: FILL_IN_BEFORE_DISPATCH      # the branch pre-pr-gate rebases onto and the desk merges into; "main" in the design (A.2.2, AM-4 20)
 clones: [FILL_IN_BEFORE_DISPATCH]            # abs clone roots on this machine (A.2.2)
 linked_profiles: []                          # primary only: {clone: <abs>, profile: <abs>@<40-hex>} per other repo
 repo: {name: FILL_IN_BEFORE_DISPATCH, type: FILL_IN_BEFORE_DISPATCH, package_scope: FILL_IN_BEFORE_DISPATCH, consumer_repos: [FILL_IN_BEFORE_DISPATCH], registry: FILL_IN_BEFORE_DISPATCH}
@@ -83,6 +84,7 @@ ports: {bus_base: FILL_IN_BEFORE_DISPATCH, lane_base: FILL_IN_BEFORE_DISPATCH}  
 lane_profile:                                # A5 lane resource profile; its keys are template-local (not A.2.2 keys)
   lanes_max: FILL_IN_BEFORE_DISPATCH
   dev_server_cmd: FILL_IN_BEFORE_DISPATCH
+lanes: []                                    # one entry per lane with a db resource: {name: <lane>, db: {verify_cmd: <string>, cleanup_cmd: <string>}} (A.2.2 lanes[].db.cleanup_cmd, AM-5 19; A.5.1 db row); [] when no lane has a db
 e2e:                                         # design 3.6
   harness: FILL_IN_BEFORE_DISPATCH           # nlta|none
   context_file: FILL_IN_BEFORE_DISPATCH
@@ -103,6 +105,8 @@ durations:                                   # minutes, measured (M15); budgets 
 | Field(s) | Why it is unmeasured by default | Who answers |
 |---|---|---|
 | `project_root`, `worktree_base`, `clones[]` | machine-specific | explorer plus human confirm |
+| `default_branch` | the push branch of the merge workflow, else docs; host branch protection is `cannot measure` | explorer plus human confirm |
+| `lanes[].db.*` | lane db commands are repo- and machine-specific | human |
 | `measured_utc`, `repo.*`, `commands.*` | read from `package.json`, task runner, docs; absent command = ask | explorer |
 | `gates.parallel`, `gates.min_free_kb`, `gates.runner_slots`, `gates.command`, `node.prefix_cmd` | machine and tool specific; the human picks (M8) | human |
 | `pr.author_identity`, `pr.approval_rule`, `merge_method`, `merge_route` | hosting-service settings are `cannot measure` | human |

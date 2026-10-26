@@ -1,6 +1,6 @@
 ---
 name: port-claim
-version: 1.1.0
+version: 1.1.1
 description: Check the hq-owned host port registry before binding, mapping, or exposing any TCP port, and register the claim before the bind (claim before bind, A.5.2). Use when about to `docker compose up`, start a dev server, add a port mapping, or pick a port for a new service — before the bind happens, not after a collision is discovered. Also use when auditing existing port claims for staleness, or before trusting a project's own port doc as ground truth.
 ---
 
@@ -19,10 +19,13 @@ checked. hq owns `tools/ports.tsv`; this skill never edits any file outside hq
    - Exit `2` → registry and live **disagree** (staleness signal). Stop — this is a hard stop for
      the candidate, never a warning: do not bind it. It is the exact failure class named in
      architecture §5.1. The one retry below applies exactly as for exit `1`.
-   - The one retry, for exit `1` and exit `2` alike (INTERFACES 1.3.0 A.5.2, AM-3, owner OQ-2):
+   - The one retry, for exit `1` and exit `2` alike (INTERFACES 1.5.0 A.5.2, AM-3, owner OQ-2):
      on the first refusal of a candidate, make exactly one retry at candidate + 10, itself
      checked and claimed with `--claim` before any bind (the tool never picks it); a second
-     refusal stops the line and is reported. Never a second +10.
+     refusal stops the line and is reported. Never a second +10. In a delivery run the
+     candidate is the dispatch-plan port table's `<base> + 20·k` port (AM-4 W2-3), so
+     candidate + 10 is never another candidate; exit `3` there gets no retry and stops the
+     line (a lead-owned claim writes `stop_reason: port-refused`, AM-4 W2-1).
    - Exit `3` → usage error, or the registry is unusable: missing, empty, or carrying a
      structurally malformed row (not 9 tab-separated fields, a non-numeric port field, or a
      status outside the closed enum). Fix the invocation or the row; the script fails closed
@@ -83,4 +86,4 @@ Provenance: Hermes skill `learnings/port-collisions` (was learnings/port-collisi
 host 9000 while agent-hq's agent-topology already held it; the container healthcheck passing, and
 that project's own port doc separately asserting no collision on unrelated ports, both masked host-level
 truth that only `lsof` revealed).
-Ported into agent-hq 2026-10-26 for the delivery workflow (design §7 item 8); amended 2026-10-26, AM-1 A.5.2: claim before bind; amended 2026-10-26, INTERFACES 1.3.0 AM-3 / owner OQ-2: exactly one claimed retry at candidate + 10, then stop.
+Ported into agent-hq 2026-10-26 for the delivery workflow (design §7 item 8); amended 2026-10-26, AM-1 A.5.2: claim before bind; amended 2026-10-26, INTERFACES 1.3.0 AM-3 / owner OQ-2: exactly one claimed retry at candidate + 10, then stop; re-checked 2026-10-26 against 1.5.0 (item 33: AM-4 W2-3 candidate formula and W2-1 exit 3 noted, the retry rule unchanged).

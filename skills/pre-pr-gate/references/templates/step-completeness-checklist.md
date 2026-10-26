@@ -1,7 +1,7 @@
 # Template: step-completeness checklist (design 5.7)
 
 Purpose: the pre-PR completeness record for one sub-task head. `PASS` only if every row has evidence.
-Writer: `pre-pr-gate` (the completeness validator, a verify-tier agent, re-runs each row; INTERFACES part A.6, card 10). Reader: the lead (copies the verdict to `substate.md` `prepr`), the conductor, the human.
+Writer: `pre-pr-gate` (the completeness validator, a verify-tier agent, re-runs each row and writes line 1; INTERFACES part A.6, B9, card 10). Reader: the lead (copies the verdict to `substate.md` `prepr`), the desk (reads line 1 and cross-checks `substate.md` `prepr`; both must agree, else `REJECTED marker`, B9), the conductor, the human.
 Path: `RUN_HOME/review/<subtask>/checklist-<subtask>.md` (INTERFACES A.6). Write to a temp file, then `mv`.
 
 ## 1. Line 1 (INTERFACES D1.1 `PREPR:`)
@@ -34,7 +34,7 @@ Fill the evidence cell with a path, a command and its exit status, or a sha. `n/
 | C8 | Standardization pre-check passes | profile pre-check command, exit status | |
 | C9 | GATE-PASS: a `GATE-PASS` record exists for every pushed batch on the branch (D21, R2-3) | each `RUN_HOME/<subtask>/gate-runs/<sha>.md` with line 1 matching `^GATE-PASS ([0-9a-f]{40}) (.+)$`; the head's record exists. `HUSKY=0` rule: INTERFACES A.7 | |
 | C10 | Redaction gate clean | scan command with `secrets.pattern_file`, 0 hits | |
-| C11 | Scope-check clean, or each extra file justified by an `INSTALLED` row or a grant | scope-check output; justification per extra path | |
+| C11 | Scope-check clean, or each extra or sensitive path justified by a desk `INSTALLED` row or a grant file `RUN_HOME/gates/grant.<subtask>.<n>.<run-id>.ok` naming it (INTERFACES A.2.1, AM-4 20 Q1) | scope-check output; `INSTALLED` row or grant path per extra path | |
 | C12 | Reviewer record path and 0 Blocking / 0 Medium | record path `RUN_HOME/review/<subtask>/record-<head>.md`; line 1 matches the record regex in section 4 with the current head | |
 | C13 | Verified-By seat is distinct from the Reviewed-By seat | line 2 `seat-id` vs line 3 `seat-id` of the record | |
 | C14 | Fixer shas listed, each with a `fix:` field | `fix-<agent-id>-<n>.md` paths, shas | |
@@ -44,7 +44,7 @@ Fill the evidence cell with a path, a command and its exit status, or a sha. `n/
 | C18 | No leftovers (debug code, TODO without ticket, stray files) | grep command, 0 hits | |
 | C19 | Adjacent defects ticketed | ticket keys or `none` | |
 | C20 | Fix commits pushed | `git rev-parse` of the remote branch equals head | |
-| C21 | Catalog has no `planned` rows for this sub-task (design 5.7; leases, ports and bus rows are released by cleanup only, INTERFACES A.5.1, A.5.2, so `live` rows do not fail this row) | `catalog.sh` list output, 0 `planned` | |
+| C21 | Catalog has no `planned` rows for this sub-task (design 5.7; leases, ports and bus rows are released by cleanup only, INTERFACES A.5.1, A.5.2, so `live` rows do not fail this row) | `catalog.sh list --live --subtask <st>` output (latest rows that are `planned` or `live`), 0 `planned` | |
 | C22 | PR body built from the template | `RUN_HOME/review/<subtask>/pr-body.md` path | |
 | C23 | Plan unit list equals the branch unit list | dispatch-plan units vs `git log` units, diff empty | |
 | C24 | Version bump: each affected app has its `package.json` `version` bumped per the profile `version_bump_rule` (card 10 step 2b) | affected-app list, old -> new version | |
@@ -66,6 +66,6 @@ Regexes (C12, C13 re-derive them):
 ## 5. Rules
 - Result `PASS` needs evidence in the cell; no evidence = FAIL, whatever the author believes.
 - Row C9 is the `GATE-PASS` row: a failed gate run writes no file (INTERFACES A.7), so a missing file is the evidence of failure.
-- Review loops stop after round 3 and the owner decides (D7): the lead writes `substate.md` `stop_reason: d7-round3` (INTERFACES A.3). Line 1 stays `PREPR: PASS` or `PREPR: STOP <rows>`; there is no third token (INTERFACES D1.1).
+- Review loops stop after round 3 and the owner decides (D7): the lead writes `substate.md` `stop_reason: d7-round3` (INTERFACES A.3). A failing row outside the review loop is `PREPR: STOP <id>` (lead: `stop-the-line:S2`); a second review-bus port refusal is `PREPR: STOP C12` (lead: `port-refused`) (INTERFACES D2.2 row 10, AM-4 20). Line 1 stays `PREPR: PASS` or `PREPR: STOP <rows>`; there is no third token (INTERFACES D1.1).
 - The verdict is derived from the rows by the validator; an agent never writes `PASS` over a FAIL row (M30).
 - Keep this file near 500 lines or less.

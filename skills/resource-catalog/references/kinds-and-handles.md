@@ -14,7 +14,9 @@ One line per kind: handle form, then the register example.
 - `tmpdir`, `file`, `clone`: an absolute path (root rule above).
 - `container`, `image`, `workspace`, `db`: a name matching `^[A-Za-z0-9._/:-]+$`.
 - `lane-lease`: `gate-runner/<n>` or `lane/<name>`; register writes `live`, exit 3 when held.
-- `cron`, `bgtask`: the tool id returned by the creating tool.
+- `cron`, `bgtask`: the tool id returned by the creating tool. The lead registers its merged-tick cron as a `cron` row and each controller background task as a `bgtask` row, `register` then `start`, so `delivery-cleanup` stops them (A.8 A.5, AM-5 28-CV4).
+
+No handle starts with `-` (A.8 A.5, AM-5 PR10-R2).
 
 Examples (7 arguments after `register`):
 

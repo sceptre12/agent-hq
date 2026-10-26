@@ -4,8 +4,9 @@
 `KIND=diff`: Rung 3 (pr-review), 7 seats, whatever the risk surface (task spec 16 §7.1 and §9
 case 1; `d12-gate.md`). A one-way door or high blast radius inside a diff is reviewed through a
 separate run of this skill with `KIND=plan` on its decision doc (the route consistent with
-spec §7.1). part-02 §2.4 lists "high blast radius: 4" as a code-diff escalation; that tension
-is an open owner question in the loop record.
+spec §7.1). part-02 §2.4 lists "high blast radius: 4" as a code-diff escalation; INTERFACES
+1.5.0 D1.1 `RUNG:` settles it (RT-Q2, AM-4 16): the code diff stays at Rung 3 and the one-way
+decision behind it is reviewed separately as `KIND=plan` at Rung 4.
 `KIND=doc|plan`, order of rungs 0, 1, 2, 2b, 4 (Rung 3 is for diffs only, ladder §1 "Not for:
 prose/architecture docs"):
 
@@ -29,6 +30,10 @@ doc or plan is `STAKES=one-way` (ladder §4).
 This rubric works from the inputs, not the artifact type; part-02 §2.4 is the delivery
 workflow's per-artifact expectation for the same choice (e.g. epic architecture 2b, dispatch
 plan 2b above 10 units else 1). Step 4's decision lines show which inputs gave the rung.
+Epic floor (INTERFACES 1.5.0 D8, D2.2 row 4, AM-5 15): an epic's review rung is at least 2b;
+design card 3 wins over this generic table. An epic-scale artifact (Step 1 size L) that the
+rubric or the modifier would place below 2b is raised to 2b, and the `mechanism:` line says
+`floor: epic 2b`; Rung 4 stays 4.
 
 ## 2. +1 modifier (ladder §3; INTERFACES D2.2 row 4, part A.2 `orchestrator_tier`, AM-3 errata (g))
 Ladder §3, as written: "When the executing/orchestrating models are mid-tier only ... shift
@@ -69,9 +74,9 @@ Mandatory seats by rung:
   profile adds mandatory seats; never exceed 7 at 2b or 9 at 2).
 - Rung 0: none; it has no seats (task spec 16 RESOLVED Q1, `seats: 0`).
 - Rungs 1, 3 and 4: the counts are fixed (RESOLVED Q1; Rung 3 also D12) and the fixed set
-  stays. A mandatory seat already in the fixed set changes nothing. Otherwise: pending owner
-  question RT-Q1: a profile mandatory seat at a fixed-count rung (1, 3, 4) that is not already
-  in the fixed set (loop record).
+  stays. A mandatory seat already in the fixed set changes nothing. Otherwise the seat set stays
+  fixed (D12) and the `mechanism:` line notes the mandatory seat that is not in it
+  (`mandatory-outside-set: <seat-id>`; INTERFACES 1.5.0 D1.1 `RUNG:`, RT-Q1, AM-4 16).
 Blocking rules are copied by id into the `budget:` line.
 
 ## 6. Budget, tiers and dispatch line

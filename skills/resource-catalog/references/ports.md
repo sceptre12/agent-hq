@@ -3,7 +3,7 @@
 Scope: every port a run binds: e2e lanes, dev servers, the sub-task bus, `pr-review`'s per-review bus. `catalog.sh` never calls `port-check.sh`; the caller runs them as separate commands, in this order. All paths below are `~/projects/agent-hq/tools/...`. Work through the `port-claim` skill rules. Examples use run-id `found-1234-20261102` and sub-task `st1`.
 
 ## Order before launch
-1. Candidate: take the port from the dispatch plan's port table. The "+10 rule" is that table's plan-time formula `<base> + 10*k`, fixed before any check, plus exactly one retry at candidate + 10 after a refusal (INTERFACES 1.3.0 A.5.2, AM-3, owner OQ-2; below).
+1. Candidate: take the port from the dispatch plan's port table. That table fixes every candidate at plan time, before any check, by `<base> + 20·k` (`st<N>` bus `k = 2N`, review bus `k = 2N + 1`, lane binds by consecutive bind index; fixed app ports keep their app port), so the one retry at candidate + 10 after a refusal lands on an odd ten no candidate uses (INTERFACES 1.5.0 A.5.2, AM-4 W2-3; the one retry is AM-3, owner OQ-2; below).
 2. Check, then claim, with `project` = `<run-id>` and `source` = `<run-id>-<subtask>`:
    ```
    port-check.sh 3110

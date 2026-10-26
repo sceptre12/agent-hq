@@ -7,23 +7,25 @@ version: 0.1.0
 ## Trigger
 
 Use when a lead holds a rebased sub-task branch (also `st0` in `plan-pr` mode) and is about to
-push or open a PR. Caller: `delivery-run`, stage 4b. `push` and `pr-create` require
-`PREPR: PASS` for the head (INTERFACES part B4); the lead copies the token to `substate.md`
-`prepr`. Do not use it on a PR that is already open.
+push or open a PR. Caller: `delivery-run`, stage 4b. `pr-create` and the first `push` of a PR
+require `PREPR: PASS` for the head; a later push to the open PR needs the head's `GATE-PASS`
+plus `RUN_HOME/ci/<pr>.md` naming the head or `PREPR: PASS` for it (INTERFACES B4, A.3; AM-4
+24-Q2, W2-7). The lead copies the token to `substate.md` `prepr`; the desk reads line 1 and
+cross-checks `prepr`, both must agree (B9). Do not use it on a PR that is already open, except
+that a head `ci-fix-loop` moved is re-gated with `HEAD=<sha>` before `pr-merge` (W2-7).
 
 Step 0 (inputs, `NAME=value`; `DELIVERY_ROOT` is the environment variable). Check each against
 INTERFACES part D1, D2.2 row 10, D2.1:
 `RUN_HOME` (path), `SUBTASK`, `HEAD` (40-hex sha of the rebased branch), `WORKTREE` (path),
 `REPO_PROFILE` (`<abs path>@<sha>`), `SECURITY_AUDIT` (`guidance|full`). Print
-`INPUT-ERROR <field> <reason>` (reason `missing|enum|path|unset|format`), one line per failing
+`INPUT-ERROR <field> <reason>` (reason `missing|enum|path|unset|format|sha`), one line per failing
 field, then stop. No retry, no prompt. `DELIVERY_ROOT` unset is `INPUT-ERROR DELIVERY_ROOT unset`.
 A profile file that does not exist is `INPUT-ERROR REPO_PROFILE path`; verify the sha with
 `git hash-object <path>` = `<sha>` (A.2 `repo_profile`), a mismatch is
-`INPUT-ERROR REPO_PROFILE format` (as D2.2 row 6 treats an `interfaces_version` mismatch; open
-point 7). Read `primary_repo` and `plans_dir` from `RUN_HOME/state.md` (A.2). Then read these
+`INPUT-ERROR REPO_PROFILE sha` (D1, AM-4 20). Read `primary_repo` and `plans_dir` from `RUN_HOME/state.md` (A.2). Then read these
 A.2.2 profile keys; a missing one is `INPUT-ERROR <key> missing`: `gates.command`,
 `gates.parallel`, `gates.min_free_kb`, `gates.runner_slots`, `node.prefix_cmd`,
-`secrets.pattern_file`, `sensitive_paths[]`, `worktree_base`.
+`secrets.pattern_file`, `sensitive_paths[]`, `worktree_base`, `default_branch` (AM-4 20 Q6).
 Design-only profile fields (part-04 §5.8; not INTERFACES keys, so never an `INPUT-ERROR`):
 `install.rebuild_allowlist`, `e2e.dist_scan_cmd`, `version_bump_rule`, the PR template path and
 the exact lint, typecheck, test and build command strings. The standardization pre-check is a
@@ -40,17 +42,17 @@ checklist body, and the token is only written there, never printed (D1.1). Templ
 
 Files are under `RUN_HOME/review/<subtask>/` unless stated; `status/` is
 `RUN_HOME/<subtask>/status/` (A.6). `HEAD` is the current head: when the head moves it is the
-new sha, and the record is `record-<new head>.md`. PR base = main (card 10 In: "branch rebased on
-main"); the ref name is open point 6. Write a slot row before each agent you dispatch (A.4),
+new sha, and the record is `record-<new head>.md`. PR base = the profile `default_branch` ("main" in card 10, A.2.2, AM-4 20 Q6), as
+`origin/<default_branch>` after the desk `fetch` the lead sends before each call (B4 `fetch`,
+AM-4 W2-4); this skill sends no `DESK` line. Write a slot row before each agent you dispatch (A.4),
 except reserved-seat agents (review seats, counted by `substate.md` `reserved`, A.3). Personas
 (D2.1 closed set): `gate-runner`, `gate-checker` (G48 check), `fixer`, `fix-verifier`,
-`validator`, `review-seat` (Verified-By), `security-auditor`.
+`validator`, `review-seat` (Verified-By), `security-auditor`, `plan-checker`.
 
 1. **Rebase, then review the landing head.** Rebase onto the PR base and check that `HEAD`
    equals the rebased tip; a mismatch fails C3. If a record exists and
-   `git merge-base HEAD <PR base>` differs from `git merge-base <record head> <PR base>` (ref per
-   open point 6; record head from
-   its line 1), run a non-author delta verify of reviewed-head..new-head instead of a full
+   `git merge-base HEAD <PR base>` differs from `git merge-base <record head> <PR base>` (record
+   head from its line 1), or `ci-fix-loop` moved the head (W2-7), run a non-author delta verify of reviewed-head..new-head instead of a full
    re-review (part-03 "Rebase-before-verify", M16).
 2. **Node and cold gate.** Activate node with `node.prefix_cmd` (one shot) and check
    `node --version` equals `.nvmrc`. Install `--frozen-lockfile --ignore-scripts`, then
@@ -61,7 +63,7 @@ except reserved-seat agents (review seats, counted by `substate.md` `reserved`, 
    `gates.command` and the CI-parity commands (the profile's exact lint, typecheck, test and build
    strings in CI order; part-01 stage 4b, part-04 §5.8), cold, with `--skip-nx-cache`
    (cache-satisfiable gates are false-green), then releases its lease, pass or fail (a runner
-   that dies holding it: open point 9)
+   that dies holding it is released by the lead's post-`TaskStop` orphan sweep, AM-4 20 Q9)
    (`catalog.sh release lane-lease gate-runner/<n>`; A.5.1 `lane-lease`). A failure fails C6/C7
    (and C9). The runner itself writes `RUN_HOME/<subtask>/gate-runs/<HEAD>.md` (`GATE-PASS`,
    part A.7); you never write it. This run is the first-push `GATE-PASS` only while the head is
@@ -84,14 +86,17 @@ except reserved-seat agents (review seats, counted by `substate.md` `reserved`, 
    `<worktree_base>/<run-id>-<subtask>-<unit>`, `<base-sha>` = `git -C <unit worktree> merge-base
    HEAD <sub-task branch>`). Then match `git -C <WORKTREE> diff --name-only <merge-base of HEAD
    and the PR base>..HEAD` against `sensitive_paths[]` (A.2.2). Each `CREEP` or sensitive hit
-   needs a matching `INSTALLED` row or a human grant; no source yet defines where either is
-   looked up (open point 1), so a hit with no evidence the validator can re-run fails C11.
+   passes only with a desk `INSTALLED` row for that path or the grant file
+   `RUN_HOME/gates/grant.<subtask>.<n>.<run-id>.ok` whose `ref=` names it (A.2.1, AM-4 20 Q1,
+   AM-5 26); with neither, C11 fails.
 8. **G48 pre-round check.** Dispatch a mechanical-tier agent to check the artifacts listed in
    `references/g48-classes.md` against its finding classes; it writes its list to its own
    `status/<agent-id>.md`. Hand a non-empty list to a fixer dispatch (the step 12 role, own
    `agent-id`) before any seat reads; it writes `fix-<agent-id>-<r>.md`, `r` the round it
-   precedes (1 before round 1), disjoint by `agent-id` (A.6). Whether `fix-verifier` also checks
-   a G48 fix is open point 4. Repeat after every fix and after step 19 drafts `pr-body.md`.
+   precedes (1 before round 1), disjoint by `agent-id` (A.6); `fix-verifier` verifies each G48 fix as in step 13 (AM-4 20
+   Q4). Before round 1 also dispatch a `plan-checker` (verify tier, slot row; brief
+   `skills/delivery-run/references/briefs/plan-checker.md`) on the round's inputs (D55, AM-4 20
+   Q2); it writes its verdict to its own `status/<agent-id>.md`. Repeat the G48 check after every fix and after step 19 drafts `pr-body.md`.
 9. **Security seat.** Pass `SECURITY_AUDIT` to `pr-review`; under `guidance` (default) its
    security seat loads `skills/security-audit` diff-scoped, writes no file, launches no agent.
    Under `full` (only on an explicit operator request or a `security_sensitive: yes` epic, set
@@ -107,15 +112,18 @@ except reserved-seat agents (review seats, counted by `substate.md` `reserved`, 
 11. **Round r (r = 1..3): run `pr-review` local-diff.** Inputs `PR_REVIEW_MODE=local-diff`,
     `ROLES`, `RECORD_PATH=RUN_HOME/review/<subtask>/record-<HEAD>.md` (absolute, D2.2 `(path)`),
     `STACK_BASE` = the PR base sha the branch was rebased onto, `STACK_HEAD` = `HEAD`,
-    `SECURITY_AUDIT`, `BUS_PORT` = the `review-bus` row candidate for this sub-task in the P8
-    port table of `<plans_dir>/dispatch-plan.md` (A.5.2: `ports.bus_base + 10·(2N+1)`; template
+    `SECURITY_AUDIT`, `RUN_ID`, `SUBTASK` (the review bus lives under
+    `RUN_HOME/review/<subtask>/<review-id>/bus/`, A.1, D5, AM-5 10-B2), `BUS_PORT` (required
+    in a run) = the `review-bus` row candidate for this sub-task in the P8
+    port table of `<plans_dir>/dispatch-plan.md` (A.5.2: `ports.bus_base + 20·(2N+1)`, AM-4 W2-3; template
     `skills/delivery-dispatch-plan/references/templates/dispatch-plan.md` "P8 Port table").
     `pr-review` Step 1 runs the A.5.2 order (claim, register, launch pinned to that port,
     start); on a refusal (`port-check.sh` exit 1 or 2) it makes exactly one claimed retry at
     `BUS_PORT + 10`; a second refusal, or exit 3 (registry unusable, no retry), stops the line
     and is reported to the lead (A.5.2, D2.3, AM-3 OQ-2). You claim no port and never pick one.
-    On that stop, record the refusal line in the checklist and name the checklist path to the
-    lead; its effect on C12 and what follows is open point 5. One
+    On that stop, record the refusal line in the checklist, write `PREPR: STOP C12` (no review
+    record exists; no checklist row is a port row) and name the checklist path to the lead,
+    which writes `stop_reason: port-refused` (D2.2 row 10, AM-4 20 Q5, W2-1). One
     review orchestrator per loop (D35). Read the bus topics `pr-check-N-closed` with
     `peek:true`, a fresh `agent_id` per reader, `limit 200`. `pr-review` writes record lines 1-2.
 12. **Fix.** Dispatch a separate fixer (never the author nor a seat). It commits in `WORKTREE`
@@ -125,7 +133,8 @@ except reserved-seat agents (review seats, counted by `substate.md` `reserved`, 
     round that adds Mediums escalates the fixer one tier; never a third top-tier attempt (ADR
     0014 T1). Re-run step 8 on the fix. A fix without a `fix:` field or sha fails C14.
 13. **Fix-verify.** Run `fix-verifier` with `FILE_SET` = the failing files; a change outside it is
-    `ISSUES_FOUND`. Write `verify-<seat-id>-<r>.md`. If the head moved, repeat steps 1-2 (and
+    `ISSUES_FOUND`. Write `verify-<seat-id>-<r>.md`; an `INPUT-ERROR` reply is not a round and
+    writes no `verify-*` record (D2.3, AM-4 11-Q11-R1). If the head moved, repeat steps 1-2 (and
     step 9 under `full`) on the new head, then a delta verify. Go back to step 11 until CLEAN
     with 0 Blocking and 0 Medium.
 14. **Round cap.** After round 3 with findings open, fail `C12`, `C15` when the last verify is
@@ -144,19 +153,21 @@ except reserved-seat agents (review seats, counted by `substate.md` `reserved`, 
     the head sha and 0 Blocking / 0 Medium from line 1
     (`CODE-GATE-REVIEW: PASS head=<sha> blocking=0 medium=0`) and appends line 3
     `Verified-By: <seat-id> head=<sha>` to the record.
-18. **Catalog check (C21).** Read `RUN_HOME/catalog.tsv`; for each `kind`+`handle` pair of this
-    sub-task take the latest row (A.5 supersede key); none may be `planned`. Confirm no
+18. **Catalog check (C21).** `catalog.sh list --live --subtask <SUBTASK>` prints the latest
+    row of each pair that is `planned` or `live` (script table, AM-4 20); none may be `planned`. Confirm no
     `gate-runner/<n>` lease of this skill is still `live`. The review bus, its port and pm2 rows
     are cleaned up by `delivery-cleanup` (A.5.1), not here.
 19. **`pr-body.md`.** Build it from the profile's PR template: record path, Test Steps, redacted
     screenshots and traces from the e2e lane, auto-healed diffs listed for the test-adequacy
     seat. Write atomically (temp name, `mv`). Re-run steps 6 and 8 on it.
-20. **Token.** Write the checklist with `PREPR:` on line 1 (temp file, `mv`): `PASS` only if
-    every row has evidence and none failed, else `STOP <failed ids>`. Do not print the token.
+20. **Token.** The completeness validator, at the end of its second pass, writes the checklist
+    with `PREPR:` on line 1 (temp file, `mv`; validator-written, B9): `PASS` only if every row
+    has evidence and none failed, else `STOP <failed ids>`. Do not print the token.
 
 A failing row outside the review loop (steps 1-7, 10, 15, 19): record its row id and evidence
-in the checklist and name the checklist path to the lead. Whether it then enters the step 12 fix
-loop or stops the line is open point 3; this skill picks neither. `PASS` stays impossible while
+in the checklist, write `PREPR: STOP <id>` and name the checklist path to the lead; it is never
+handed to the fixer (D2.2 row 10, AM-4 20 Q3), and the lead writes `stop_reason:
+stop-the-line:S2` (A.8 A.3). `PASS` stays impossible while
 any row fails or lacks evidence.
 
 ## Red flags
@@ -184,7 +195,7 @@ any row fails or lacks evidence.
 - [ ] On PASS: `gate-runs/<final head>.md` exists, written by the gate runner (`GATE-PASS`).
 - [ ] On PASS: `record-<HEAD>.md` line 1 is `CODE-GATE-REVIEW: PASS ...`, line 3 `Verified-By` differs from line 2.
 - [ ] Every review-loop (step 12) fix has a `fix-<agent-id>-<n>.md` with a non-empty `fix:`, a sha and a
-      CLEAN `verify-*` record; G48 fixes (step 8) are pending open point 4.
+      CLEAN `verify-*` record; so has every G48 fix (step 8, AM-4 20 Q4).
 - [ ] Redaction, scope, version-bump and dist rows have evidence; under `full`, `C26` passed.
 - [ ] On every exit path: no `gate-runner/<n>` lease of this skill is `live`; on PASS no `planned` catalog row.
 - [ ] `checklist-<subtask>.md` line 1 is exactly one `PREPR:` token; `pr-body.md` exists on PASS.
@@ -196,4 +207,4 @@ any row fails or lacks evidence.
 Card 10 friction (part-02 §2.2 card 10; part-06 sources row "4b Pre-PR gate"):
 `enforcement-gates:10`, `:141`; PR #18/#19 second verify; `pr-review-local-diff-bus-facts`;
 `pr-review-orch-reads-closed`; `brain-workflow-shift:26`. Spec `tasks/20-pre-pr-gate.md`;
-INTERFACES 1.3.0. Pilot: pending.
+INTERFACES 1.5.0 (AM-4 rows 20, 24-Q2, W2-1, W2-3, W2-4, W2-7, 11-Q11-R1; AM-5 10-B2, 26). Pilot: pending.

@@ -1,6 +1,6 @@
 # Flags and nudges (delivery-shepherd reference)
 
-Authority: INTERFACES 1.3.0 part C7 (flag table, nudge template, "Not a stall", "After every TaskStop", "Observation means", "Merged tick"), C2 (records, reader idiom), C3 (`NEXT:`), C4 (`.verdict`), A.4 (slot row), D4 (topic), D5 (`bus.endpoint`). This file copies the table by anchor; on any difference C7 wins. Lines marked "this skill's reading" interpret a contract; they add no INTERFACES grammar.
+Authority: INTERFACES 1.5.0 part C7 (flag table, nudge template, "Not a stall", "After every TaskStop", "Observation means", "Merged tick"), C2 (records, reader idiom), C3 (`NEXT:`), C4 (`.verdict`), A.4 (slot row), D4 (topic), D5 (`bus.endpoint`). This file copies the table by anchor; on any difference C7 wins. Lines marked "this skill's reading" interpret a contract; they add no INTERFACES grammar.
 
 ## Flag table (C7, with its "Raised by" column)
 
@@ -12,17 +12,17 @@ Authority: INTERFACES 1.3.0 part C7 (flag table, nudge template, "Not a stall", 
 | `CREEP` | shepherd half (this skill) | `scope-check.sh` hit outside the unit's globs | a named defect, never a fix; adjacent defects ticketed |
 | `FREE-CANDIDATE` | shepherd half (this skill) | a terminal record exists for the agent (bus post or `.verdict`) but its slot row is not yet `.freed` | the lead alone frees, after C2 verification |
 
-This skill raises the three shepherd-half flags and also `STALLED` and `PROMPT-OPEN` on its own tick (INTERFACES 1.3.0 C7 authority line, AM-3, owner OQ-3), alongside the `delivery-run` watchdog half, which raises them on every tick including below 3 live agents; two flags for one agent collapse to one lead action, and the lead decides `TaskStop` (D10). The bus-down check and the orphan sweep after a `TaskStop` stay the watchdog half's. The shepherd half runs when the sub-task has 3 or more live agents (the `.row` count, A.4 `live_rows`); below that the lead checks drift and creep itself on each verdict.
+This skill raises the three shepherd-half flags and also `STALLED` and `PROMPT-OPEN` on its own tick (INTERFACES 1.5.0 C7 authority line, AM-3, owner OQ-3), alongside the `delivery-run` watchdog half, which raises them on every tick including below 3 live agents; two flags for one agent collapse to one lead action, and the lead decides `TaskStop` (D10). The bus-down check and the orphan sweep after a `TaskStop` stay the watchdog half's. The shepherd half runs when the sub-task has 3 or more live agents (the `.row` count, A.4 `live_rows`); below that the lead checks drift and creep itself on each verdict.
 
 A pending advisory port-hook `ask` (AM-1) can hold an agent; that is the `PROMPT-OPEN` case, flagged here and by the lead's watchdog half. The shepherd never releases a `port` catalog row (cleanup's, A.5.1).
 
-## Which rows get which checks (this skill's reading of C3 and A.4)
+## Which rows get which checks (C7 flag discipline, AM-4 23; A.4)
 
 | Row `unit` (A.4 `^([ui][0-9]+\|-)$`) | `DRIFT`, `CREEP` | `STALLED`, `PROMPT-OPEN`, `FREE-CANDIDATE` | Nudge |
 |---|---|---|---|
 | `u<N>` | yes, when the tasks file resolves | yes | yes |
-| `i<N>` (Integrator) | no: the C3 regex admits only `u` units | yes | no: flag line only |
-| `-` (gate runner, `security-auditor`) | no: no unit, no plan line | yes | no: flag line only |
+| `i<N>` (Integrator) | no (C7, AM-4 23) | yes | no: flag line only |
+| `-` (gate runner, `security-auditor`, `wave-controller`) | no (C7, AM-4 23): no unit, no plan line | yes | no: flag line only |
 
 ## Plan, steps and DRIFT (this skill's reading of C3 and C7)
 
@@ -49,8 +49,8 @@ File: `RUN_HOME/<subtask>/shepherd/ticks.md`. Single-line appends only (both hal
 
 - One line per flag: `<FLAG> <agent-id>`, `<FLAG>` in `DRIFT|CREEP|STALLED|PROMPT-OPEN|FREE-CANDIDATE`, `<agent-id>` matching `^[a-z0-9-]+$`.
 - On change (this skill's reading of C7 "only when something changed"): append only when the exact line is not already in the file, from either half: `command grep -qxF "<FLAG> <agent-id>" ticks.md || printf ...`. The line carries no cause, so a change of cause is not tracked.
-- Known limit: a flag that clears and later recurs for the same agent is not appended or nudged again. Agent ids are minted per dispatch, so a re-dispatched agent starts with no lines.
-- A `STALLED` or `PROMPT-OPEN` line the watchdog half already wrote is not appended again here, and this skill sends no nudge for it. Who nudges when the watchdog half wrote the line first is open (owner question).
+- A flag that clears and later recurs for the same agent is not appended or nudged again (C7 flag discipline: a cleared flag that returns is not re-flagged, AM-4 23). Agent ids are minted per dispatch, so a re-dispatched agent starts with no lines.
+- A `STALLED` or `PROMPT-OPEN` line the watchdog half already wrote is not appended again here, and this skill sends no nudge for it. Exactly one nudge per flag, sent by whichever side writes the flag line (C7 flag discipline, AM-4 23).
 - Never rewrite, truncate or delete lines. No timestamps or free text in the line.
 
 ## Nudge template
@@ -59,7 +59,7 @@ File: `RUN_HOME/<subtask>/shepherd/ticks.md`. Single-line appends only (both hal
 NUDGE <agent-id> | <FLAG> | next: <unit>.<n> | <one line copied from the plan>
 ```
 
-- Sent by `SendMessage` to `<agent-id>`, `u<N>` rows only; no free text, no extra fields. Every flag (`DRIFT`, `CREEP`, `STALLED`, `PROMPT-OPEN`) is nudged exactly once, on the tick this skill appends its line; a line already present (written by either half) gets no nudge from this skill. Who nudges when the watchdog half wrote the line first is open (owner question).
+- Sent by `SendMessage` to `<agent-id>`, `u<N>` rows only; no free text, no extra fields. Every flag (`DRIFT`, `CREEP`, `STALLED`, `PROMPT-OPEN`) is nudged exactly once, on the tick this skill appends its line; a line already present (written by either half) gets no nudge from this skill. Exactly one nudge per flag, sent by whichever side writes the flag line (C7 flag discipline, AM-4 23).
 - `CREEP`: the template has no path slot. The `CREEP <path>` lines stay in `scope-check.sh` output; this skill stores none, and the lead re-runs the same command (same tasks file, worktree and fresh `base-sha`) to name them.
 - `FREE-CANDIDATE` is a flag line for the lead, not a nudge: the agent is finished. A `STALLED` or `PROMPT-OPEN` nudge does not replace the lead action (C7 table).
 

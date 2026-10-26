@@ -2,7 +2,7 @@
 
 Measure the repository facts the question asks for and record each as a row of `facts.md` with a `measured: <cmd -> result>` field. Work read-only.
 
-Tier: `mechanical` (design §3.1 row: Explorer is the first of the cell `mechanical / verify / execute / execute / design`; §3.2 lists `mechanical / execute` and states no condition for `execute`). Rationale: the work is measurement, not judgment.
+Tier: `mechanical` by default, `execute` for multi-step derivations (INTERFACES D2.1 `persona` row, AM-4 27b; design §3.1, §3.2 `mechanical / execute`). Rationale: measurement needs no judgment; a fact derived over several dependent steps does.
 
 ## Persona facts
 
@@ -25,4 +25,4 @@ Role statement and execute imperative first; tier line with rationale; done toke
 
 Stop rule: cannot measure: say so.
 
-<!-- cites: §3.2 row Explorer; §3.3 line "Explorer (mechanical/execute, read-only, measured facts)"; §3.1 row Explorer...; card 2 (each fact `measured:`); part-D D1.1 FACTS regex. -->
+<!-- cites: §3.2 row Explorer; §3.3 line "Explorer (mechanical/execute, read-only, measured facts)"; §3.1 row Explorer...; card 2 (each fact `measured:`); part-D D1.1 FACTS regex; D2.1 `persona` row (AM-4 27b). -->

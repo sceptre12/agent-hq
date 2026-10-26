@@ -26,9 +26,9 @@ examined whether the two mechanisms conflict and what, if anything, is worth por
 **Assessment 1 — no conflict.** Workflow and wave-execution solve adjacent, not
 overlapping, jobs: wide / homogeneous / resumable sweeps vs. staged / heterogeneous /
 gated builds. Convergence was explicitly rejected — Workflow is a **closed built-in
-The owner cannot modify**, so any graft only ever flows in wave-execution's direction. The
+the owner cannot modify**, so any graft only ever flows in wave-execution's direction. The
 assessment identified two proven, load-bearing gaps in wave-execution from real
-production evidence (see Evidence below): a missing resume/checkpoint contract and a
+production evidence: a missing resume/checkpoint contract and a
 missing dispatch-budget preflight.
 
 **Assessment 2 — what else is portable to make wave-execution more general.** Went

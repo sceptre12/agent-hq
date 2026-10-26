@@ -48,8 +48,7 @@ verbatim"). **But it does not solve the authoring/review/ratification-time probl
 waves bundle is a *separate, later* artifact produced by a dedicated Opus
 wave-decomposition dispatch that must itself first read the entire monolithic plan; and the
 monolithic source-of-truth file still exists in full for its whole life — doc-review, Fable
-ratification, and the decomposition dispatch all read the whole thing. That is exactly the
-failure that just happened. Plans are also **code-dense**: the trigger file was ~4,200
+ratification, and the decomposition dispatch all read the whole thing. Plans are also **code-dense**: the trigger file was ~4,200
 lines but cost far more per line than prose (heavy with code blocks, tables, and verbatim
 command steps), so it reads more like source code than narrative — which argues the plans
 remedy should be a *semantic* split (by task), not a *narrative* slice (by `doc-NN.md`).
@@ -152,8 +151,7 @@ and `00-overview.md` links to the waves bundle once one exists.
 
 ## Migration / grandfather clause
 
-The survey lists 8 oversized plans plus 2 clean doc violations already over any reasonable
-new limit. This ADR **does not mandate an immediate mass retrofit** — that would be a large
+This ADR **does not mandate an immediate mass retrofit** — that would be a large
 blocking migration for an adoptable rule:
 
 2. **Scheduled follow-up retrofit (non-blocking).** A separate tracked task converts the

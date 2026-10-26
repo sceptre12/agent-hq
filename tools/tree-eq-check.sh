@@ -1,19 +1,6 @@
 #!/usr/bin/env bash
 # tree-eq-check.sh — mechanical "merged tree == gated tree" check.
 #
-# WHY THIS EXISTS: hq ADR 0033 says the merge-gate verifier "confirms the merged tree equals the
-# gated tree" but today that confirmation is done by eye — the adjudicator reasons about diff/
-# history to argue the commit now on the target branch is the same TREE the gate actually ran its
-# checks against (see ~/projects/agent-hq/inbox/merge-gate-tree-equality-and-maestro-pin-20260913.md,
-# finding #1, sourced from PR #126: the branch tip moved — rebase/amend/later push — between gate
-# run and adjudication, with "no mechanical way to confirm the gate's result still applied"). This
-# script replaces that per-adjudication argument with a one-line, deterministic tree-sha compare:
-# record the tree sha at gate time (`record`), optionally check whether the target branch has
-# moved in a way that would still fast-forward (`ff-check`), then after the merge lands, compare
-# the recorded tree sha against the target branch's tree sha (`verify`). Equal trees ⇒ the gate's
-# result carries over with no argument required; unequal ⇒ a clear, mechanical signal to re-run
-# the gate. Not yet wired into the merge-gate tooling itself — this is the standalone check.
-#
 # `command grep` is used throughout (no bare `grep`), matching tools/port-check.sh and
 # tools/sim-lease.sh convention, even though this script's only grep use is an exact-match remote
 # lookup — never rely on a shell-aliased/shadowed `grep`.

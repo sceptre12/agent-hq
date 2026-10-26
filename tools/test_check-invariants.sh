@@ -169,6 +169,29 @@ rm -f "$ROOT/bin/git"; ci; eq "rev-list/log-dies: same fixture, real git: rc 0" 
 mkgate; echo "# direct" >>tools/foo.sh; commit "ff code commit, no trailer"; BADT="$(git rev-parse HEAD)"; git update-ref refs/remotes/origin/main HEAD; git tag origin/main "$(git rev-parse HEAD~1)"
 ci; eq "tag-shadow: audit uses refs/remotes/origin/main, bad commit still found: rc 1" "$rc" 1; has "tag-shadow: bad commit named" "$out" "$BADT touches in-scope code"
 git tag -d origin/main >/dev/null
+# root-exempt (check 29/c): the parentless root commit (repository bootstrap) carries scope.conf and in-scope
+# code yet is exempt; a LATER plain commit touching in-scope files is still audited and named, never the root.
+mkfix; ROOTC="$(git rev-parse HEAD)"; git update-ref refs/remotes/origin/main HEAD; ci
+eq "29 root: parentless root with scope.conf + in-scope code: rc 0" "$rc" 0; has "29 root: all code-gate checks OK" "$out" "check-invariants: 3/3 OK"
+echo "# later" >>tools/foo.sh; commit "plain code commit after the root"; LATER="$(git rev-parse HEAD)"; land
+eq "29 root: later plain code commit: rc 1" "$rc" 1; has "29 root: names the later commit" "$out" "$LATER touches in-scope code"
+hasnt "29 root: the root commit is not named" "$out" "$ROOTC"
+# shallow-clone (check 29/c): a --depth 1 clone cuts history at a boundary commit that looks parentless; it must FAIL "cannot audit",
+# while a full clone of the same repo (root + doc-only commit) passes. NOTE: a parentless commit can only ever be the FIRST commit of the
+# first-parent walk (the walk ends at the one parentless commit), so an orphan root "mid-walk" cannot be built; a wholly replaced origin/main
+# with a new in-scope root is exempt as the bootstrap, which is the documented limit of this exemption.
+mkfix; echo "# doc" >>README.md; commit "doc-only second commit"
+git clone -q "file://$FX" "$ROOT/full-clone" 2>/dev/null; git clone -q --depth 1 "file://$FX" "$ROOT/shallow-clone" 2>/dev/null
+for c in full-clone shallow-clone; do git -C "$ROOT/$c" config core.hooksPath tools/git-hooks; done   # check 27 wants the hook path; isolate check 29
+eq "shallow: fixture clone is shallow" "$(git -C "$ROOT/shallow-clone" rev-parse --is-shallow-repository)" true
+out="$(HQ="$ROOT/full-clone" "$CI" --code-gate 2>&1)"; rc=$?; eq "shallow control: full clone, root + doc-only commit: rc 0" "$rc" 0
+out="$(HQ="$ROOT/shallow-clone" "$CI" --code-gate 2>&1)"; rc=$?
+eq "shallow: --depth 1 clone fails closed: rc 1" "$rc" 1; has "shallow: names the shallow clone" "$out" "shallow clone, cannot audit history"
+# parents-unreadable (check 29/c): a failing `git rev-list --parents` is "cannot determine parents", never an exempt root.
+mkfix; land
+printf '#!/usr/bin/env bash\ncase " $* " in *" rev-list --parents "*) echo "fatal: injected failure" >&2; exit 128 ;; esac\nexec "%s" "$@"\n' "$(command -v git)" >"$ROOT/bin/git"; chmod +x "$ROOT/bin/git"
+ci; eq "parents-unreadable: rc 1" "$rc" 1; has "parents-unreadable: names the defect" "$out" "cannot determine parents (cannot audit)"
+rm -f "$ROOT/bin/git"; ci; eq "parents-unreadable: same fixture, real git: rc 0" "$rc" 0
 # agentmemory retired (owner removal 2026-10-21): with no ~/.agentmemory and no launchd job, checks 16/18 must not
 # FAIL or WARN about it, and the script must not name agentmemory in any output. Full-mode run, real checkout, empty HOME.
 FH="$ROOT/fakehome"; mkdir -p "$FH"

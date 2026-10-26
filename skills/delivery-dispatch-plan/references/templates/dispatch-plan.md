@@ -1,71 +1,73 @@
 # Template: `dispatch-plan.md` (Part A) and unit task spec `.tasks/<unit>-<slug>.md` (Part B)
 
+Local section headings of Part A are `P0`-`P11` (this template's own); every `A.x` citation is INTERFACES part A.
+
 Purpose: fill-in skeletons for the stage 3 plan and for each unit's task spec. Grammars live in INTERFACES (anchors cited per block); this file never restates them. Values not measured stay `FILL_IN_BEFORE_DISPATCH`; never invent one.
 
-**Writer / Reader:** writer `delivery-dispatch-plan` (plan to repo `plans/<epic>/dispatch-plan.md`, unit specs to repo `.tasks/<unit>-<slug>.md`, A.6; `<slug>` the unit's ticket slug, A.1). Readers: the conductor, the sub-task leads, `scope-check.sh` (Part B `## 3` only), the Plan-checker, the human at the stage 3 information post (no gate, Rule 11).
+**Writer / Reader:** writer `delivery-dispatch-plan` (plan to repo `plans/<epic>/dispatch-plan.md`, unit specs to repo `.tasks/<unit>-<slug>.md`, INTERFACES A.6; `<slug>` the unit's ticket slug, INTERFACES A.1). Readers: the conductor, the sub-task leads, `scope-check.sh` (Part B `## 3` only), the Plan-checker, the human at the stage 3 information post (no gate, Rule 11).
 
 ---
 
 ## Part A: `dispatch-plan.md`
 
-### A.0 Header
+### P0 Header
 ```
 # Dispatch plan: <epic title>
 epic: <JIRA-KEY>            run_id: <run-id>
-interfaces_version: <version>@<sha256>      # copied from state.md (A.6 additions)
+interfaces_version: <version>@<sha256>      # copied from state.md (INTERFACES A.6 additions)
 repos: <primary_repo>, <linked repos or ->
-repo_profile: <path>@<sha>                  # a link, never a copy (D22); sha = blob id (A.2)
-security_sensitive: yes|no                  # read from architecture.md header (AM-1, A.2); never decided here
+repo_profile: <path>@<sha>                  # a link, never a copy (D22); sha = blob id (INTERFACES A.2)
+security_sensitive: yes|no                  # read from architecture.md header (AM-1, INTERFACES A.2); never decided here
 date: YYYY-MM-DD
 ```
 
-### A.1 Sub-task table (one PR each, D5; `st0` is the plan PR, M22)
-Columns beyond the design (A.6 additions): `ticket`, `branch`, `repo`.
+### P1 Sub-task table (one PR each, D5; `st0` is the plan PR, M22)
+Columns beyond the design (INTERFACES A.6 additions): `ticket`, `branch`, `repo`.
 
 | id | ticket | branch | repo | PR | merge order | lead session | backend | slot plan | depends-on |
 |---|---|---|---|---|---|---|---|---|---|
 | st0 | `<epic key>` | `<key>-<slug>` | `<clone root>` | `-` | 1 | `lead-st0-a1` | `agent-tool\|claude-p` | `<peak>/30` | `independent` |
-| st<N> | `<JIRA-KEY from tickets.tsv>` | `<key>-<slug>` (B4 `branch` regex) | `primary_repo` or `linked_profiles[].clone` (A.2.2) | `-` | `<n>` | `<session>` | `<BACKEND>` | `<peak>/30` | `st<M>` or `independent` (M19) |
+| st<N> | `<JIRA-KEY from tickets.tsv>` | `<key>-<slug>` (B4 `branch` regex) | `primary_repo` or `linked_profiles[].clone` (INTERFACES A.2.2) | `-` | `<n>` | `<session>` | `<BACKEND>` | `<peak>/30` | `st<M>` or `independent` (M19) |
 
-- Sub-task worktree: `<worktree_base>/<run-id>-<subtask>`; unit worktree `<worktree_base>/<run-id>-<subtask>-<unit>` (A.6).
+- Sub-task worktree: `<worktree_base>/<run-id>-<subtask>`; unit worktree `<worktree_base>/<run-id>-<subtask>-<unit>` (INTERFACES A.6).
 - Version bump (B3), per sub-task: affected apps under `apps/` (excluding examples and e2e): `st<N>: <app>, <app>` or `none`. Checked by `pre-pr-gate`.
-- Full-audit slots (AM-1): `security-auditor` agents draw on free slots, count in the ledger, and are not plan units. The `pre-pr-gate` row `C26` runs `node skills/security-audit/validate-findings.cjs <output-dir>/findings.json` under `full` only (A.5.3).
+- Full-audit slots (AM-1): `security-auditor` agents draw on free slots, count in the ledger, and are not plan units. The `pre-pr-gate` row `C26` runs `node skills/security-audit/validate-findings.cjs <output-dir>/findings.json` under `full` only (INTERFACES A.5.3).
 
-### A.2 Persona roster with tiers
+### P2 Persona roster with tiers
 | persona (D2.1) | tier (D2.1) | brief (`Brief:` line in the work_item instruction, C1.2) |
 |---|---|---|
 | `<persona>` | `design\|execute\|verify\|mechanical` | `skills/delivery-run/references/briefs/<persona>.md` |
 
-### A.3 Repo table
+### P3 Repo table
 | repo | role | profile link | `worktree_base` |
 |---|---|---|---|
 | `<abs path>` | primary\|linked | `<path>@<sha>` | `<from profile>` |
 
-### A.4 Unit table (feeds `waves/01-build.md`, C1.2; one done condition per unit)
+### P4 Unit table (feeds `waves/01-build.md`, C1.2; one done condition per unit)
 | id (`u<N>`) | ticket | scope globs | blocked-by | persona | lane | budget_min | done token | verifier command | review path | e2e |
 |---|---|---|---|---|---|---|---|---|---|---|
 | `u1` | `<JIRA-KEY>` | `<glob>`, `<glob>` | `-` or `u<M>` (same wave only, C1.3 rule 15) | `<persona>` | `<lane or ->` | `FILL_IN_BEFORE_DISPATCH` (from measured medians) | `<verbatim last stdout line>` | `<command; exit 0 and last line = token>` | `<rung per D2.1>` | `new\|updated\|none` |
 
-Rules: scope globs are the dispatch-plan copy; the authority is Part B `## 3` (C1.2). A unit with no verifier, or overlapping scopes, rejects the plan (stop rows, A.11). `done_condition` is `{"token", "command"}` (C1.2). The Integrator work_item that merges `u<N>` is `i<N>` in `02-integrate.md`.
+Rules: scope globs are the dispatch-plan copy; the authority is Part B `## 3` (C1.2). A unit with no verifier, or overlapping scopes, rejects the plan (stop rows, P11). `done_condition` is `{"token", "command"}` (C1.2). The Integrator work_item that merges `u<N>` is `i<N>` in `02-integrate.md`.
 
-### A.5 Shared-file owner and serial-lane table (M16, D63)
+### P5 Shared-file owner and serial-lane table (M16; D63, design `part-06-build-plan-and-sources.md` stage 2 row)
 | shared file or contract | owning unit (exactly one per sub-task) | owning document of the cross-unit contract | serial lane |
 |---|---|---|---|
 | `<root manifest, lockfile, MF shared config, contract file>` | `u<N>` | `contracts/<file>.md` | `<lane or ->` |
 
 Overlap or an implicit touch of a shared file rejects the plan.
 
-### A.6 DAG and wave sketch
+### P6 DAG and wave sketch
 Text diagram. One DAG wave `01-build.md` per sub-task, then `02-integrate.md` (C1; waves numbered from 1); `constitution.md` at the bundle root, not a wave file, only when the repo has no profile, run by the lead before `01-build.md`; the bundle header is `bundle.md` at the bundle root (C1, AM-3 errata (c), (d)). Frontiers are inside `01-build.md`; no numbered lane-waves.
 
-### A.7 Lane table with per-lane resource profile
+### P7 Lane table with per-lane resource profile
 | lane | HTTP port need | HMR / devtools ports | browser pre-staged (desk `INSTALL`) | device lane (human-run) | leased by |
 |---|---|---|---|---|---|
 | `lane/<name>` | `yes\|no` | `<count>` | `yes\|no` | `yes\|no` | lead, per invocation (C1.1) |
 
-Every lane, dev-server and bus port is claimed at launch per A.5.2 (`port-check.sh --claim`, then `catalog.sh register port`), never auto-picked; on a refusal exactly one retry at candidate + 10, claimed before bind; a second refusal is C2 reason `lane-unavailable` (A.5.2, AM-3, owner OQ-2).
+Every lane, dev-server and bus port is claimed at launch per INTERFACES A.5.2 (`port-check.sh --claim`, then `catalog.sh register port`), never auto-picked; on a refusal exactly one retry at candidate + 10, claimed before bind; a second refusal stops the line and is reported to the lead; for a lane it maps to C2 reason `lane-unavailable` (INTERFACES A.5.2, AM-3, owner OQ-2).
 
-### A.8 Port table (PC-4; A.5.2 candidate formula)
+### P8 Port table (INTERFACES A.5.2 candidate formula; one +10 retry, AM-3 OQ-2)
 `candidate = <base> + 10*k`; `<base>` is the profile key `ports.bus_base` (bus, review-bus) or `ports.lane_base` (lanes); either absent means `FILL_IN_BEFORE_DISPATCH`, which fails the pre-dispatch checklist. Fixed app ports keep `k = 0`. Bus rule: `st<N>` bus `k = 2N`, review bus `k = 2N + 1`; lanes by lane index.
 
 | subtask | role (`bus\|review-bus\|lane/<name>`) | base_key (`ports.bus_base\|ports.lane_base`) | k | candidate |
@@ -74,17 +76,17 @@ Every lane, dev-server and bus port is claimed at launch per A.5.2 (`port-check.
 | `st1` | `review-bus` | `ports.bus_base` | `3` | `FILL_IN_BEFORE_DISPATCH` |
 | `st1` | `lane/<name>` | `ports.lane_base` | `<lane index>` | `FILL_IN_BEFORE_DISPATCH` |
 
-One row per bind per sub-task. The launcher claims each candidate at launch (A.5.2); on a refusal (exit 1 or 2) the launcher makes exactly one retry at candidate + 10, claimed before bind; a second refusal stops the line and is reported to the lead (A.5.2, AM-3, owner OQ-2). A candidate is never promised free; the plan runs no `port-check.sh`. A bus starts with `PORT_RANGE_START=PORT_RANGE_END=<port>` (the retry port when retried, C1.1) and its `$DATA_DIR/port` must equal the claim.
+One row per bind per sub-task. The launcher claims each candidate at launch (INTERFACES A.5.2); on a refusal (exit 1 or 2) the launcher makes exactly one retry at candidate + 10, claimed before bind; a second refusal stops the line and is reported to the lead (INTERFACES A.5.2, AM-3, owner OQ-2). A candidate is never promised free; the plan runs no `port-check.sh`. A bus starts with `PORT_RANGE_START=PORT_RANGE_END=<port>` (the retry port when retried, C1.1) and its `$DATA_DIR/port` must equal the claim.
 
-### A.9 Capacity and parallelism
-- Per sub-task: `dispatch_budget` (C1.1: frontier wave `work_items x (1 + (fix_loop_cap + 1) x g)`, barrier waves `work_items_count + (fix_loop_cap + 1) x gate_agents`) and peak concurrency (cap 30). Machine line: sum of peaks against 200 (D4); rule 8, at most 3 builds.
+### P9 Capacity and parallelism
+- Per sub-task: `dispatch_budget` (C1.1: frontier wave `work_items x (1 + (fix_loop_cap + 1) x g)`, barrier waves `work_items_count + (fix_loop_cap + 1) x gate_agents`) and peak concurrency (cap 30). Machine line: sum of peaks against 200 per machine (INTERFACES A.4 machine ledger row); rule 8, at most 3 builds.
 - Parallelism note (computed, not estimated): `<n units on the frontier, n sub-tasks, n lanes>`.
 - Throughput formula: `sub-tasks x review minutes / parallel reviews`.
 
-### A.10 Cadence and rules
-Shepherd cadence: `<ticks>`. Branching and merge order: `<from architecture.md section 5>`. Pre-PR gate rule: link `pre-pr-gate`, `GATE-PASS` per A.7 (link, do not restate `HUSKY=0`). Cleanup rule: `delivery-cleanup`, D8 and D9. Review rung table: `<unit or sub-task -> rung -> review-tailor record>`.
+### P10 Cadence and rules
+Shepherd cadence: `<ticks>`. Branching and merge order: `<from architecture.md section 5>`. Pre-PR gate rule: link `pre-pr-gate`, `GATE-PASS` per INTERFACES A.7 (link, do not restate `HUSKY=0`). Cleanup rule: `delivery-cleanup`, D8 and D9. Review rung table: `<unit or sub-task -> rung -> review-tailor record>`.
 
-### A.11 Pre-dispatch checklist and stop-the-line
+### P11 Pre-dispatch checklist and stop-the-line
 | # | check | result |
 |---|---|---|
 | 1 | no `FILL_IN_BEFORE_DISPATCH` left (budgets, ports, profile keys) | `[ ]` |
@@ -104,13 +106,13 @@ Shepherd cadence: `<ticks>`. Branching and merge order: `<from architecture.md s
 
 ## Part B: unit task spec `.tasks/<unit>-<slug>.md` (11 sections; adapted from the context-docs task-spec template)
 
-Heading `## 3` carries the scope globs: one `- <glob>` per line under "In scope" until the next `## `; `scope-check.sh` reads only this file (C1.2). Do not add or drop a section.
+Heading `## 3` carries the scope globs: one `- <glob>` per line under "In scope"; `scope-check.sh` reads only this file and takes every `- ` line from `## 3` until the next `## ` as an allowed glob (C1.2). So "Out of scope" and "Do NOT create" are numbered lines (`1. `), never `- ` lines: a `- ` line there would be read as an allowed glob. Do not add or drop a section.
 
 ```
 # Task Spec: <unit> <slug>: <Title>
 
 > Branch: `<JIRA-KEY>-<slug>`   Worktree: `<worktree_base>/<run-id>-<subtask>-<unit>`
-> Brief: skills/delivery-run/references/briefs/<persona>.md
+> Brief (informational copy; the binding `Brief:` line is the one in the work_item instruction, C1.2): skills/delivery-run/references/briefs/<persona>.md
 
 ## 1. Objective
 <One sentence: what this unit produces.>
@@ -124,9 +126,9 @@ Heading `## 3` carries the scope globs: one `- <glob>` per line under "In scope"
 **In scope:**
 - <glob>
 **Out of scope:**
-- <explicit list>
+1. <explicit list, numbered, never a `- ` line>
 **Do NOT create:**
-- <convention files, config or modules the agent might assume are needed>
+1. <convention files, config or modules the agent might assume are needed; numbered, never a `- ` line>
 
 ## 4. Contracts
 | Contract | Field / Value | Authority |

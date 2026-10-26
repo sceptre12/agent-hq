@@ -1,6 +1,6 @@
 # Template: `.decisions/<unit>.md` (fork record)
 
-Purpose: the one place a unit agent stops and records a fork instead of guessing (the Decision Gate of the unit task spec, section 11). The unit then reports `ESCALATE` or stays blocked (C2) and the slot is freed per the lead.
+Purpose: the one place a unit agent stops and records a fork instead of guessing (the Decision Gate of the unit task spec, section 11). The unit then reports `ESCALATE` with C2 reason `decision-gate` (INTERFACES C2) or stays blocked and the slot is freed per the lead.
 
 **Writer / Reader:** the fork entry (Fork to Outcome) is written by the unit agent; the Resolution and Re-dispatch sections are written by the lead, or by the human when the lead escalates (A.6, design 5.10). Readers: the lead (`delivery-run`), the conductor, the human via the inbox item. Plane: repo, committed (D6). Path: `.decisions/<unit>.md`, one file per unit; further forks append a numbered block.
 
@@ -29,6 +29,7 @@ decision: <chosen option and wording; for a human answer, quote it>
 ```
 
 Rules:
+- The section names follow design 5.10; the `resolved_by:`, `date:` and `decision:` lines are template-local.
 - `Outcome: Blocked` is literal and stays until the lead sets the resolution; the lead never edits the Fork or Options text.
 - A fork that touches an owner ruling or a one-way decision goes to the human (`resolved_by: human`); the agent never fills Resolution.
 - An unmeasured value is recorded as `FILL_IN_BEFORE_DISPATCH`, not guessed.

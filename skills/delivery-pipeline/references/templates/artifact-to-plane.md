@@ -1,6 +1,6 @@
 # Template: artifact-to-plane table (design 5.11, M18; INTERFACES A.1, A.6, D6)
 
-The single reference for where each artifact of the delivery workflow lives. A skill that writes a file looks its plane up here; it does not re-derive a path. The table in Part A is the design 5.11 table (7 rows) with the A.6 planes applied; Part B adds the AM-1 rows; Part C gives the path rules every row depends on.
+The single reference for where each artifact of the delivery workflow lives. A skill that writes a file looks its plane up here; it does not re-derive a path. The table in Part A is the design 5.11 table (7 rows) with the A.6 planes applied, plus one RUN row for the artifacts A.6 moves off the repo plane (the departures are listed under "Errata applied"); Part B adds the AM-1 rows; Part C gives the path rules every row depends on.
 
 - **Writer / Reader:** writer the conductor (`delivery-pipeline`) when it creates `RUN_HOME` and `plans_dir` at stage 1, and the owner of this reference; readers: every skill of the family and the human. The per-artifact writer and reader columns are in INTERFACES D6; if this file and D6 differ, D6 wins.
 - **Planes:** **repo** (committed; plan-plane files go first through sub-task `st0`), **RUN** = `RUN_HOME` = `$DELIVERY_ROOT/<run-id>`, **ROOT** = `$DELIVERY_ROOT`, **TMP** = `$TMPDIR` (volatile), **store** = the context store.
@@ -10,8 +10,9 @@ The single reference for where each artifact of the delivery workflow lives. A s
 
 | Artifact | Plane | Durable? |
 |---|---|---|
-| `architecture.md`, `dispatch-plan.md`, `test-plan.md`, `release-plan.md` (v0), retro | repo `plans/<epic>/` (or the context store's project folder where the repo's `CLAUDE.md` names one) | yes, committed |
+| `architecture.md`, `dispatch-plan.md`, `test-plan.md`, `release-plan.md` (v0) | repo `plans/<epic>/` (or the context store's project folder where the repo's `CLAUDE.md` names one) | yes, committed |
 | `contracts/`, `.tasks/`, `.decisions/`, `CLAUDE.md` | repo, agent-facing | yes, committed |
+| `retro.md`, `execution-log.md`, `release-plan.md` (v1) | RUN (`RUN_HOME/retro.md`, `RUN_HOME/execution-log.md`, `RUN_HOME/release-plan.md`) | survives reboot; RUN-only in this contract version (A.6, row R4-J19); committing to `plans/<epic>/` is a human step after CYCLE DONE |
 | `state.md`, `substate.md`, slot rows, `catalog.tsv`, review and desk records, capture queue | `RUN_HOME` (`$DELIVERY_ROOT/<run-id>`, not `/tmp`) | survives reboot; archived at CYCLE DONE |
 | bus `data_dir` and `bus.endpoint` | `RUN_HOME/<subtask>/` (`bus.endpoint`) and `RUN_HOME/<subtask>/bus/` (`data_dir`) | survives reboot; pm2 app re-verified at resume |
 | pm2 apps, scratch | `$TMPDIR` | volatile; always re-verified at resume |
@@ -20,10 +21,10 @@ The single reference for where each artifact of the delivery workflow lives. A s
 
 **Errata applied (A.6, D5, errata E17).**
 - *Bus path:* the design row says `RUN_HOME/<subtask>/bus/` for both; the card 6 path governs: `bus.endpoint` is `RUN_HOME/<subtask>/bus.endpoint` (a file) and only the `data_dir` is the `bus/` directory.
-- *Retro and `release-plan.md` v1:* the design row lists "retro" with the repo plane; in this contract version `retro.md`, `execution-log.md` and `release-plan.md` v1 are RUN-only. Committing them to `plans/<epic>/` is a human step after CYCLE DONE. `release-plan.md` v0 (written by `delivery-architecture`) is repo `plans/<epic>/`.
+- *Retro and `release-plan.md` v1:* the design row lists "retro" with the repo plane; it is removed from that row and given the RUN row above, because in this contract version `retro.md`, `execution-log.md` and `release-plan.md` v1 are RUN-only. Committing them to `plans/<epic>/` is a human step after CYCLE DONE. `release-plan.md` v0 (written by `delivery-architecture`) is repo `plans/<epic>/`.
 - *Plan-plane files not in the design row:* `brief.md`, `facts.md`, `drafts/` (with `drafts/index.md`), `review-architecture.md`, `h1-packet.md`, `subtasks/<subtask>/substate.seed.md` and `subtasks/<subtask>/waves/` are repo `plans/<epic>/` (INTERFACES D6).
 
-## Part B. AM-1 rows (INTERFACES 1.1.0)
+## Part B. AM-1 rows (INTERFACES 1.3.0)
 
 | Artifact | Plane and path | Durable? |
 |---|---|---|
@@ -40,7 +41,7 @@ Guidance mode (`state.md` `security_audit: guidance`) writes no file; the RUN ro
 | `DELIVERY_ROOT` | env var, absolute, `^/[^[:space:]]+$`, no default, created with `umask 077`. Unset: Step 0 prints `INPUT-ERROR DELIVERY_ROOT unset` and stops | A.1, D1 |
 | `RUN_HOME` | `$DELIVERY_ROOT/<run-id>`; durable run state, never `/tmp` or `$TMPDIR` | A.1 |
 | `plans_dir` | the primary repo's `plans/<epic>/`; for a provisional run-id `plans/<run-id>/`, not renamed when the key arrives | A.1, A.2 |
-| Multi-repo epic | the primary repo named in `architecture.md` section 3 governs; other profiles linked from it (`linked_profiles[]`) | A.1, A.2.2 |
+| Multi-repo epic | the primary repo (`state.md` `primary_repo`, from the stage 1 `PRIMARY_REPO` input; restated in `architecture.md` section 3) governs; other profiles linked from it (`linked_profiles[]`) | A.1, A.2.2 |
 | Worktrees | `worktree_base` (profile key) under `$DELIVERY_ROOT`; sub-task `<worktree_base>/<run-id>-<subtask>`, unit `<worktree_base>/<run-id>-<subtask>-<unit>` | A.1, A.6 |
 | Namespacing | every pm2 app, bus `data_dir`, temp dir and worktree name carries `<run-id>-<subtask>` | A.1, D4 |
 | Atomic writes | temp file in the same directory, then `mv`; a file written by several agents of one kind is `<agent-id>-<purpose>-<n>.md` | A.1 |

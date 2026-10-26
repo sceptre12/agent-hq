@@ -55,10 +55,10 @@ For every `port` row, before the launch:
 3. Launch.
 4. `catalog.sh start port <port>` writes `live`.
 
-Collision: `port-check.sh` exit 1 (taken) or 2 (registry and `lsof` disagree) refuses the launch; never auto-pick, never add 10; report to the lead (a lane reports `lane-unavailable`). Exit 3 is stop-the-line. Release is cleanup only: after the listener is stopped, `port-check.sh --claim ... released ...` (a `released` row supersedes the claim), then `catalog.sh release`.
+Collision: `port-check.sh` exit 1 (taken) or 2 (registry and `lsof` disagree) refuses the launch; the launcher never auto-picks another port; on the first refusal it makes exactly one retry at candidate + 10, itself claimed with `port-check.sh --claim` before any bind; a second refusal stops the line and is reported to its lead (a lane maps to C2 reason `lane-unavailable`). Exit 3 (registry unusable) is stop-the-line. The single statement is INTERFACES A.5.2 (AM-3, owner OQ-2). Release is cleanup only: after the listener is stopped, `port-check.sh --claim ... released ...` (a `released` row supersedes the claim), then `catalog.sh release`.
 
 ## Skeleton (example rows; tabs shown as `<TAB>`)
 ```
-2026-11-02T10:00:00Z<TAB><run-id><TAB>st1<TAB><yyyymmddThhmmssZ>-<owner_agent>-1<TAB><JIRA-KEY><TAB>port<TAB>FILL_IN_BEFORE_DISPATCH<TAB><agent_id><TAB>u1<TAB>planned<TAB>-<TAB>delivery-run
+2026-11-02T10:00:00Z<TAB><run-id><TAB>st1<TAB><yyyymmddThhmmssZ>-<owner_agent>-1<TAB><JIRA-KEY><TAB>port<TAB><port><TAB><agent_id><TAB>u1<TAB>planned<TAB>-<TAB>delivery-run
 ```
 The file starts empty (zero bytes); rows are only ever appended.

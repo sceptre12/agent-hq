@@ -44,7 +44,7 @@ Fill the evidence cell with a path, a command and its exit status, or a sha. `n/
 | C18 | No leftovers (debug code, TODO without ticket, stray files) | grep command, 0 hits | |
 | C19 | Adjacent defects ticketed | ticket keys or `none` | |
 | C20 | Fix commits pushed | `git rev-parse` of the remote branch equals head | |
-| C21 | Catalog has no `planned` rows for this sub-task; own gate-runner lease and review-bus rows released | `catalog.sh` list output, 0 `planned` | |
+| C21 | Catalog has no `planned` rows for this sub-task (design 5.7; leases, ports and bus rows are released by cleanup only, INTERFACES A.5.1, A.5.2, so `live` rows do not fail this row) | `catalog.sh` list output, 0 `planned` | |
 | C22 | PR body built from the template | `RUN_HOME/review/<subtask>/pr-body.md` path | |
 | C23 | Plan unit list equals the branch unit list | dispatch-plan units vs `git log` units, diff empty | |
 | C24 | Version bump: each affected app has its `package.json` `version` bumped per the profile `version_bump_rule` (card 10 step 2b) | affected-app list, old -> new version | |
@@ -66,6 +66,6 @@ Regexes (C12, C13 re-derive them):
 ## 5. Rules
 - Result `PASS` needs evidence in the cell; no evidence = FAIL, whatever the author believes.
 - Row C9 is the `GATE-PASS` row: a failed gate run writes no file (INTERFACES A.7), so a missing file is the evidence of failure.
-- Review loops stop after round 3; the owner decides (D7). A third failing round is `ESCALATE`, not another `STOP`.
+- Review loops stop after round 3 and the owner decides (D7): the lead writes `substate.md` `stop_reason: d7-round3` (INTERFACES A.3). Line 1 stays `PREPR: PASS` or `PREPR: STOP <rows>`; there is no third token (INTERFACES D1.1).
 - The verdict is derived from the rows by the validator; an agent never writes `PASS` over a FAIL row (M30).
 - Keep this file near 500 lines or less.

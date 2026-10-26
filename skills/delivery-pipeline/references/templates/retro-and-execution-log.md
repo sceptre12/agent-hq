@@ -5,8 +5,9 @@ Fill-in skeletons for the stage 8 retrospective and the per-run execution-log ro
 - **Writer / Reader:** writer the conductor (`delivery-pipeline`, stage 8). Readers: the human; the capture agent (queue under `RUN_HOME/capture/` until the Hermes port is on); future plan authors who read the "What You Inherit" and risky-value actions.
 - **Plane:** RUN only. `retro.md` is `RUN_HOME/retro.md`; `execution-log.md` is `RUN_HOME/execution-log.md`. Committing either to `plans/<epic>/` is a human step after CYCLE DONE and is listed in the conductor's final status post (INTERFACES A.6, row R4-J19; errata E17). Do not write them to the repo.
 - **Dates:** `YYYY-MM-DD`. Inside generated file bodies a timestamp is ISO UTC `YYYY-MM-DDTHH:MM:SSZ` (A.1).
+- **Run Health targets:** the first four rows and their targets are the context-store template's Wave Health Score (`XC/_templates/retrospective.md`, design 5.9); the two stop rows are template-local.
 - **Size:** a retro stays about 150 lines; link evidence instead of pasting it.
-- **Sentinel:** a value you did not measure is written `UNMEASURED`, never estimated.
+- **Sentinel:** a value you did not measure is written `UNMEASURED`, never estimated. `UNMEASURED` is retro-local (this file only); it is not the `FILL_IN_BEFORE_DISPATCH` pre-dispatch sentinel and no reader greps for it.
 
 ## Part A. `retro.md`
 

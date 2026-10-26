@@ -30,9 +30,17 @@ Phase order: <from the profile, e.g. unit, integration, e2e, post-merge>
 | standardization-precheck | repo conventions satisfied | <profile command> | clean |
 
 ### A3. e2e rows (omit when every unit is `none`)
-| unit slug | .feature path | Gherkin checkpoint date | generated spec path | nl-run-e2e result | auto-healed diffs reviewed (yes|no) |
-|---|---|---|---|---|---|
+| sub-task | unit slug | .feature path | Gherkin checkpoint date | generated spec path | nl-run-e2e result | auto-healed diffs reviewed (yes|no) |
+|---|---|---|---|---|---|---|
 Gherkin checkpoint date is `YYYY-MM-DD`; the human signs H-e2e per sub-task (INTERFACES A.2.1).
+
+#### Batched `.feature` list per sub-task (H-e2e)
+One block per sub-task with e2e rows; the desk's H-e2e `ref=` is the sha256 of this list for that sub-task (INTERFACES A.2.1), so change it only before H-e2e.
+```
+st<N>:
+<.feature path>
+<.feature path>
+```
 
 ### A4. Coverage thresholds
 | scope | threshold | source |

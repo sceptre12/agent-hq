@@ -1,6 +1,6 @@
 # Template: architecture.md (design 5.2)
 
-Purpose: the single design document of one epic, reviewed at stage 2 and accepted at H1. Path `plans/<epic>/architecture.md`. About 500 lines or fewer; a large epic uses a landing page plus parts (`architecture-01.md`, ...), each linked from the landing page.
+Purpose: the single design document of one epic, reviewed at stage 2 and accepted at H1. Path `plans/<epic>/architecture.md`. About 500 lines or fewer; a large epic uses a landing page plus parts (design 5.2), each linked from the landing page; the part file names (`architecture-01.md`, ...) are template-local.
 
 **Writer / Reader:** writer `delivery-architecture` (INTERFACES A.6); readers the human at H1, `delivery-dispatch-plan` (sections 5 to 9), the conductor (reads the header line `security_sensitive`), `review-tailor`, `test-plan.md` and `release-plan.md` authors.
 
@@ -11,6 +11,7 @@ epic: <epic>
 repo_profile: <path>@<40-hex sha>
 security_sensitive: yes|no
 ````
+- The `epic:` and `repo_profile:` header lines are template-local (no INTERFACES key); only `security_sensitive` is read by a consumer (INTERFACES A.2).
 - `epic` is the original-case epic token (INTERFACES A.1).
 - `repo_profile` links the profile with its full 40-hex sha and never copies it (D22).
 - `security_sensitive: yes|no` is required: exactly one such line, `no` allowed (INTERFACES 1.3.0 A.2, AM-3, owner OQ-1). Write `yes` when the epic touches any of:
@@ -34,9 +35,13 @@ security_sensitive: yes|no
 - Non-goals: <...>
 
 ## 3. Components, interfaces, contracts
+Primary repo: <abs clone root; restates `state.md` `primary_repo`>
+Other repos: <abs clone roots of the other repos of a multi-repo epic, or `none`>
+(INTERFACES A.1 multi-repo rule: the primary repo governs; the other repos' profiles are its `linked_profiles[]`, A.2.2.)
+
 | component | responsibility | interface or contract | owning document |
 |---|---|---|---|
-One owning document per cross-unit contract (D63); contracts live under `contracts/` at the repo root.
+One owning document per cross-unit contract (D63, design `part-06-build-plan-and-sources.md` stage 2 row); contracts live under `contracts/` at the repo root.
 
 ## 4. Decisions
 - Locked: <decision> (ADR <ref>)

@@ -19,8 +19,8 @@ Location: `<primary_repo>/plans/repo-profile.md` (part A.2, D1.1 `PROFILE:` toke
 ## 3. Skeleton (copy, then replace each sentinel only with a measured or answered value)
 ```yaml
 # repo-profile.md  (writer: delivery-intake; sole authority, D22)
-profile_version: 1
-measured_utc: FILL_IN_BEFORE_DISPATCH        # YYYY-MM-DDTHH:MM:SSZ of the last full measure
+profile_version: 1                           # template-local (not an A.2.2 key); bump on a format change
+measured_utc: FILL_IN_BEFORE_DISPATCH        # template-local (not an A.2.2 key); YYYY-MM-DDTHH:MM:SSZ of the last full measure
 project_root: FILL_IN_BEFORE_DISPATCH        # a feature worktree, never the main checkout
 worktree_base: FILL_IN_BEFORE_DISPATCH       # abs path under $DELIVERY_ROOT (A.2.2)
 clones: [FILL_IN_BEFORE_DISPATCH]            # abs clone roots on this machine (A.2.2)
@@ -64,24 +64,24 @@ merge_pipeline: {stages: [FILL_IN_BEFORE_DISPATCH]}   # ordered stage names (A.2
 secrets:
   pattern_file: FILL_IN_BEFORE_DISPATCH      # abs path of an ERE file, one pattern per line (M31)
   retrieval_env_vars: [FILL_IN_BEFORE_DISPATCH]   # env-var NAMES only, never values
-zephyr: {read_ops: [FILL_IN_BEFORE_DISPATCH], execute_tool_name: FILL_IN_BEFORE_DISPATCH}   # B2
+zephyr: {read_ops: [FILL_IN_BEFORE_DISPATCH], execute_tool: FILL_IN_BEFORE_DISPATCH}   # B2; execute_tool = the Zephyr MCP execute tool name as Claude Code exposes it (A.2.2)
 test_management_tool: FILL_IN_BEFORE_DISPATCH
 jira:
   project_key: FILL_IN_BEFORE_DISPATCH
   status_map: FILL_IN_BEFORE_DISPATCH        # map: Backlog|In Progress|In Review|Blocked|Verified|Done -> Jira status
   archive_status: FILL_IN_BEFORE_DISPATCH
 release_tags:                                # N11; measured, never a sentinel for used
-  used: "no"                                 # "yes"|"no"
+  used: <"yes"|"no">                         # measured: quoted "yes"|"no" ("no" when the repo uses no release tags)
   # pattern: '^...$'                         # required when used is "yes" (anchored ERE)
   # approval: none                           # none|human; required when used is "yes"
 review_profile:
   mandatory_seats: [FILL_IN_BEFORE_DISPATCH]
-  blocking_rules: FILL_IN_BEFORE_DISPATCH
+  blocking_rules: [FILL_IN_BEFORE_DISPATCH]  # list; for both lists absent or [] = none, not an INPUT-ERROR (A.2.2)
   coverage_thresholds: FILL_IN_BEFORE_DISPATCH
-sensitive_path_deny_list: [FILL_IN_BEFORE_DISPATCH]   # globs no unit may touch without a grant (M25)
-lane_profile:                                # A5; ports are claimed per A.5.2, never auto-picked
+sensitive_paths: [FILL_IN_BEFORE_DISPATCH]   # list of ERE, single-quoted; deny-by-default paths incl. CI and pipeline definitions (A.2.2, M25)
+ports: {bus_base: FILL_IN_BEFORE_DISPATCH, lane_base: FILL_IN_BEFORE_DISPATCH}   # int bases of the dispatch-plan port table; candidates only, claimed per A.5.2, never auto-picked (A.2.2)
+lane_profile:                                # A5 lane resource profile; its keys are template-local (not A.2.2 keys)
   lanes_max: FILL_IN_BEFORE_DISPATCH
-  ports: {bus_base: FILL_IN_BEFORE_DISPATCH, lane_base: FILL_IN_BEFORE_DISPATCH}   # candidates only
   dev_server_cmd: FILL_IN_BEFORE_DISPATCH
 e2e:                                         # design 3.6
   harness: FILL_IN_BEFORE_DISPATCH           # nlta|none
@@ -110,14 +110,15 @@ durations:                                   # minutes, measured (M15); budgets 
 | `ci.min_push_spacing_s`, `ci.max_open_pr_pipelines` | docs or ask (M9) | human |
 | `secrets.pattern_file`, `secrets.retrieval_env_vars[]` | scanner config, else ask (M31) | explorer / human |
 | `zephyr.*`, `test_management_tool`, `jira.*` | the tool lives outside the repo | human |
-| `review_profile.*`, `sensitive_path_deny_list[]` | policy, not code (M25) | human |
-| `lane_profile.*` | machine resources and free ports; claimed at launch per A.5.2 | human |
+| `review_profile.*`, `sensitive_paths[]` | policy, not code (M25) | human |
+| `ports.bus_base`, `ports.lane_base` | machine free ports; candidates only, claimed at launch per A.5.2 | human |
+| `lane_profile.*` | machine resources | human |
 | `e2e.*` | harness wiring is repo-specific (design 3.6) | explorer plus human |
 | `durations.*` | no local run history until a first cycle (M15) | measured after a run |
 | `version_bump_rule`, `plan_plane_pr`, `pr.template_path`, `pr.label_rules`, `pr.commit_pattern` | docs or ask | explorer / human |
 
 ## 5. Rules
-- A missing A.2.2 key fails the reader's Step 0 as `INPUT-ERROR <key> missing`; the sole exception is `release_tags.*` (absent = tag-push refused, A.2.2).
+- A missing A.2.2 key fails the reader's Step 0 as `INPUT-ERROR <key> missing`; the exceptions are `release_tags.*` (absent = tag-push refused) and `review_profile.mandatory_seats[]`, `review_profile.blocking_rules[]` (absent = none) (A.2.2).
 - `linked_profiles[]` entries pin `@<40-hex sha>`; a linked profile is read at its pin.
 - Refresh: start from the existing file, re-measure measured keys, keep human-answered keys unless the human changes them, report every change in `brief.md`; the new file gets a new `hash-object` sha and a new `PROFILE:` line (D1.1).
 - A hq `wave-execution` port dropped command-token registries on purpose; this file is the caller-side home for them.

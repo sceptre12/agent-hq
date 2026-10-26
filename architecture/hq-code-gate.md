@@ -15,7 +15,7 @@ run its mapped tests, enforced by a git `pre-push` hook plus three invariants th
   cannot be the enforcement point and no GitHub-side merge is allowed.
 - Integration is a local `git merge wt/<slug>` then a push of `main` (Rule 6).
 - `pr-review` takes `REPO` + `PR_NUMBER` but never posts a PR comment and exits 0 offline, so the marker (§4) is posted by
-  the orchestrator. ADR 0033's "pr-review BLOCKED" addendum is stale (grant 277416d).
+  the orchestrator.
 - No `timeout`/`gtimeout` on this host: the runner has its own watchdog. macOS bash is 3.2: no `mapfile`/assoc arrays.
 
 ## 2. Rule 10 (owner-approved text; inserted into config/CLAUDE.md by D3)

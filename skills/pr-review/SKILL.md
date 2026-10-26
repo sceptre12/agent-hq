@@ -57,7 +57,9 @@ Measured on the live bus, 2026-10-09 (T-141/T-159 reviews) — facts, not rules:
 
 - Each member session starts its own bus app on its own port; none binds 7777 or another member's port.
 - Before binding, `lsof -nP -iTCP:$PORT -sTCP:LISTEN` must be empty; otherwise add 10 and re-check
-  (standalone only; inside a run a taken port is refused and reported, never re-picked). (owner rule 2026-10-08 19:08Z, R-x)
+  exactly once; a second taken port stops the line and is reported (standalone and inside a run; inside
+  a run the retry port is claimed before the bind, `references/bus-start-run.md`). (owner rule
+  2026-10-08 19:08Z, R-x; INTERFACES 1.3.0 D2.3 `BUS_PORT`, AM-3 / owner OQ-2)
 - `read_messages` takes `session_id` (mandatory on every call), `agent_id` and `topics` as an ARRAY.
 - **Reader idiom (every orchestrator, gate-checker and synthesizer read):** `"peek":true`, a fresh
   `agent_id` per reader and per read, `"limit":200`, one topic per call. Without `peek` a read consumes
@@ -151,8 +153,11 @@ report is stop-the-line for the orchestrator, never bypassed.
 Inside a run (`RUN_HOME` set) follow `references/bus-start-run.md` instead of the script below: it
 claims `BUS_PORT` with `tools/port-check.sh --claim` (through `port-claim`) before the bind, registers
 the `port`, `pm2-app`, `bus`, `tmpdir` rows, starts the bus under `RUN_HOME/<subtask>/bus/`, then
-`catalog.sh start`. Exit 1 or 2 refuses the launch (no auto-pick, report to the lead); exit 3 is
-stop-the-line. With `RUN_HOME` unset (standalone use outside a run) the script below is unchanged.
+`catalog.sh start`. Exit 1 or 2 refuses the launch (no auto-pick); exactly one retry at
+`BUS_PORT + 10`, itself claimed before the bind, with the bus pinned to that port; a second refusal
+stops the line and is reported to the lead; exit 3 is stop-the-line (INTERFACES 1.3.0 A.5.2, C1.1,
+D2.3, AM-3 / owner OQ-2). With `RUN_HOME` unset (standalone use outside a run) the script below is
+unchanged and the same one-retry rule applies to a taken port (the R-x line in the facts above).
 
 Standalone only: dispatch a sub-agent (Haiku) to run this bash script:
 
@@ -445,4 +450,4 @@ unreachable).
 
 Provenance: Hermes skill learnings/skill-sharing (imported from learnings/skill-sharing.md)
 Lineage: X-context-docs skills/pr-review@0e9281e
-Provenance: EXTEND 1.1.0 (2026-10-26), delivery-workflow item 10: peek/fresh-id/limit-200 reads, stacked diff, preamble, local-diff default, RACI-remap refusal (references/roles-subset.md), port guard (A.5.2), security-audit guidance seat. Pending pilot (no pilot run recorded).
+Provenance: EXTEND 1.1.0 (2026-10-26), delivery-workflow item 10: peek/fresh-id/limit-200 reads, stacked diff, preamble, local-diff default, RACI-remap refusal (references/roles-subset.md), port guard (A.5.2; one claimed `BUS_PORT + 10` retry, then stop, INTERFACES 1.3.0 AM-3 / owner OQ-2), security-audit guidance seat. Pending pilot (no pilot run recorded).

@@ -88,8 +88,7 @@ Lineage: X-context-docs skills/network-check@87ed5a6
 - **Dropped: the `## Integration` section's employer consumer list** — the source named
   two employer-specific background-job apps and a half-dozen employer-specific skills as
   consumers of this script/pattern. None of these exist on this machine — every one of
-  them was independently SKIPped at Gate 0 as work-machine- or company-tool-coupled (full
-  list and rationale: `plans/dev-workspace-base-skills.md` triage table). Replaced with a
+  them was independently SKIPped at Gate 0 as work-machine- or company-tool-coupled. Replaced with a
   generic "scheduled job" framing (cron/launchd/CronCreate) instead of re-naming
   machine-specific consumers that don't exist here.
 - **Dropped: `app-status` cross-reference** — source noted its own app-status monitor

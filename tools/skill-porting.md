@@ -139,9 +139,8 @@ to Gate 2 with the specific defect named.
 **Entry:** Gate 5 passed.
 
 **Do:**
-- Flip the skill's row in its plan file (e.g. `plans/dev-workspace-base-skills.md`) to
-  `done`, with the install commit hash as evidence (per `plans/README.md`'s status-table
-  rule).
+- Flip the skill's row in its plan file to
+  `done`, with the install commit hash as evidence.
 - Any friction discovered **during** the port — a de-work-ification surprise, a dependency
   that wasn't where Gate 0 expected, a leak-scan miss — becomes its own Hermes learning (API door; recipe: `tools/brain/templates/member-CLAUDE.md`, Memory section).
   Ported skills are supposed to surface friction, not just resolve it silently.

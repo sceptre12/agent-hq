@@ -1,4 +1,4 @@
-# hq — AI memory layer
+# agent-hq — AI memory layer
 
 This file is auto-loaded by Claude Code inside `~/projects/agent-hq` — minimal context to
 navigate and extend this workspace correctly.
@@ -25,11 +25,11 @@ hq/
 ## Core standards (brief)
 
 - **Commits:** `add | update | decision | learning | retro | chore: <summary>`
-- **Learnings:** live in Hermes via its API door (recipe: `tools/brain/templates/member-CLAUDE.md`, Memory section); existing `learnings/` files stay until the owner-gated removal.
+- **Learnings:** live in Hermes via its API door (recipe: `tools/brain/templates/member-CLAUDE.md`, Memory section).
 
 ## Memory ownership (brief)
 
-- Durable knowledge = hq git markdown only (human-written at Compound time).
+- Durable knowledge: learnings live in Hermes (config/CLAUDE.md Rule 13); hq git markdown keeps tools, standards and decisions.
 - Code orientation = Serena notes inside each code repo; hq points to them, never copies.
 
 

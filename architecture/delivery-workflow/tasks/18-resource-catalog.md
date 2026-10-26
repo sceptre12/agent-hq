@@ -19,9 +19,10 @@ Write the skill `resource-catalog`: the rules for registering, starting, releasi
 **In (write only under `skills/resource-catalog/`):**
 - `SKILL.md` (body under 5k tokens): frontmatter (`name`, "Use when" description of 1024 characters or fewer, `version: 0.1.0`), `## Trigger`, `## Steps` (Step 0 first), `## Red flags`, `## Exit criteria`, `## Provenance`.
 - `references/kinds-and-handles.md` (one line per catalog `kind`: handle form, register/start/release example; points to A.5 and A.5.1 for the table, no restatement of cleanup commands).
-- `references/ports.md` (the port rows: check, register, bind, claim, start; release; failure branches by `port-check.sh` exit code; the +10 rule only as the card states it).
+- `references/ports.md` (the port rows in A.5.2 order: candidate from the dispatch-plan port table, claim, register, launch, start; release; failure branches by `port-check.sh` exit code; the "+10 rule" only as the plan-time candidate formula, never a collision fallback, RESOLVED Q4).
+- `skills/port-claim/SKILL.md` (amend only, RESOLVED Q2): Steps 3-4 reordered to A.5.2: `--claim ... claimed` before the bind, then the bind; on a failed bind a `released` row of the same port and source; Exit criteria and Provenance lines updated ("amended 2026-10-26, AM-1 A.5.2: claim before bind"); "Do not auto-pick" kept verbatim. No other `port-claim` text changes.
 
-**Out:** `tools/delivery/**` (`catalog.sh` and its tests, item 5), `skills/port-claim/**`, `skills/delivery-cleanup/**`, INTERFACES, any ADR, `ports.tsv`.
+**Out:** `tools/delivery/**` (`catalog.sh` and its tests, item 5), `skills/resource-catalog/references/templates/` (item 27), `skills/port-claim/` files other than `SKILL.md`, `skills/delivery-cleanup/**`, INTERFACES, any ADR, `ports.tsv`.
 **Do NOT create:** a copy of `catalog.sh`, a symlink, a cleanup-command table (the script owns it, M26), a column or kind not in A.5, a hand edit of `RUN_HOME/catalog.tsv` or `tools/ports.tsv`, cost metrics.
 
 ## 4. Contracts
@@ -94,9 +95,13 @@ grep -rhE '^[[:space:]]*(\$ )?[^ ]*catalog\.sh register ' "$S" | while IFS= read
 awk '/--claim/ && !c{c=NR} /register port/ && !b{b=NR} /start port/ && !d{d=NR}
   END{exit !(c&&b&&d&&c<b&&b<d)}' "$S/references/ports.md"
 for t in 'port-check.sh' claimed released never port-precheck 'A.5.2' lane-unavailable; do grep -qF -- "$t" "$S/references/ports.md" || { echo "ports.md missing: $t"; exit 1; }; done
-if grep -rniE 'notion|touri|ofw|runfrist|jetblue|/Users/xavier|brain(Alpha|Beta|Gamma)|hermesAuth|cost' "$S"; then echo "FAIL: forbidden match"; exit 1; fi
+if grep -rniE --exclude-dir=templates 'notion|touri|ofw|runfrist|jetblue|/Users/xavier|brain(Alpha|Beta|Gamma)|hermesAuth|cost' "$S"; then echo "FAIL: forbidden match"; exit 1; fi
 find "$S" -type l | grep -q . && { echo symlink; exit 1; }
 for f in $(find "$S" -name '*.md'); do [ "$(wc -l < "$f")" -le 500 ] || { echo "over 500: $f"; exit 1; }; done
+# port-claim amended to claim before the bind (A.5.2); "Do not auto-pick" kept
+P=$W/skills/port-claim/SKILL.md
+awk '/--claim/ && !c{c=NR} /[Bb]ind the port/ && !b{b=NR} END{exit !(c&&b&&c<b)}' "$P"
+grep -q 'Do not auto-pick' "$P"; grep -q 'A.5.2' "$P"; grep -qF 'WORKTREE_BASE' "$S/SKILL.md" "$S/references/kinds-and-handles.md"
 bash "$W/tools/check-doc-length.sh" "$W" >/dev/null
 echo SKILL-18-OK
 ```
@@ -107,8 +112,8 @@ Write in `~/projects/agent-hq-worktrees/delivery-w0` (branch `wt/delivery-w0`). 
 ## 11. Decision Gate reminder
 Stop and report `STUCK` (or write `.decisions/T18.md`) if: the 1.1.0 amendment changes the call forms, kinds or port steps above; a step needs a `catalog.sh` subcommand the Script interfaces table does not list; the card and INTERFACES disagree beyond section 7; a criterion cannot be checked with section 9; you must edit outside section 3.
 
-## SPEC-QUESTIONs (for the plan-checker)
-1. SPEC-QUESTION: AM-1 A.5.2 fixes the order (claim, `register`, launch, `start`) but is silent on whether `catalog.sh register port` itself calls `port-check.sh`. This spec has the caller run `port-check.sh --claim` and `catalog.sh` as separate commands (A.5.2 names them separately). Confirm with item 5.
-2. SPEC-QUESTION: `skills/port-claim` Step 4 registers the claim immediately AFTER the bind; A.5.2 claims BEFORE the launch. The ported skill (item 8, outside this item) may need the same change. Which text governs this skill's wording (A.5.2 does, per this spec)?
-3. SPEC-QUESTION: how does a skill reference the script path before the move (no symlinks): repo-relative `tools/delivery/catalog.sh`, or `$AGENT_HQ/tools/delivery/catalog.sh` (the `port-claim` skill hardcodes `~/projects/agent-hq/tools/`)? The card says only "+ `catalog.sh`".
-4. SPEC-QUESTION: the card says ports go "via `port-claim` and the +10 rule with `lsof` (measured)". The +10 rule is defined nowhere in INTERFACES, and A.5.2 plus `skills/port-claim` forbid auto-picking another port. Is the +10 rule a human-chosen offset or superseded? Until answered the skill must not define or apply it.
+## Plan-check resolutions (2026-10-26; report `reviews/plan-check-w1-specs.md`)
+1. RESOLVED (INTERFACES A.5.1 `port` row and A.5.2 order; Script interfaces gives `catalog.sh` no side effect; identical to T05 Q6 and T19 Q3): the caller runs `port-check.sh --claim` and `catalog.sh` as separate commands; `catalog.sh` never calls `port-check.sh`.
+2. RESOLVED (INTERFACES A.5.2 is the single statement; AM-1 consumer list names `port-claim`; PC-4): A.5.2 governs. The installed `skills/port-claim` Step 4 (claim after the bind) is amended by this item (scope line above), so the rule has one wording in agent-hq.
+3. RESOLVED (PLAN-CHECK DEFAULT; the installed `port-claim` convention): skills cite scripts as `~/projects/agent-hq/tools/...` (`~/projects/agent-hq/tools/delivery/catalog.sh`, `~/projects/agent-hq/tools/port-check.sh`); INTERFACES names stay repo-relative; item 33's resolver checks every path at the move. `WORKTREE_BASE` is passed inline from the profile on calls that register worktrees (T05 Q2).
+4. RESOLVED (A.5.2 "never auto-picks"; PC-4; AM-2 row 6): the "+10 rule" survives only as the dispatch plan's candidate formula `<base> + 10·k`, fixed before any check (spec 17 Q4). A collision at the claim refuses the launch and is reported; the skill never adds 10 and re-checks.

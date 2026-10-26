@@ -19,7 +19,7 @@ Write `tools/delivery/scope-check.sh <tasks-file> <worktree> <base-sha>`: print 
 ## 3. Scope
 **In (write only these):** `tools/delivery/scope-check.sh`; `tools/delivery/test_scope-check.sh`. Directory `tools/delivery/`; file names disjoint from items 5 and 7.
 **Out:** `catalog.sh`, `desk-req.sh` and their files; `tools/code-gate/test-map.tsv` (integrator adds `tools/delivery/scope-check.sh<TAB>tools/delivery/test_scope-check.sh`); INTERFACES; any skill; `.tasks/` templates.
-**Do NOT create:** a shared lib or harness file (SPEC-QUESTION 1 of T05); a second glob source (no globs from the dispatch plan; the tasks file only); a sensitive-path deny list or an auto-fix mode (SPEC-QUESTION 2); symlinks.
+**Do NOT create:** a shared lib or harness file (RESOLVED in T05 Q1); a second glob source (no globs from the dispatch plan; the tasks file only); a sensitive-path deny list or an auto-fix mode (RESOLVED Q2); symlinks.
 
 ## 4. Contracts
 | Contract | Field / value | Authority |
@@ -65,10 +65,10 @@ None. External: `git` (`diff`, `rev-parse`, `cat-file`), `sed`, `grep`; no `ps`/
 set -eu; W=~/projects/agent-hq-worktrees/delivery-w0; D=$W/tools/delivery
 for f in scope-check.sh test_scope-check.sh; do test -f "$D/$f"; [ "$(wc -l < "$D/$f")" -le 300 ]; done
 test -x "$D/scope-check.sh"; test -x "$D/test_scope-check.sh"
-! grep -nE '(^|[^a-zA-Z_-])(flock|mapfile|readarray|gtimeout)([^a-zA-Z_-]|$)|readlink -f|sed -i|date -d|du -b|declare -A' "$D/scope-check.sh"
+! grep -nE '(^|[^a-zA-Z_-])(flock|mapfile|readarray|gtimeout)([^a-zA-Z_-]|$)|readlink -f|sed -i|date -d|du -b|declare -A' "$D/scope-check.sh" || { echo "FAIL: forbidden match"; exit 1; }
 head -1 "$D/scope-check.sh" | grep -q '^#!/usr/bin/env bash$'
 ( cd "$W" && env -i PATH=/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin:/opt/homebrew/bin TMPDIR="${TMPDIR:-/tmp}" HOME=/nonexistent /bin/bash tools/delivery/test_scope-check.sh ) | tail -3 | grep -q ', 0 failed'
-! grep -rniE 'notion|touri|ofw|runfrist|jetblue|/Users/xavier|brain(Alpha|Beta|Gamma)|hermesAuth' "$D/scope-check.sh" "$D/test_scope-check.sh"
+! grep -rniE 'notion|touri|ofw|runfrist|jetblue|/Users/xavier|brain(Alpha|Beta|Gamma)|hermesAuth' "$D/scope-check.sh" "$D/test_scope-check.sh" || { echo "FAIL: forbidden match"; exit 1; }
 find "$D" -type l | grep -q . && { echo symlink; exit 1; }
 echo SCRIPT-06-OK
 ```
@@ -79,7 +79,7 @@ Write in `~/projects/agent-hq-worktrees/delivery-w0` (branch `wt/delivery-w0`). 
 ## 11. Decision Gate reminder
 Write `.decisions/T06.md` and stop on: a call form or exit code differing from section 2; a need for a glob source other than the tasks file; any edit outside section 3; a criterion not checkable with section 9.
 
-## SPEC-QUESTIONs (for the plan-checker)
-1. SPEC-QUESTION: no tasks-file section 3 or an empty glob list: INTERFACES is silent. Proposed: exit 2 (an empty scope would flag every path as creep and hide a missing section).
-2. SPEC-QUESTION: the changelog (M25) says `scope-check` is "preventive with deny-by-default sensitive paths (lockfiles, manifests) needing an `INSTALLED` row or human grant" but the Script interfaces table has no flag, argument or output for it. This spec implements the table only; the sensitive-path list belongs to `pre-pr-gate`/the briefs unless an amendment adds it. Confirm.
-3. SPEC-QUESTION: is a path matching no glob but listed in the tasks file's "out of scope" or "do-not-create" part reported differently? Table says no: all are `CREEP`.
+## Plan-check resolutions (2026-10-26; report `reviews/plan-check-w1-specs.md`)
+1. RESOLVED (INTERFACES Script interfaces, exit 2 "usage"; PLAN-CHECK DEFAULT): a tasks file with no `## 3` heading or zero globs exits 2 with a stderr message (section 2 list).
+2. RESOLVED (design card 10 step 5 puts the sensitive-path deny list in `pre-pr-gate`; the Script interfaces table has no flag or output for it): this script implements the table only. The deny list is read by `pre-pr-gate` step 5 from the profile (key proposed as `sensitive_paths[]`, AM-2 row 5).
+3. RESOLVED (Script interfaces: one output form, `CREEP <path>`): every out-of-glob path is `CREEP`, whatever part of the tasks file mentions it.

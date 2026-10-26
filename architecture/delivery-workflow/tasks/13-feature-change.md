@@ -2,14 +2,14 @@
 
 - Work item: 13 (part-06 §7 row 9-13; card: part-02 §2.3 `feature-change` row; stage map row "One unit end to end"). Tier: `execute` (part-06 §7). The unit agents it drives run at the tiers of the unit table (part-03 §3.3).
 - Review rung: Rung 1 trio by the UNMODIFIED installed skills (M29), max 3 rounds then the owner (D7). Prose skill; no script.
-- Branch: the separate EXTEND branch (M29), shared with items 10-12, own directory. SPEC-QUESTION Q13-1: branch name and base are not named in the design; the integrator names them. The base must contain the W0 item 8 port of `skills/feature-change/` (it is untracked in `wt/delivery-w0` today, measurements Row 6).
+- Branch: the separate EXTEND branch (M29), shared with items 10-12, own directory. RESOLVED (PC-1, plan-check): branch `ext/delivery-extends` in worktree `~/projects/agent-hq-worktrees/delivery-extends`, created by the integrator (Worker1) from `wt/delivery-w0` after the plan-check commit (so it holds the W0 item 8 ports); items 9-13 share it on directory-disjoint paths; the branch is reviewed separately and never used to review the family (M29). The base contains the W0 item 8 port of `skills/feature-change/` (committed on `wt/delivery-w0`).
 - Dependencies: W0 item 8 (port-and-strip) landed and reviewed; INTERFACES D2.3, part C C2/C3/C4, part A A.5/A.6/A.7; AM-1 (1.1.0) A.5.2 only where a port is bound (feature-change binds none; recorded as a no-op, see §8). Item 8b sources are not touched.
 - Split: none (one agent, one pass).
 
 ## 1. Objective
 Add a `UNIT_MODE` input to `skills/feature-change/` (`solo` default = today's behaviour, `team` = one unit inside a delivery run) without changing `solo`.
 
-**Done condition (one, machine-checkable):** the §9 block prints `OK-input OK-skip OK-emit OK-catalog OK-solo`, prints no `MISSING` line, the sanitization grep and the out-of-scope `git diff --stat` print nothing, and `tools/check-doc-length.sh .` exits 0.
+**Done condition (one, machine-checkable):** with the fixture results saved by a non-author verifier (§9), the §9 block exits 0 and its last stdout line is `EXT-13-OK`.
 
 ## 2. Context Package
 - Card (part-02 §2.3): "port-and-strip first (W0 item 8: Notion paths and personal-project text removed, verified by grep, M10), then `UNIT_MODE=team`: branch name `<JIRA-KEY>-<slug>` from the repo profile, skip ticket creation, skip integration and cleanup steps, emit `UNIT-VERDICT:` bus post and `NEXT:` line, register the worktree in the catalog, run affected lint+test+typecheck once per push or batch and record `GATE-PASS` (D21, R2-3)" | "conductor owns tickets, integration, cleanup" | no owner ask.
@@ -61,37 +61,40 @@ Add a `UNIT_MODE` input to `skills/feature-change/` (`solo` default = today's be
 
 ## 8. Acceptance Criteria
 - [ ] Inputs list adds `UNIT_MODE`; Step 0 validates it (`INPUT-ERROR UNIT_MODE enum`); unset = `solo`.
-- [ ] `team`: Step 1 (ticket) skipped with the line "ticket owned by the conductor"; Step 8 (integrate) and Step 9 (cleanup) skipped; branch is `<JIRA-KEY>-<slug>` from the ticket read-back, created only after the key exists; if the key is absent, emit `ESCALATE` reason `spec-gap` (SPEC-QUESTION Q13-4: the design says "created only after the Jira key is read back" but names no reason code for a missing key; `spec-gap` is the nearest C2 code, integrator confirms).
-- [ ] `team`: before `git worktree add`, `catalog.sh register worktree ...`; `start` after; the same for the branch row. A catalog failure (exit 2, 3, 4) stops the unit (no add).
+- [ ] `team`: Step 1 (ticket) skipped with the line "ticket owned by the conductor"; Step 8 (integrate) and Step 9 (cleanup) skipped; branch is `<JIRA-KEY>-<slug>` from the ticket read-back, created only after the key exists; if the key is absent, emit `ESCALATE` reason `spec-gap` (RESOLVED Q13-4, INTERFACES C2 closed reason set; PLAN-CHECK DEFAULT: `spec-gap`, because tickets exist before dispatch, so a missing key is a plan defect).
+- [ ] `team`: before `git worktree add`, `catalog.sh register worktree ...` with `WORKTREE_BASE` passed inline from the profile (T05 Q2); `start` after; the same for the branch row. A catalog failure (exit 2, 3, 4) stops the unit (no add).
 - [ ] `team`: `NEXT:` line written to the agent's own `status/<agent-id>.md` after each step of the unit's §9 list, matching C3's regex.
-- [ ] `team`: affected lint+test+typecheck is requested from the gate runner once per push or batch at unit end; the skill reads `gate-runs/<head>.md` and cites it; it never writes `GATE-PASS`. Q13-3: the card says "record `GATE-PASS`"; A.7 (frozen) fixes the writer as the gate runner, never the author; this spec follows A.7 and the integrator confirms the card wording is read as "obtain and cite".
-- [ ] `team`: ends by posting the C2 record on the bus named in `bus.endpoint` (or writing `status/<agent-id>.verdict`, C4), `PASS` only after a distinct verifier reported every AC MET and `head` is the worktree head; else `ROLLED`/`ESCALATE` with a C2 reason. Step 10 (ledger row, ticket update): skipped in team mode, the lead owns the record (Q13-5: the card does not list Step 10; skipping follows "conductor owns tickets" and the C2 handling; integrator confirms).
-- [ ] Step 0 repo policy lookup in team mode reads `GATES` from the repo profile `gates.command` and `ROUTE` is moot (Q13-2: the card is silent on Step 0; the profile is the A.7 authority; integrator confirms).
+- [ ] `team`: affected lint+test+typecheck is requested from the gate runner once per push or batch at unit end; the skill reads `gate-runs/<head>.md` and cites it; it never writes `GATE-PASS`. RESOLVED Q13-3 (INTERFACES A.7 "Writer: the gate runner ... never the author"; card 10; PC-7): the §2.3 card wording "record `GATE-PASS`" reads as "obtain from the gate runner and cite" (design erratum, AM-2 row 16).
+- [ ] `team`: ends by posting the C2 record on the bus named in `bus.endpoint` (or writing `status/<agent-id>.verdict`, C4), `PASS` only after a distinct verifier reported every AC MET and `head` is the worktree head; else `ROLLED`/`ESCALATE` with a C2 reason. Step 10 (ledger row, ticket update): skipped in team mode, the lead owns the record (RESOLVED Q13-5, INTERFACES A.6: `ticket-clerk` runs only in the conductor session; PLAN-CHECK DEFAULT).
+- [ ] Step 0 repo policy lookup in team mode reads `GATES` from the repo profile `gates.command` and `ROUTE` is moot (RESOLVED Q13-2, INTERFACES A.7 "Command: `repo-profile.md` `gates.command`").
 - [ ] Port guard (AM-1, A.5.2 scope "e2e lanes, dev servers"): recorded as a no-op line, "this skill binds no port; any dev server a unit starts is claimed per A.5.2 through `port-claim` first" (no new step). `security-audit` (AM-1): not used by this skill (the security seat belongs to the review step).
-- [ ] `solo` path unchanged; `version:` set (Q13-6: baseline and bump rule unspecified; integrator sets them); five anatomy sections present; ported residue grep empty; Provenance appended ("extended 2026-10-26 for the delivery workflow, design §2.3").
+- [ ] `solo` path unchanged; `version: 1.1.0` (RESOLVED, PC-1: the unversioned base at `c1ba30e` or the item 8 port counts as 1.0.0; an EXTEND is a minor bump) (RESOLVED Q13-6); five anatomy sections present; ported residue grep empty; Provenance appended ("extended 2026-10-26 for the delivery workflow, design §2.3").
 
 ## 9. Verification Commands
 ```bash
-cd ~/projects/agent-hq-worktrees/delivery-w0   # on the EXTEND branch
-S=skills/feature-change; F="$S/SKILL.md $(ls $S/references/*.md 2>/dev/null)"
-grep -q 'UNIT_MODE' $S/SKILL.md && grep -q 'INPUT-ERROR UNIT_MODE enum' $F && echo OK-input
-grep -n -i -E 'team' $F | grep -i -E 'skip' | grep -i -E 'ticket|integrat|cleanup' | grep -c . | awk '$1>=3{print "OK-skip"}'
-grep -q 'rendezvous' $F && grep -q 'NEXT:' $F && grep -q '\.verdict' $F && grep -q 'bus.endpoint' $F && echo OK-emit
-grep -q 'catalog.sh register worktree' $F && echo OK-catalog
-grep -n 'GATE-PASS' $F | grep -v -i 'runner\|gate-runs\|read\|cite' ; true   # any hit here is a candidate author-writes-GATE-PASS line: review by hand, expect none
-git diff -- $S/SKILL.md | grep -E '^-[^-]' | grep -v -E '^-(version|description)' ; true   # removed solo lines: expected none besides reworded Inputs
-echo OK-solo     # printed by the verifier after the diff review shows solo steps 1-11 unchanged
-for h in '## Trigger' '## Steps' '## Red flags' '## Exit criteria' '## Provenance'; do grep -q "^$h" $S/SKILL.md || echo MISSING $h; done
-head -12 $S/SKILL.md | grep -E '^version:'
-grep -rn -E '/Users/xavier|brainAlpha|brainBeta|brainGamma|hermesAuth|Xavier|touri|ofw|runfrist|jetblue|Notion' $S   # nothing (also the item 8 guard)
-grep -n -E 'HUSKY|--no-verify' $F   # only "never set here" statements
-bash tools/check-doc-length.sh . ; git diff --stat -- . ':!skills/feature-change'   # second: empty
-# fixture (verifier, $TMPDIR): dispatch a feature-change agent on a 1-AC toy repo with UNIT_MODE=team, a stub RUN_HOME, bus.endpoint pointing nowhere:
-# expected: catalog rows, NEXT lines matching ^NEXT: (u[0-9]+)\.([0-9]+) .+$, a status/<id>.verdict equal to a four-key C2 record, no push, no ticket call, no worktree removal.
+set -eu; W=~/projects/agent-hq-worktrees/delivery-extends; cd "$W"; B=$(git merge-base HEAD wt/delivery-w0); S=skills/feature-change; F="$S/SKILL.md $(ls $S/references/*.md 2>/dev/null || true)"; R=${FIXTURE_DIR:?the non-author verifier sets FIXTURE_DIR to its fixture result directory}
+grep -q 'UNIT_MODE' $S/SKILL.md; grep -q 'INPUT-ERROR UNIT_MODE enum' $F
+test "$(grep -n -i -E 'team' $F | grep -i -E 'skip' | grep -i -E 'ticket|integrat|cleanup' | grep -c .)" -ge 3
+for t in rendezvous 'NEXT:' '\.verdict' bus.endpoint 'catalog.sh register worktree' WORKTREE_BASE gate-runs; do grep -q -- "$t" $F || { echo "MISSING $t"; exit 1; }; done
+if grep -n 'GATE-PASS' $F | grep -v -i 'runner\|gate-runs\|read\|cite\|never'; then echo "FAIL: author-written GATE-PASS"; exit 1; fi
+if grep -n -E 'HUSKY|--no-verify' $F | grep -v -i 'never\|not set'; then echo "FAIL: hook-skip text"; exit 1; fi
+test "$(git diff $B -- $S/SKILL.md | grep -E '^-[^-]' | grep -vcE '^-(version|description)')" -eq 0   # solo lines kept
+# fixture: the verifier dispatches a feature-change agent on a 1-AC toy repo with UNIT_MODE=team, a stub RUN_HOME and a
+# bus.endpoint pointing nowhere, then copies RUN_HOME/catalog.tsv and RUN_HOME/<subtask>/status/ into $R
+awk -F'\t' '$6=="worktree"' $R/catalog.tsv | grep -q .
+grep -hqE '^NEXT: (u[0-9]+)\.([0-9]+) .+$' $R/status/*.md
+for v in $R/status/*.verdict; do jq -e 'keys==["head","reason","unit","verdict"]' "$v" >/dev/null; done
+for h in '## Trigger' '## Steps' '## Red flags' '## Exit criteria' '## Provenance'; do grep -q "^$h" $S/SKILL.md || { echo "MISSING $h"; exit 1; }; done
+head -12 $S/SKILL.md | grep -qE '^version: 1\.1\.0$'
+bash tools/check-doc-length.sh . >/dev/null
+if grep -rnE '/Users/xavier|brainAlpha|brainBeta|brainGamma|hermesAuth|Xavier|touri|ofw|runfrist|jetblue|Notion' $S; then echo "FAIL: forbidden match"; exit 1; fi
+if git status --porcelain | grep -vE '^.. (skills/(wave-execution|pr-review|fix-verifier|doc-reviewer|feature-change)/|architecture/wave-execution\.md)'; then echo "FAIL: change outside the EXTEND scopes"; exit 1; fi
+echo EXT-13-OK
 ```
+Review-time check: the fixture run made no push, no ticket call and no worktree removal.
 
 ## 10. Branch and worktree
-Separate EXTEND branch (Q13-1); no add, commit, rebase or push by the author. The unit worktrees feature-change itself creates are unrelated to this build branch.
+Branch `ext/delivery-extends` (PC-1); no add, commit, rebase or push by the author. The unit worktrees feature-change itself creates are unrelated to this build branch.
 
 ## 11. Decision Gate Reminder
 Write `.decisions/13-feature-change.md` and stop if: the item 8 port still carries Notion or personal-project text you cannot remove with a whole-block deletion; a `solo` step would change; a C2 reason is needed that is not in the closed set; the skill would have to write `GATE-PASS`, call Jira, or push; the bus cannot be reached and `RUN_HOME` is unset (stop, no guess).

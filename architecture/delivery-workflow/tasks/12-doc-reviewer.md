@@ -2,14 +2,14 @@
 
 - Work item: 12 (part-06 §7 row 9-13; card: part-02 §2.3 `doc-reviewer` row, "stage 2 checks"). Tier: `execute` (part-06 §7). The skill runs on the verify/design tiers per its callers (`review-tailor`, stage 2).
 - Review rung: Rung 1 trio by the UNMODIFIED installed skills (M29), max 3 rounds then the owner (D7). Prose; no script.
-- Branch: the separate EXTEND branch (M29), shared with items 10, 11, 13, own directory. SPEC-QUESTION Q12-1: branch name and base are not named in the design; the integrator names them.
+- Branch: the separate EXTEND branch (M29), shared with items 10, 11, 13, own directory. RESOLVED (PC-1, plan-check): branch `ext/delivery-extends` in worktree `~/projects/agent-hq-worktrees/delivery-extends`, created by the integrator (Worker1) from `wt/delivery-w0` after the plan-check commit (so it holds the W0 item 8 ports); items 9-13 share it on directory-disjoint paths; the branch is reviewed separately and never used to review the family (M29).
 - Dependencies: INTERFACES D2.3 (row `doc-reviewer`: no new inputs); part-04 §5.1 ticket template and §5.2 `architecture.md` section list (the checks quote them); none on items 10, 11, 13.
 - Split: none.
 
 ## 1. Objective
 Add `skills/doc-reviewer/references/delivery-doc-checks.md` and the pointers in `SKILL.md` so a stage 2 delivery doc is checked for required sections, `(fact)` commands, child coverage and ticket-template format.
 
-**Done condition (one, machine-checkable):** the §9 block prints `OK-file OK-four OK-pointer OK-noinput OK-fixture`, prints no `MISSING` line, the sanitization grep and the out-of-scope `git diff --stat` print nothing, and `tools/check-doc-length.sh .` exits 0 with the new file at 500 lines or fewer.
+**Done condition (one, machine-checkable):** with the fixture results saved by a non-author verifier (§9), the §9 block exits 0 and its last stdout line is `EXT-12-OK`.
 
 ## 2. Context Package
 - Card: "`references/delivery-doc-checks.md`: required sections present, every "(fact)" names its command, child-coverage check, template-format check against the ticket template" | source "stage 2 checks" | no owner ask.
@@ -25,7 +25,7 @@ Add `skills/doc-reviewer/references/delivery-doc-checks.md` and the pointers in 
 ## 3. Scope
 **In scope (directory `skills/doc-reviewer/` only):** `references/delivery-doc-checks.md` (NEW, 500 lines or fewer); `SKILL.md` edits: `version:` frontmatter, one new row in the Steps checks table naming the delivery checks as "Delivery docs (stage 2)", one sentence in Phase A step 2 pointing to the file, a Red flags row, an Exit criteria line, a Provenance line.
 **Out of scope:** `references/checks.md` content, the existing 14 checks, the severity scale, `panel-consultation`, `review-7-panel`, `delivery-architecture` itself (item 15), `ticket-clerk`, ticket templates other than the part-04 §5.1 summary, any Jira call.
-**Do NOT create:** a named input or a mode flag, a new severity, a new verdict word, a numbering that collides with Checks 1-14 (use `DOC-1`..`DOC-4` labels, SPEC-QUESTION Q12-2: the card names no ids; `DOC-1`-`DOC-4` is a proposal (the plain `D1`-`D4` would collide with design decision ids) the integrator may rename), a copy of the Jira template text from the work-context store (read-only; paraphrase from part-04 §5.1 only), or a file outside `skills/doc-reviewer/`.
+**Do NOT create:** a named input or a mode flag, a new severity, a new verdict word, a numbering that collides with Checks 1-14 (use `DOC-1`..`DOC-4` labels, RESOLVED Q12-2 (PLAN-CHECK DEFAULT): `DOC-1`..`DOC-4`, since plain `D1`-`D4` would collide with design decision ids), a copy of the Jira template text from the work-context store (read-only; paraphrase from part-04 §5.1 only), or a file outside `skills/doc-reviewer/`.
 
 ## 4. Contracts
 | Contract | Field / value | Authority |
@@ -57,31 +57,36 @@ The review output format of `SKILL.md` Phase B (findings table `# | Issue | Seve
 | New-check ids | `DOC-1`..`DOC-4` (Q12-2) | `15`..`18` (collides with `checks.md` numbering and the 14-row table) | `SKILL.md` Steps |
 
 ## 8. Acceptance Criteria
-- [ ] `delivery-doc-checks.md` exists, 500 lines or fewer, with exactly four checks `DOC-1` required sections, `DOC-2` fact commands, `DOC-3` child coverage, `DOC-4` template format, each with: what it reads, the pass rule, the finding text, severity (Blocking for a missing `architecture.md` section or a child without AC; Medium for an uncommanded `(fact)` and a template-format miss; Advisory for wording; SPEC-QUESTION Q12-3: the card gives no severities, these are proposals marked as such in the file), and one worked example.
-- [ ] `SKILL.md` links the file from the checks table and from Phase A step 2; states when the delivery checks apply (SPEC-QUESTION Q12-4: no input exists, so the trigger is "the document under review is a delivery stage 2 artifact: `architecture.md`, `dispatch-plan.md`, a task spec or an epic/child ticket draft"; the integrator confirms).
+- [ ] `delivery-doc-checks.md` exists, 500 lines or fewer, with exactly four checks `DOC-1` required sections, `DOC-2` fact commands, `DOC-3` child coverage, `DOC-4` template format, each with: what it reads, the pass rule, the finding text, severity (Blocking for a missing `architecture.md` section or a child without AC; Medium for an uncommanded `(fact)` and a template-format miss; Advisory for wording; RESOLVED Q12-3 (PLAN-CHECK DEFAULT): these severities, each marked "plan-check default" in the file), and one worked example.
+- [ ] `SKILL.md` links the file from the checks table and from Phase A step 2; states when the delivery checks apply (RESOLVED Q12-4, INTERFACES D2.3 `doc-reviewer` row "none": no input, so the trigger is "the document under review is a delivery stage 2 artifact: `architecture.md`, `dispatch-plan.md`, a task spec or an epic/child ticket draft").
 - [ ] No named input added; `SKILL.md` Step 0 behaviour unchanged.
 - [ ] Existing 14 checks and `references/checks.md` byte-identical (`git diff` empty for that file).
-- [ ] Red flags and Exit criteria rows added; Provenance line cites the card and stage 2; `version:` set (Q12-5: baseline and bump rule unspecified; integrator sets them).
+- [ ] Red flags and Exit criteria rows added; Provenance line cites the card and stage 2; `version: 1.1.0` (RESOLVED, PC-1: the unversioned base at `c1ba30e` or the item 8 port counts as 1.0.0; an EXTEND is a minor bump) (RESOLVED Q12-5).
 
 ## 9. Verification Commands
 ```bash
-cd ~/projects/agent-hq-worktrees/delivery-w0   # on the EXTEND branch
-S=skills/doc-reviewer; F=$S/references/delivery-doc-checks.md
-test -f $F && [ "$(wc -l < $F)" -le 500 ] && echo OK-file
-for c in DOC-1 DOC-2 DOC-3 DOC-4; do grep -q "^##* $c" $F || echo MISSING $c; done; echo OK-four
-grep -q 'delivery-doc-checks.md' $S/SKILL.md && echo OK-pointer
-git diff --quiet -- $S/references/checks.md && ! git diff -- $S/SKILL.md | grep -E '^\+.*(INPUT-ERROR|named input)' && echo OK-noinput
-# fixture: verifier builds in $TMPDIR a 13-section architecture.md (Provenance removed), one "(fact)" without a command, one child draft without AC, one child with a missing observability case;
-# a doc-reviewer run on it must report DOC-1 (Blocking), DOC-2 (Medium), DOC-3 (Blocking), DOC-4 (Medium) and nothing for a clean control doc.
-echo OK-fixture   # printed by the verifier after the run matches
-for h in '## Trigger' '## Steps' '## Red flags' '## Exit criteria' '## Provenance'; do grep -q "^$h" $S/SKILL.md || echo MISSING $h; done
-head -12 $S/SKILL.md | grep -E '^version:'
-grep -rn -E '/Users/xavier|brainAlpha|brainBeta|brainGamma|hermesAuth|Xavier|touri|ofw|runfrist|jetblue|Notion' $S   # nothing
-bash tools/check-doc-length.sh . ; git diff --stat -- . ':!skills/doc-reviewer'   # second: empty
+set -eu; W=~/projects/agent-hq-worktrees/delivery-extends; cd "$W"; B=$(git merge-base HEAD wt/delivery-w0); S=skills/doc-reviewer; F=$S/references/delivery-doc-checks.md; R=${FIXTURE_DIR:?the non-author verifier sets FIXTURE_DIR to its fixture result directory}
+test -f $F; [ "$(wc -l < $F)" -le 500 ]
+for c in DOC-1 DOC-2 DOC-3 DOC-4; do grep -q "^##* $c" $F || { echo "MISSING $c"; exit 1; }; done
+grep -q 'delivery-doc-checks.md' $S/SKILL.md
+git diff --quiet $B -- $S/references/checks.md
+if git diff $B -- $S/SKILL.md | grep -E '^\+.*(INPUT-ERROR|named input)'; then echo "FAIL: input added"; exit 1; fi
+# fixture: the verifier builds in $TMPDIR a 13-section architecture.md (Provenance removed), one "(fact)" without a command,
+# one child draft without AC, one child missing the observability case, and a clean control doc; it runs doc-reviewer on
+# each and saves the raw reports as $R/fixture.out and $R/control.out
+for c in DOC-1 DOC-2 DOC-3 DOC-4; do grep -q "$c" $R/fixture.out || { echo "FIXTURE-MISSING $c"; exit 1; }; done
+if grep -qE 'DOC-[1-4]' $R/control.out; then echo "FAIL: control flagged"; exit 1; fi
+for h in '## Trigger' '## Steps' '## Red flags' '## Exit criteria' '## Provenance'; do grep -q "^$h" $S/SKILL.md || { echo "MISSING $h"; exit 1; }; done
+head -12 $S/SKILL.md | grep -qE '^version: 1\.1\.0$'
+bash tools/check-doc-length.sh . >/dev/null
+if grep -rnE '/Users/xavier|brainAlpha|brainBeta|brainGamma|hermesAuth|Xavier|touri|ofw|runfrist|jetblue|Notion' $S; then echo "FAIL: forbidden match"; exit 1; fi
+if git status --porcelain | grep -vE '^.. (skills/(wave-execution|pr-review|fix-verifier|doc-reviewer|feature-change)/|architecture/wave-execution\.md)'; then echo "FAIL: change outside the EXTEND scopes"; exit 1; fi
+echo EXT-12-OK
 ```
+Review-time check: the fixture report gives `DOC-1` and `DOC-3` Blocking, `DOC-2` and `DOC-4` Medium (Q12-3).
 
 ## 10. Branch and worktree
-Separate EXTEND branch (Q12-1); no add, commit, rebase or push by the author.
+Branch `ext/delivery-extends` (PC-1); no add, commit, rebase or push by the author.
 
 ## 11. Decision Gate Reminder
 Write `.decisions/12-doc-reviewer.md` and stop if: a check needs a new input; the part-04 section lists conflict with INTERFACES; severities (Q12-3) are demanded as owner rules rather than proposals; the file would pass 500 lines (split into a second `references/` file instead, never compress).

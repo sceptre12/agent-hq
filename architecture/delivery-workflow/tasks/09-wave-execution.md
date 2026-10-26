@@ -1,9 +1,9 @@
 # Task Spec: 09 wave-execution EXTEND (ADR 0054 A0-A9, owner Q1-Q11)
 
-> Item: design §7 item 9 (`part-06-build-plan-and-sources.md:22`), wave W1. Branch: `ext/wave-execution` (a separate reviewed branch, M29).
+> Item: design §7 item 9 (`part-06-build-plan-and-sources.md:22`), wave W1. Branch: `ext/delivery-extends` (RESOLVED (PC-1, plan-check): branch `ext/delivery-extends` in worktree `~/projects/agent-hq-worktrees/delivery-extends`, created by the integrator (Worker1) from `wt/delivery-w0` after the plan-check commit (so it holds the W0 item 8 ports); items 9-13 share it on directory-disjoint paths; the branch is reviewed separately and never used to review the family (M29)).
 > Tier: SKILL.md piece = design (strong); spec-format piece and example/tests piece = execute (default); integration = design. Review rung: Rung 1 trio (prose; not one of the four heavy items). The branch is not used to review the family (M29).
 > Depends on: INTERFACES frozen (parts C1.1-C1.3, C2, A.5, D2.3); ADR 0054 accepted 2026-10-26 (clears owner wait (b), `part-06:49`); 2b plan-check of this spec. Blocks: items 28 and 29 (`delivery-run`, `delivery-pipeline`, W2).
-> Done condition (machine-checkable): `bash skills/wave-execution/references/example-spec/tests/run.sh` prints `WAVE-EXEC-TESTS: PASS <n>/<n>` with exit 0, AND every command in section 9 exits 0.
+> Done condition (machine-checkable): the section 9 block exits 0 and its last stdout line is `EXT-09-OK` (it requires `tests/run.sh` to exit 0 with last line `WAVE-EXEC-TESTS: PASS <n>/<n>`).
 
 ## 1. Objective
 Extend `skills/wave-execution` (SKILL.md, `references/spec-format.md`, `references/example-spec/` with tests) and `architecture/wave-execution.md` so they implement every ADR 0054 decision A0-A9 and owner answers Q1-Q11, with all new fields optional and a bundle that declares none validating and running exactly as today.
@@ -12,14 +12,14 @@ Extend `skills/wave-execution` (SKILL.md, `references/spec-format.md`, `referenc
 - Authority: `decisions/0054-adr-0023-amendment-delivery-workflow.md` (A0-A9; "What changes in `skills/wave-execution`" lists the edit sites by line at `c1ba30e`); INTERFACES part C1.1 (values), C1.2 (`done_condition`, `persona`, `lane`, `depends_on`), C1.3 (rules 13-15), C2 (record, controller side R4-J15), part A `bus.endpoint` and `dispatch/<invocation>.jsonl`, part D2.3 (input names, transport rule R4-J22: `wave-execution` keeps snake_case), D topic table.
 - Existing: `skills/wave-execution/SKILL.md` (294 lines, 2623 words, `c1ba30e`), `references/spec-format.md` (141 lines), `references/example-spec/` (waves 01-03 plus README), `architecture/wave-execution.md` (261 lines), `decisions/0023-*`.
 - Standards: `tools/skill-authoring.md` §2-§5 (SKILL.md body at or under 5k tokens; depth in `references/`), `tools/check-doc-length.sh`.
-- Dependencies: none beyond the frozen files. Port guard (INTERFACES 1.1.0 amendment, landing): see SPEC-QUESTION 1.
+- Dependencies: none beyond the frozen files. Port guard (AM-1, INTERFACES 1.1.0): no claim step in this skill (RESOLVED Q1).
 
 ## 3. Scope
 **Split plan (Rule 7: three directory-disjoint pieces in parallel, 1.5 h; then one integration step, 0.5 h).**
 
 | Piece | Owner files (only these) | Reads, never writes |
 |---|---|---|
-| P1 SKILL.md (design tier) | `skills/wave-execution/SKILL.md`; new `skills/wave-execution/references/frontier-mode.md` if the body would exceed budget (SPEC-QUESTION 2) | ADR 0054, INTERFACES |
+| P1 SKILL.md (design tier) | `skills/wave-execution/SKILL.md`; new `skills/wave-execution/references/frontier-mode.md` if the body would exceed budget (RESOLVED Q2) | ADR 0054, INTERFACES |
 | P2 spec-format (execute) | `skills/wave-execution/references/spec-format.md` | ADR 0054, INTERFACES |
 | P3 example spec and tests (execute) | `skills/wave-execution/references/example-spec/**` (waves, README, `tests/`) | ADR 0054, INTERFACES |
 | Integration (design, 1 agent, after P1-P3) | `architecture/wave-execution.md`; cross-file fixes in P1-P3 files | all |
@@ -82,35 +82,38 @@ P2 and P3 take the field names, enum values, regexes and rule numbers from ADR 0
 - [ ] `invocation`, `tier_override`, the dispatch record and registered-id acceptance are documented (INTERFACES C1.1 rows R4-J12, R4-J15).
 - [ ] The example frontier wave validates under rules 1-15 (tests); each negative fixture fails with its named rule.
 - [ ] `architecture/wave-execution.md` has no "not yet implemented" for Tier A, carries the ADR 0054 banner line, and covers every bullet of the ADR's architecture-doc list.
+- [ ] SKILL.md frontmatter carries `version: 1.1.0` (RESOLVED, PC-1: the unversioned base at `c1ba30e` or the item 8 port counts as 1.0.0; an EXTEND is a minor bump).
 - [ ] SKILL.md body within the token budget; overflow in `references/`; `Provenance` section updated (ADR 0054, this port).
 - [ ] No cost metric; no hq-internal text beyond what the SUB rules allow.
 
 ## 9. Verification commands
 ```bash
-W=~/projects/agent-hq-worktrees/delivery-w0; cd "$W"
-bash skills/wave-execution/references/example-spec/tests/run.sh          # WAVE-EXEC-TESTS: PASS n/n
-bash tools/check-doc-length.sh "$W"                                      # exit 0
-test "$(wc -w < skills/wave-execution/SKILL.md)" -le 3700                # token proxy (SPEC-QUESTION 2)
+set -eu; W=~/projects/agent-hq-worktrees/delivery-extends; cd "$W"; B=$(git merge-base HEAD wt/delivery-w0); S=skills/wave-execution
+out=$(bash $S/references/example-spec/tests/run.sh); printf '%s\n' "$out" | tail -1 | awk '{split($3,a,"/"); exit !($1=="WAVE-EXEC-TESTS:" && $2=="PASS" && a[1]==a[2] && a[1]>0)}'
+bash tools/check-doc-length.sh "$W" >/dev/null
+test "$(wc -w < $S/SKILL.md)" -le 3700                                   # token proxy (RESOLVED Q2)
 for f in session_id output_topic bus_endpoint max_concurrent persona lane depends_on done_condition step_complete invocation tier_override; do
-  grep -q "$f" skills/wave-execution/SKILL.md && grep -q "$f" skills/wave-execution/references/spec-format.md || echo "MISSING $f"; done   # no output
-grep -c "^1[345]\. " skills/wave-execution/references/spec-format.md     # 3
-! grep -rn "not yet implemented" architecture/wave-execution.md
+  grep -q "$f" $S/SKILL.md && grep -q "$f" $S/references/spec-format.md || { echo "MISSING $f"; exit 1; }; done
+test "$(grep -c '^1[345]\. ' $S/references/spec-format.md)" -eq 3
+if grep -rn "not yet implemented" architecture/wave-execution.md; then echo FAIL; exit 1; fi
 grep -q "ADR 0054" architecture/wave-execution.md
-! grep -rnE "/Users/xavier|brainAlpha|Xavier|touri|Notion" skills/wave-execution architecture/wave-execution.md
-git status --short | grep -vE '^( M|\?\?) (skills/wave-execution/|architecture/wave-execution.md|architecture/delivery-workflow/tasks/09-)' # no output (integrator only reads status; no add/commit)
+head -12 $S/SKILL.md | grep -qE '^version: 1\.1\.0$'
+if grep -rnE "/Users/xavier|brainAlpha|Xavier|touri|Notion" $S architecture/wave-execution.md; then echo "FAIL: forbidden match"; exit 1; fi
+if git status --porcelain | grep -vE '^.. (skills/(wave-execution|pr-review|fix-verifier|doc-reviewer|feature-change)/|architecture/wave-execution\.md)'; then echo "FAIL: change outside the EXTEND scopes"; exit 1; fi
+echo EXT-09-OK
 ```
-`tests/run.sh` (P3) is hermetic bash in the style of `tools/test_check-doc-length.sh`: a static checker of the bundle rules over `example-spec/` and `tests/fixtures/{valid,invalid-<rule>}/`. It must cover: valid frontier bundle passes; invalid per rule 9 (`step_complete` without `done_condition`, extra key in it), 13 (uppercase `session_id`), 14 (placeholder topic; differing per-wave topic), 15 (cycle; cross-wave edge; edges without enumerated work_items), 11 (frontier budget overrun); the no-new-field 3-wave bundle still passes.
+`tests/run.sh` (P3) is hermetic bash in the style of `tools/test_check-doc-length.sh`: a static checker of the bundle rules over `example-spec/` and `tests/fixtures/{valid,invalid-<rule>}/`, last line `WAVE-EXEC-TESTS: PASS <n>/<n>`. It must cover: valid frontier bundle passes; invalid per rule 9 (`step_complete` without `done_condition`, extra key in it), 13 (uppercase `session_id`), 14 (placeholder topic; differing per-wave topic), 15 (cycle; cross-wave edge; edges without enumerated work_items), 11 (frontier budget overrun); the no-new-field 3-wave bundle still passes.
 
 ## 10. Branch
-`ext/wave-execution`, from agent-hq `main` after the W0 branch lands. Pieces write into one worktree on directory-disjoint paths; the integrator commits once per piece plus once for integration. The branch is reviewed separately and not used to review other W1 items (M29).
+`ext/delivery-extends` (PC-1; worktree `~/projects/agent-hq-worktrees/delivery-extends`), created by the integrator from `wt/delivery-w0` after the plan-check commit. Pieces write into that worktree on directory-disjoint paths; authors never add, commit or push; the integrator commits once per piece plus once for integration. The branch is reviewed separately and not used to review other W1 items (M29).
 
 ## 11. Decision Gate reminder
-Write `.decisions/09-wave-execution.md` and stop on: a conflict between ADR 0054 and INTERFACES; any behaviour neither states (mark `SPEC-QUESTION:`, do not invent); a need to edit a file outside section 3; a rule that tests cannot check with the commands above.
+Write `.decisions/09-wave-execution.md` and stop on: a conflict between ADR 0054 and INTERFACES; any behaviour neither states (record it as a fork in the `.decisions` file, do not invent); a need to edit a file outside section 3; a rule that tests cannot check with the commands above.
 
 **Pre-flight (six checks):** inherit present (section 6); risky values present (7); module API present (5); do-not-create present (3); criteria verifiable with the given commands (8, 9); every risky value sourced (7).
 
-## SPEC-QUESTIONS (for the plan-checker)
-1. SPEC-QUESTION: the port-guard amendment (INTERFACES 1.1.0: `tools/port-check.sh` claims before any bind; catalog `port` rows; PreToolUse hook) is not yet in the frozen files and `tools/port-check.sh` is absent from the tree. Step 4 binds a pm2 bus port when `bus_endpoint` is absent; whether P1 must call the claim there (and how an attached bus is claimed, presumably by the caller) is undecided. Default until the amendment lands: P1 adds no claim step and the integrator re-reads INTERFACES before finishing and adds it if the amendment specifies it. The `security-audit` amendment adds no wave-execution change (its agents are counted by the caller's slot ledger).
-2. SPEC-QUESTION: SKILL.md is 2623 words today; the added A0-A9 behaviour may break the 5k-token body budget. Default: P1 may add `references/frontier-mode.md` (frontier release loop, discriminator, dispatch record) and link it; the word-count proxy 3700 is a stand-in for a tokenizer.
-3. SPEC-QUESTION: C1.2 states the `step_complete` gate agent reads the work_item's C2 record and its `head` and fails a non-`PASS` record, which is `delivery-run` vocabulary; ADR 0054 A4 keeps `wave-execution` domain-agnostic. Default: SKILL.md states it generically (the gate agent runs `done_condition.command` where the work_item's output says to, and fails a work_item whose completion record is not a pass), with the C2 wording left to `delivery-run`.
-4. SPEC-QUESTION: whether the tests piece is wanted as an executable checker (default above) or fixtures only; a script implies the code gate (`pr-review`, 7 seats, item 32 rung). Default: executable, reviewed at Rung 1 as a test fixture, not as shipped tooling.
+## Plan-check resolutions (2026-10-26; report `reviews/plan-check-w1-specs.md`)
+1. RESOLVED (INTERFACES D5 "the lead claims the bus port (A.5.2) and starts the bus", C1.1 `bus_endpoint` row, A.5.2 scope "every port a run binds"): `wave-execution` adds no claim step. In a delivery run `bus_endpoint` is always declared and `delivery-run` (item 28) claims, launches and restarts the bus; the unattached step 4 bootstrap is standalone use outside a run and keeps today's behaviour. AM-1's security-audit adds nothing here.
+2. RESOLVED (PLAN-CHECK DEFAULT; `tools/skill-authoring.md` depth in `references/`): P1 may add `references/frontier-mode.md`; the 3700-word proxy stands.
+3. RESOLVED (ADR 0054 A4 keeps the skill domain-agnostic; INTERFACES C1.2 verifier row leaves the C2 reading to the caller): generic wording in SKILL.md as proposed; `delivery-run` (item 28) carries the C2 wording.
+4. RESOLVED (PLAN-CHECK DEFAULT; `tools/code-gate/scope.conf` `include *.sh`): `tests/run.sh` is executable and in code-gate scope; the integrator maps it in `tools/code-gate/test-map.tsv` (it is its own test) and it goes through item 32's code gate with the other W1 executables; the prose stays Rung 1.

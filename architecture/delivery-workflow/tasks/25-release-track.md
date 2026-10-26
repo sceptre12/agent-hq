@@ -64,30 +64,34 @@ The operator's locally configured Zephyr MCP session (identity and scope unmeasu
 - [ ] `check-zephyr-disallowed.sh <agents-dir> <tool-name>` exits 0 only if every `*.md` in the directory lists the tool in its frontmatter `disallowedTools`; tested on a temp fixture (one pass, one fail case).
 - [ ] No hard-coded tool name or operation list outside test fixtures labelled as fixtures; every unmeasured value marked "unmeasured, verify at move".
 
-SPEC-QUESTION 1: exact Zephyr MCP tool names as Claude Code exposes them (`execute`, `search`) are unmeasured (B2, part-02 §2.1b). The hook gets the tool name as an argument; who supplies it (a profile key beyond A.2.2, an env var set by the launcher)? Rule needed; suggest a profile key `zephyr.execute_tool` via an INTERFACES amendment (consumers: release-track, delivery-intake, launcher).
-SPEC-QUESTION 2: the field of `execute`'s `tool_input` that names the operation is unmeasured; the extraction function must be isolated in one shell function and its fixture marked as an assumption until P0.
-SPEC-QUESTION 3: where the refusal log lives (no path in the plane table D6). Suggest `RUN_HOME/pm/zephyr-refusals.log`; plane-table row needed.
-SPEC-QUESTION 4: which stop-the-line id a Zephyr refusal takes; R4-J11's set is closed (`S7` fits only a production write). Rule needed.
-SPEC-QUESTION 5: how the hook is attached to a skill-invoked tool call (skill frontmatter `hooks`, agent frontmatter, or session settings) is unmeasured; `hook-wiring.md` lists options only.
-SPEC-QUESTION 6: who adds the `execute` entry to `agents/*.md` and the launcher spec (outside this item's dirs).
+RESOLVED Q1 (design §5.8 lists "the Zephyr `execute` tool name" as a profile field; A.2.2 lacks the key, AM-2 row 5): profile key `zephyr.execute_tool` (string), written by `delivery-intake` (`FILL_IN_BEFORE_DISPATCH` until P0 measures it); the hook takes it as an argument from the wiring, never hard-coded.
+RESOLVED Q2 (PLAN-CHECK DEFAULT; unmeasured until P0): the extraction is one shell function, its fixture is labelled "assumption until P0"; an input without that field is refused (fail closed).
+RESOLVED Q3 (PLAN-CHECK DEFAULT; AM-2 row 13): `RUN_HOME/pm/zephyr-refusals.log`, one appended line per refusal (`<ISO UTC> <tool> <operation> <reason>`), writer the hook in the `pm` lead.
+RESOLVED Q4 (INTERFACES A.3 closed row ids: `S1` "classifier or harness block"): a Zephyr refusal is a harness block, `stop_reason: stop-the-line:S1`; `S7` stays for an unrecorded production write.
+RESOLVED Q5 (PLAN-CHECK DEFAULT; unmeasured): `hook-wiring.md` lists the options, each marked unmeasured; until P0 records a working wiring with a positive control (a refused non-read call), `release-track` makes no `execute` call at all and confirms promotions by the human's report (`RELEASE: WAITING-HUMAN`). Fail closed.
+RESOLVED Q6 (PLAN-CHECK DEFAULT; §6.4 launcher spec is the conductor's, card 1): item 29 (`delivery-pipeline`, W2) adds the `--disallowedTools` entry to the launcher spec; item 33 (W3) adds `disallowedTools` to every agent definition and runs `check-zephyr-disallowed.sh` as its gate; the tool name is filled at the move from P0. This item writes neither.
 
 ## 9. Verification commands
 ```bash
-W=$HOME/projects/agent-hq-worktrees/delivery-w0; S=$W/skills/release-track
-for f in SKILL.md references/zephyr-leg.md references/hook-wiring.md scripts/zephyr-guard.sh scripts/test_zephyr-guard.sh scripts/check-zephyr-disallowed.sh; do test -f $S/$f || echo MISSING $f; done
-for f in $S/scripts/*.sh; do bash -n $f || echo SYNTAX $f; done
-bash $S/scripts/test_zephyr-guard.sh        # prints PASS counts, exit 0
-grep -q 'Use when' $S/SKILL.md; ! grep -q 'disable-model-invocation' $S/SKILL.md
-for h in '## Trigger' '## Steps' '## Red flags' '## Exit criteria'; do grep -q "^$h" $S/SKILL.md || echo MISSING $h; done
+set -eu; W=$HOME/projects/agent-hq-worktrees/delivery-w0; S=$W/skills/release-track
+for f in SKILL.md references/zephyr-leg.md references/hook-wiring.md scripts/zephyr-guard.sh scripts/test_zephyr-guard.sh scripts/check-zephyr-disallowed.sh; do test -f $S/$f || { echo "MISSING $f"; exit 1; }; done
+for f in $S/scripts/*.sh; do bash -n $f; done
+bash $S/scripts/test_zephyr-guard.sh | tail -3 | grep -q ', 0 failed'
+grep -q 'Use when' $S/SKILL.md
+if grep -q 'disable-model-invocation' $S/SKILL.md; then echo "FAIL: disable-model-invocation"; exit 1; fi
+for h in '## Trigger' '## Steps' '## Red flags' '## Exit criteria'; do grep -q "^$h" $S/SKILL.md || { echo "MISSING $h"; exit 1; }; done
+grep -qE '^version: 0\.1\.0$' $S/SKILL.md
+[ "$(wc -w < $S/SKILL.md)" -lt 3500 ]
+bash $W/tools/check-doc-length.sh $W >/dev/null
 tail -n 1 $S/SKILL.md | grep -q 'Provenance: pending pilot'
-for t in 'RELEASE: LIVE' 'RELEASE: ROLLED-BACK' 'RELEASE: WAITING-HUMAN' CONDUCTOR-REQUEST 'zephyr.read_ops' 'H-prod' 'tag-push' 'publish' 'test-report-push'; do grep -q -- "$t" $S/SKILL.md || echo MISSING $t; done
-grep -n -E 'exit 2' $S/scripts/zephyr-guard.sh >/dev/null
-! grep -n -E '\b(curl|wget|nc)\b' $S/scripts/zephyr-guard.sh
-[ $(wc -w < $S/SKILL.md) -lt 3500 ]
-bash $W/tools/check-doc-length.sh $W
-! grep -rn -i -E 'touri|ofw|runfrist|jetblue|notion|/Users/xavier' $S
+for t in 'RELEASE: LIVE' 'RELEASE: ROLLED-BACK' 'RELEASE: WAITING-HUMAN' CONDUCTOR-REQUEST 'zephyr.read_ops' 'zephyr.execute_tool' 'H-prod' 'tag-push' 'publish' 'test-report-push' 'zephyr-refusals.log' 'S1'; do grep -rq -- "$t" $S/SKILL.md $S/references || { echo "MISSING $t"; exit 1; }; done
+grep -qE 'exit 2' $S/scripts/zephyr-guard.sh
+if grep -n -E '\b(curl|wget|nc)\b' $S/scripts/zephyr-guard.sh; then echo "FAIL: network call"; exit 1; fi
+if grep -rn -i -E 'touri|ofw|runfrist|jetblue|notion|/Users/xavier|\$[0-9]|cost' $S; then echo "FAIL: forbidden match"; exit 1; fi
+if find $S -type l | grep -q .; then echo symlink; exit 1; fi
+echo SKILL-25-OK
 ```
-The scripts also go through the code gate (`tools/code-gate`).
+**Done condition:** the block exits 0 and its last stdout line is `SKILL-25-OK`; `test_zephyr-guard.sh` uses the `tools/test_check-doc-length.sh` layout (last lines report `<n> passed, 0 failed`). The three scripts also go through the code gate (item 32): the integrator adds their `tools/code-gate/test-map.tsv` rows (`skills/release-track/scripts/zephyr-guard.sh` and `check-zephyr-disallowed.sh` -> `test_zephyr-guard.sh`), serially with items 5-7.
 
 ## 10. Branch and worktree
 `~/projects/agent-hq-worktrees/delivery-w0`, branch `wt/delivery-w0`; no git add/commit/branch/push. Tier: execute. Review rung: Rung 1 trio for `SKILL.md` and `references/`; code gate for the three scripts (a Zephyr-write refusal path is the safety property; the gate checks it). D7 stop after round 3. File scope dirs: `skills/release-track/` only.

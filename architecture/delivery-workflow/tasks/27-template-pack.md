@@ -42,7 +42,9 @@ Ownership rationale: the writer column of A.6 (conductor writes `state.md`, retr
 | `repo-profile.md` | YAML, dotted keys nested, `"yes"`/`"no"` quoted, sole authority (D22), `release_tags.*`, `e2e.*`, sensitive-path deny list, lane profile | A.2.2, §5.8 |
 | Tickets and `.tasks` | 11-section unit spec (§5.3b); scope globs live in `## 3` as `- <glob>` lines (scope-check reads them) | part C1.2 |
 | Release plan | step table, first column `step_id` `^[a-z0-9-]+$`, owner `agent\|human` | A.6 |
-| Checklist | every §5.7 row plus a `GATE-PASS` row; `PASS` only if each row has evidence | §5.7, A.7 |
+| Checklist | every §5.7 row plus a `GATE-PASS` row; `PASS` only if each row has evidence; row ids `C1`-`C23` = the §5.7 rows in their written order, `C24` version bump (card 10 step 2b), `C25` dist scan (2c), `C26` security-audit `validate-findings.cjs` (under `full` only); `PREPR: STOP <ids>` names these ids (PC-8) | §5.7, A.7, D1.1 |
+| Ticket drafts | `ticket.md` opens with YAML front matter `slug`, `issuetype`, `parent` (`-` for the epic) (PC-11) | A.6, D2.1 |
+| Dispatch-plan port table | one row per bind per sub-task: `subtask`, `role` (`bus`, `review-bus`, `lane/<name>`), `base_key` (`ports.bus_base` or `ports.lane_base`), `k`, `candidate`; a candidate is claimed at launch per A.5.2, never promised free (PC-4) | A.5.2, spec 17 Q4 |
 | Planes | exact §5.11 table; RUN vs repo `plans/<epic>/`; adds the AM-1 rows `security-audit/run-<N>/` (RUN `<subtask>/`) and `skills/security-audit/` (vendored) | A.1, D6 |
 | AM-1 `state.md` | field `security_audit: guidance\|full`, default `guidance` | A.2 |
 | AM-1 `architecture.md` | optional header line `security_sensitive: yes` (sets `security_audit: full`) | A.2, A.6 |
@@ -96,18 +98,21 @@ grep -q 'security_audit' skills/delivery-pipeline/references/templates/state-and
 grep -q 'security_sensitive' skills/delivery-architecture/references/templates/architecture.md || echo AM1-ARCH
 grep -q 'port-check' skills/resource-catalog/references/templates/catalog.tsv.md || echo AM1-PORT
 grep -q 'security-auditor' skills/delivery-pipeline/references/templates/state-and-substate.md || echo AM1-PERSONA
+grep -q 'C26' skills/pre-pr-gate/references/templates/step-completeness-checklist.md || echo PC-CHECKLIST-IDS
+grep -q 'issuetype:' skills/delivery-architecture/references/templates/ticket.md || echo PC-DRAFT-FRONTMATTER
+grep -q 'ports.bus_base' skills/delivery-dispatch-plan/references/templates/dispatch-plan.md || echo PC-PORT-TABLE
 for k in worktree branch tag process pm2-app port bus tmpdir container image lane-lease db clone cron bgtask file workspace; do grep -q -- "$k" skills/resource-catalog/references/templates/catalog.tsv.md || echo KIND-MISSING $k; done
 ```
-**Done condition:** `files=12`, no `MISSING`, `EXTRA-FILE`, `RECORD-MISSING`, `AM1-*`, `KIND-MISSING`, no output from the `grep -L`/`grep -l` lines, `check-doc-length.sh` exit 0, integration record written (below), and each piece's Rung 1 trio at 0 Blocking / 0 Medium (or a D7 owner stop).
+**Done condition:** `files=12`, no `MISSING`, `EXTRA-FILE`, `RECORD-MISSING`, `AM1-*`, `PC-*`, `KIND-MISSING`, no output from the `grep -L`/`grep -l` lines, `check-doc-length.sh` exit 0, integration record written (below), and each piece's Rung 1 trio at 0 Blocking / 0 Medium (or a D7 owner stop).
 
 **Integration step (one, serial, after T-A to T-D, by the integrator):** run the block above; diff each template's quoted enum/regex against INTERFACES (`grep -F` of each regex string in the matching part); check that every template filename the W1 `SKILL.md` items cite exists (`grep -rho 'references/templates/[A-Za-z0-9._-]*' skills | sort -u` against the 12); write a pass line in the item-33 consistency log. Failure of any row returns the piece to its author, not to another piece.
 
 ## 10. Branch
 Worktree `delivery-w0` (`wt/delivery-w0`); no git add, commit, branch, push or rebase by authors; the integrator commits.
 
-## 11. Decision Gate Reminder, SPEC-QUESTIONs
+## 11. Decision Gate Reminder, plan-check resolutions
 Stop and write `.decisions/27-<piece>.md` if INTERFACES contradicts the design section or a value is unmeasured; use a sentinel, never a guess.
-- `SPEC-QUESTION 1:` design §5 says only "owning skill"; the file-to-skill mapping and filenames in §3 are this spec's derivation from A.6 writers. Plan-checker to confirm (notably `retro` and `artifact-to-plane` in `delivery-pipeline`, `decisions-fork` in `delivery-run`).
-- `SPEC-QUESTION 2:` "12 files" is taken as one per section §5.0 to §5.11, folding 5.3b, 5.8b and `substate.md` in. If the owner meant 15 (sub-sections separate), T-C and T-D grow by file, not by directory.
-- `SPEC-QUESTION 3:` items 28 (`delivery-run`) and 14, 15, 17, 21 write `references/` in the same skill directories; their scopes must exclude `templates/` (and, in `delivery-run`, `briefs/`).
+- RESOLVED Q1 (INTERFACES A.6 writer column; PLAN-CHECK DEFAULT where A.6 names no single writer): the §3 mapping stands. `retro-and-execution-log.md` and `artifact-to-plane.md` go to `delivery-pipeline` (the conductor writes `retro.md`, `execution-log.md` and creates `RUN_HOME`); `decisions-fork.md` goes to `delivery-run` (the lead resolves `.decisions` forks, A.6).
+- RESOLVED Q2 (design part-06 §7 item 27 "12 files, §5.0-5.11"): one file per section §5.0-§5.11, with 5.3b, 5.8b and `substate.md` folded in.
+- RESOLVED Q3 (PC-3): specs 14, 15, 17, 18 and 20 exclude `references/templates/` and their checks skip it; the W2 specs for items 28 (`delivery-run`) and 29 (`delivery-pipeline`), not written yet, must exclude `references/templates/` and, for 28, `references/briefs/`.
 - AM-1 (1.1.0) is applied above: T-A (`state`, slot row persona), T-B (`architecture` header), T-C (`catalog`, `dispatch-plan` lane ports), T-D (`checklist` gate row). AM-1's re-check list names "the `state.md` and `dispatch-plan.md` templates" as consumers; this item is that re-check, so the integration record states the result. Re-read INTERFACES `Amendments` just before finishing; a newer amendment is applied the same way or marked STUCK.

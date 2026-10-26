@@ -17,7 +17,7 @@ In (this item writes only):
 - `skills/pre-pr-gate/SKILL.md` (body under 5k tokens; frontmatter `name`, `description` with "Use when", `version`; no `disable-model-invocation`, D16).
 - `skills/pre-pr-gate/references/*.md` at the top level of `references/` (for example `steps-detail.md`, `g48-classes.md`, `security-seat.md`).
 
-Out: `skills/pre-pr-gate/references/templates/` and `references/briefs/` (written by items 27 and 27b; the SKILL.md links them by the names those items own, and `SPEC-QUESTION 1` records the open overlap); `pr-review`, `fix-verifier`, `security-audit` edits; scripts; INTERFACES.
+Out: `skills/pre-pr-gate/references/templates/` (item 27; the SKILL.md links it by the names item 27 owns); no `references/briefs/` exists here (RESOLVED Q1: one briefs root `skills/delivery-run/references/briefs/`, item 27b); `pr-review`, `fix-verifier`, `security-audit` edits; scripts; INTERFACES.
 Do NOT create: a second record format, a weighted score, a new token, a new desk verb, `tools/` files, symlinks.
 
 Directories written: `skills/pre-pr-gate/` only.
@@ -33,9 +33,9 @@ Directories written: `skills/pre-pr-gate/` only.
 | Version bump | every app under `apps/` (not `apps/examples/`, not `e2e`) affected since merge-base has a changed `package.json` `version`; none added for unaffected apps | part-04 §5.8b (B3) |
 | `HUSKY=0` | not restated; link part-a A.7 only | part-a A.7 |
 | Review loop cap | rounds 1-3, then STOP: the sub-task halts, open findings to the human, other sub-tasks continue | D7, card 10 step 9 |
-| Port guard | the local `pr-review` bus port: (1) `tools/port-check.sh --claim <port> <bind> <container_port> <service> <project> claimed <source> <note>` via the `port-claim` skill, `project`=`<run-id>`, `source`=`<run-id>-<subtask>`; (2) `catalog.sh register port`; (3) launch; (4) `catalog.sh start`. Exit 1 or 2 refuses the launch, never auto-pick, report to the lead; exit 3 is stop-the-line. Release is cleanup's | part-a A.5.2 |
+| Port guard | the local `pr-review` bus port: `pre-pr-gate` passes `BUS_PORT` = the sub-task's `review-bus` candidate from the dispatch-plan port table to `pr-review`, whose Step 1 runs the four A.5.2 steps (claim, `catalog.sh register port`, launch pinned to that port, `catalog.sh start`); `pre-pr-gate` claims no port itself; a refusal is reported to the lead, never re-picked (RESOLVED Q2, PC-4) | part-a A.5.2; spec 10 Q10-7 |
 | Security seat, guidance | `SECURITY_AUDIT=guidance` (default): the security seat loads `skills/security-audit` diff-scoped, writes no file, launches no agent; passed to `pr-review` as its `SECURITY_AUDIT` input | part-d D2.1, D2.3 `pr-review` |
-| Security audit, full | only on an explicit operator request or a `security_sensitive: yes` epic (set by the conductor, not decided here); `output-dir` `RUN_HOME/<subtask>/security-audit/run-<N>/`; agents persona `security-auditor`, a slot row each, no agent without a free slot; the gate row `node skills/security-audit/validate-findings.cjs <output-dir>/findings.json` non-zero exit fails the gate (SPEC-QUESTION 3) | part-a A.4, A.5.3 |
+| Security audit, full | only on an explicit operator request or a `security_sensitive: yes` epic (set by the conductor, not decided here); `output-dir` `RUN_HOME/<subtask>/security-audit/run-<N>/`; agents persona `security-auditor`, a slot row each, no agent without a free slot; the gate row `node skills/security-audit/validate-findings.cjs <output-dir>/findings.json` non-zero exit fails checklist row `C26` (`PREPR: STOP C26`; RESOLVED Q3) | part-a A.4, A.5.3 |
 
 ## 5. Inherited module API
 `catalog.sh` (register/start/release/fail, leases; item 5), `scope-check.sh` (item 6; preventive mode), `desk-req.sh` (not used here: `pre-pr-gate` sends no desk verb), `tools/port-check.sh` via the `port-claim` skill (part-a A.5.2). The skill names these by their INTERFACES script table entry and does not re-describe flags beyond what that table states.
@@ -58,44 +58,46 @@ Frontmatter and anatomy per `tools/skill-authoring.md` §2-§5 (Trigger, Steps, 
 ## 8. Acceptance criteria
 - [ ] SKILL.md has the five sections and a Step 0 using the exact input names of section 4.
 - [ ] Steps cover, in card order: rebase then review landing head; node check; `GATES` and CI-parity cold run by the gate runner; version-bump check; dist scan; standardization pre-check; redaction gate; preventive scope-check; G48 pre-round; 7-seat `pr-review`; separate fixer; `fix-verifier` with `FILE_SET`; rounds 1-3 and STOP; completeness validator over §5.7; Verified-By; catalog check; `pr-body.md`.
-- [ ] The per-push affected gate is stated once, by link to part-a A.7, with the rule that a changed head needs a `GATE-PASS` for the final head before `push` (see SPEC-QUESTION 4).
+- [ ] The per-push affected gate is stated once, by link to part-a A.7, with the rule that a changed head needs a `GATE-PASS` for the final head before `push` (RESOLVED Q4).
 - [ ] The security-audit guidance seat is a named step; the full-mode condition and the `validate-findings.cjs` gate row are quoted from part-a A.5.3 and part-d D2.1, not paraphrased; full-mode agents are bound to slot rows (A.4).
-- [ ] The `pr-review` bus port follows the four-step order of part-a A.5.2.
+- [ ] The `pr-review` bus port: `BUS_PORT` passed from the dispatch-plan port table; `pr-review` Step 1 runs the A.5.2 order (RESOLVED Q2).
+- [ ] `PREPR:` values (RESOLVED, PC-8): `PREPR: PASS`, or `PREPR: STOP <ids>` with the comma-separated failed checklist row ids `C1`-`C26` of the item 27 checklist template; the `SLUG` for `review-tailor` is `<subtask>-diff-<n>` minted here (spec 15 Q4).
 - [ ] Head-moved stop: rebase then non-author delta verify of reviewed-head..new-head (part-03 "Rebase-before-verify", M16).
 - [ ] Every redirect to the human names the file path (record, checklist), never prose only.
 - [ ] No cost metric, no personal-project term, no Notion, no `/Users/xavier` path.
 
-## 9. Verification commands (the verifier re-runs these from the worktree W)
+## 9. Verification commands
 ```bash
-S=skills/pre-pr-gate/SKILL.md
-test -f "$S" && head -1 "$S" | grep -qx -- '---'
-grep -E '^name: pre-pr-gate$' "$S"; grep -E '^version: ' "$S"
-awk '/^description:/{ if (length($0) > 1036) print "DESC-TOO-LONG" }' "$S"   # 1024 + key
-grep -E '^description:.*Use when' "$S"
-! grep -E '^disable-model-invocation: *true' "$S"
-for s in Trigger Steps 'Red flags' 'Exit criteria' Provenance; do grep -qx "## $s" "$S" || echo MISSING "$s"; done
-test "$(wc -w < "$S")" -le 3500                          # about 5k tokens
-for t in 'INPUT-ERROR' 'PREPR:' 'GATE-PASS' 'CODE-GATE-REVIEW' 'Verified-By' 'skip-nx-cache' 'pr-check-N-closed' 'peek' 'FILE_SET' 'security-audit' 'port-check' 'gate-runner' 'G48' 'A.7' 'SECURITY_AUDIT' 'validate-findings'; do grep -q -- "$t" "$S" skills/pre-pr-gate/references/*.md || echo ABSENT "$t"; done  # also: SECURITY_AUDIT validate-findings
-! grep -riE '/Users/xavier|brainAlpha|brainBeta|brainGamma|hermesAuth|Xavier|touri|ofw|runfrist|jetblue|notion' skills/pre-pr-gate
-! grep -riE 'token cost|dollar|\$[0-9]|cost metric' skills/pre-pr-gate
-bash tools/check-doc-length.sh skills/pre-pr-gate
+set -eu; W=~/projects/agent-hq-worktrees/delivery-w0; cd "$W"; D=skills/pre-pr-gate; S=$D/SKILL.md
+test -f "$S"; head -1 "$S" | grep -qx -- '---'
+grep -qE '^name: pre-pr-gate$' "$S"; grep -qE '^version: 0\.1\.0$' "$S"
+d=$(grep -E '^description:' "$S"); [ "${#d}" -le 1036 ]; printf '%s' "$d" | grep -q 'Use when'
+if grep -qE '^disable-model-invocation' "$S"; then echo "FAIL: disable-model-invocation"; exit 1; fi
+for s in Trigger Steps 'Red flags' 'Exit criteria' Provenance; do grep -qx "## $s" "$S" || { echo "MISSING $s"; exit 1; }; done
+test "$(wc -w < "$S")" -le 3500
+for t in 'INPUT-ERROR' 'PREPR: PASS' 'PREPR: STOP' 'C26' 'GATE-PASS' 'CODE-GATE-REVIEW' 'Verified-By' 'skip-nx-cache' 'pr-check-N-closed' 'peek' 'FILE_SET' 'security-audit' 'BUS_PORT' 'gate-runner' 'G48' 'A.7' 'SECURITY_AUDIT' 'validate-findings' 'diff-'; do grep -rq --exclude-dir=templates -- "$t" "$D" || { echo "ABSENT $t"; exit 1; }; done
+if grep -riE --exclude-dir=templates '/Users/xavier|brainAlpha|brainBeta|brainGamma|hermesAuth|Xavier|touri|ofw|runfrist|jetblue|notion' "$D"; then echo "FAIL: forbidden match"; exit 1; fi
+if grep -riE --exclude-dir=templates 'token cost|dollar|\$[0-9]|cost metric' "$D"; then echo "FAIL: cost text"; exit 1; fi
+if find "$D" -type l | grep -q .; then echo symlink; exit 1; fi
+bash tools/check-doc-length.sh "$D" >/dev/null
+echo SKILL-20-OK
 ```
-Every `ABSENT` or `MISSING` line is a fail. The done condition is: all commands above print nothing except the matches of the `name`, `version` and `Use when` greps, and the review trio returns CLEAN.
+**Done condition:** the block exits 0 and its last stdout line is `SKILL-20-OK`, and the review trio returns CLEAN.
 
 ## 10. Branch
 No branch for the author (Rule 7: Worker1 integrates on `wt/delivery-w0`; the author writes only the files in section 3 and does not commit).
 
 ## 11. Decision Gate reminder
-Stop and write `.decisions/20.md` if: AM-1 contradicts card 10; a step needs a desk verb that part-b B4 does not list; a `PREPR` row id is needed that §5.7 does not name; a choice in SPEC-QUESTIONS below blocks the step order. Do not guess.
+Stop and write `.decisions/20.md` if: AM-1 contradicts card 10; a step needs a desk verb that part-b B4 does not list; a `PREPR` row id is needed outside the checklist ids `C1`-`C26` (PC-8); a resolution below cannot be applied without changing the step order. Do not guess.
 
 ## Metadata
 - Tier: execute (design §7 row "14-22"); the gate-runner, G48 checker and catalog check named in the skill are mechanical; fixer is execute and escalates per ADR 0014 T1; validator and Verified-By seat are verify.
 - Review rung: Rung 1 trio (`doc-reviewer`, fix agent, `fix-verifier`), up to 3 rounds then the owner (D7); not one of the four heavy items.
-- Dependencies: INTERFACES 1.1.0 (landed; hard); items 9-11 (`pr-review`, `fix-verifier` EXTENDs) and 5-7 (scripts) for the names it cites, soft (names fixed by INTERFACES); item 16 `resource-catalog` for lease wording, soft. Consumed by item 28 `delivery-run`.
+- Dependencies: INTERFACES 1.1.0 (landed; hard); items 10-11 (`pr-review`, `fix-verifier` EXTENDs) and 5-7 (scripts) for the names it cites, soft (names fixed by INTERFACES); item 18 `resource-catalog` for lease wording, soft. Consumed by item 28 `delivery-run`.
 - Not a split item; no integration step.
 
-## SPEC-QUESTIONs
-1. Templates (`checklist`, `pr-body`) and briefs (fixer, validator, gate-runner, G48 checker) live in `references/templates/` and `references/briefs/` of this skill but are written by items 27 and 27b. Plan-checker: confirm the subdirectory split keeps scopes disjoint.
-2. The `pr-review` bus port: A.5.2 names the claim form, but not whether `pre-pr-gate` or `pr-review` itself runs the four steps for its per-review bus (the D2.3 `pr-review` row lists no port input). Default: `pre-pr-gate` does, before it launches `pr-review`.
-3. A.5.3 says a non-zero `validate-findings.cjs` exit is `PREPR: FAIL`, but the D1.1 token is `PREPR: (PASS|STOP...)` and has no `FAIL`. Default: map it to `STOP` with a new row id; the row id is not in §5.7 and needs an INTERFACES decision. Also open: does `SECURITY_AUDIT=full` run before or inside the 7-seat round.
-4. Ordering: card 10 runs the cold gate at step 2 (before review and fixes), A.7 says that run is the first-push `GATE-PASS` with no second run, but fix commits change the head and the desk requires `gate-runs/<expect_head>.md` for the final head. Does a fix round trigger a gate-runner pass on the final head, or does the cold run repeat? Needs an INTERFACES decision.
+## Plan-check resolutions (2026-10-26; report `reviews/plan-check-w1-specs.md`)
+1. RESOLVED (INTERFACES C1.2 `persona` row, D2.1, row R4-J14: one briefs root `skills/delivery-run/references/briefs/`; spec 27 §3 piece T-D; PC-3): no `references/briefs/` in this skill; item 27 writes only `references/templates/step-completeness-checklist.md` here; this item writes `SKILL.md` and top-level `references/*.md`; disjoint at the subdirectory.
+2. RESOLVED (PC-4; A.5.2 "the launcher never auto-picks"; AM-2 row 7): `pr-review` is the launcher of its bus, so its Step 1 runs the four steps; `pre-pr-gate` passes `BUS_PORT` (the `review-bus` candidate of this sub-task's dispatch-plan port table) and claims nothing itself.
+3. RESOLVED (INTERFACES D1.1 `PREPR:` regex has no `FAIL`; A.5.3 "is `PREPR: FAIL`" is an INTERFACES wording slip, AM-2 row 8; PC-8): a non-zero `validate-findings.cjs` exit fails checklist row `C26`, token `PREPR: STOP C26`. Under `full` the audit runs after the G48 pre-round check and before round 1 of the 7-seat `pr-review`, because the security seat reads the latest `findings.json` (D2.3 `pr-review` row); it is not re-run per round unless the head changes.
+4. RESOLVED (INTERFACES A.7 cadence "once per push or batch, at unit end and before each push" and "`pre-pr-gate` cold run ... is the `GATE-PASS` for the PR's first push (same command, same runner)"; B5 gate-run marker `gate-runs/<expect_head>.md`): when fix rounds move the head, the gate runner re-runs the same cold CI-parity command on the final head under a `gate-runner` lease and writes `gate-runs/<final head>.md`; the step-2 run is the first-push `GATE-PASS` only while the head is unchanged. Checklist row `C9` checks it. No INTERFACES change.

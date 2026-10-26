@@ -1,11 +1,11 @@
 # Task 16: `review-tailor` (NEW skill, stages 2, 3, 4b)
 
 - **Header:** item 16 (part-06 §7); wave W1; authoring tier `execute` (§7 row 14-22); runtime tier `verify`, `design` on one-way doors (card 4; persona Review tailor, part-03 line 36); review rung: Rung 1 trio (reviewer, fixer, fix-verifier; item 30); not heavy. Interfaces: `INTERFACES.md` + `interfaces/part-a..d` (FROZEN) and amendment AM-1 (INTERFACES 1.1.0: `SECURITY_AUDIT` input, D2.2 row 4).
-- **Dependencies:** INTERFACES frozen; reads `tools/review-ladder.md`; seat pool from part-03 §3.4-3.5; consumers (called by name, no file dependency): `delivery-architecture` (task 15), `delivery-dispatch-plan` (item 17), `pre-pr-gate` (item 21) and the `pr-review` EXTEND (`ROLES`, part D2.3). `security-audit` (`skills/security-audit`) is referenced, not edited.
+- **Dependencies:** INTERFACES frozen; reads `tools/review-ladder.md`; seat pool from part-03 §3.4-3.5; consumers (called by name, no file dependency): `delivery-architecture` (task 15), `delivery-dispatch-plan` (item 17), `pre-pr-gate` (item 20) and the `pr-review` EXTEND (`ROLES`, part D2.3). `security-audit` (`skills/security-audit`) is referenced, not edited.
 - **Split:** none (1 agent).
 
 ## 1. Objective
-Write `skills/review-tailor/SKILL.md` (card 4, part-02 §2.2): given artifacts, kind, stakes, contention and novelty, choose the lowest rung that covers the risk and the seats, and write one record file. **Done condition (single, machine-checkable):** the section 9 check script prints no `FAIL` line, and its fixture cases produce the expected first lines (all four cases in section 9). Smaller seat sets for code stay off until the D12 conditions are met (section 7, item 1).
+Write `skills/review-tailor/SKILL.md` (card 4, part-02 §2.2): given artifacts, kind, stakes, contention and novelty, choose the lowest rung that covers the risk and the seats, and write one record file. **Done condition (single, machine-checkable):** with the fixture records saved by a non-author reader (section 9), the section 9 block exits 0 and its last stdout line is `SKILL-16-OK`. Smaller seat sets for code stay off until the D12 conditions are met (section 7, item 1).
 
 ## 2. Context package
 - Card 4 (part-02 line 56); persona row (part-03 line 36); seat pool §3.4 and domain lenses §3.5 (part-03); review table (part-02 §2.4); G48 and the quality rules (part-03 line 94); D12 in `owner-decisions.md` (line 9: smaller seat sets allowed only after (a) a RACI remap moving every dropped role's checks to a kept role and (b) a 3-seat probe showing no lost checks; until then full 7).
@@ -22,7 +22,7 @@ Write `skills/review-tailor/SKILL.md` (card 4, part-02 §2.2): given artifacts, 
 | Contract | Anchor | Role |
 |---|---|---|
 | Inputs `RUN_HOME`, `SLUG`, `ARTIFACTS` (comma-separated paths), `KIND`, `STAKES`, `CONTENTION`, `NOVELTY`, `SECURITY_AUDIT` as `NAME=value`; `DELIVERY_ROOT` env | part D2.2 row 4; D1 | Step 0; `INPUT-ERROR <NAME> <reason>` per failing field, then stop |
-| Enums `SECURITY_AUDIT` `guidance\|full` (D2.1; omission rule is SPEC-QUESTION 2); `KIND` `doc\|plan\|diff`; `STAKES` `reversible\|one-way`; `CONTENTION` `none\|contested`; `NOVELTY` `known\|novel`; `rung` `0\|1\|2\|2b\|3\|4` | part D2.1 | validate; bad value is `INPUT-ERROR <NAME> enum` |
+| Enums `SECURITY_AUDIT` `guidance\|full` (D2.1; required, RESOLVED Q2); `KIND` `doc\|plan\|diff`; `STAKES` `reversible\|one-way`; `CONTENTION` `none\|contested`; `NOVELTY` `known\|novel`; `rung` `0\|1\|2\|2b\|3\|4` | part D2.1 | validate; bad value is `INPUT-ERROR <NAME> enum` |
 | `SLUG` form `<subtask\|run>-<kind>-<n>`, minted by the caller | part A.1 `<slug>`; D2.2 row 4 | validate with `format`; never mint |
 | Output file `RUN_HOME/review-tailor-<SLUG>.md`: line 1 `RUNG: <rung> seats: <n>`, lines 2+ seat table `seat-id<TAB>role<TAB>reason`; written by this skill itself | part D1.1 (`^RUNG: (0\|1\|2\|2b\|3\|4) seats: [0-9]+$`); A.6 | sole writer, atomic (A.1); `pr-review` `ROLES` derives from the seat ids |
 | `seat-id` shape `^[a-z0-9-]+$`; persona tokens `review-tailor`, `review-seat` | part A.1 token shapes; D2.1 `persona` | use as written |
@@ -53,22 +53,33 @@ Callers pass the inputs and read line 1 plus the seat table. The mechanism it na
 4. Red flags include: "high stakes" without a nameable risk; starting high to be safe; fewer than 7 seats on a code diff; a seat added with no "finds what the others cannot"; injecting a mid-round finding; reusing last time's rung.
 5. Exit criteria include: line 1 matches the D1.1 regex; seat count equals row count; every omitted default seat has a stated reason; the plan names G48 and D57.
 6. Security (AM-1): the Security seat row in the seat table names its mode, the `SECURITY_AUDIT` value (`guidance`: diff-scoped, no files, no agents). Under `full` the plan adds a line for the full-mode run: output `RUN_HOME/<subtask>/security-audit/run-<N>/` (A.5.3), its agents (persona `security-auditor`) counted in the dispatch count against the ledger, and `validate-findings.cjs` as a `pre-pr-gate` row. This skill never chooses `full`; it only echoes the input.
-7. Per-repo review profile: mandatory seats and Blocking rules are read from the profile (part-04 §5.8 "review profile"); the key name is not in A.2.2 (SPEC-QUESTION 3).
+7. Per-repo review profile: mandatory seats and Blocking rules are read from the profile (part-04 §5.8 "review profile"); the key is proposed as `review_profile.*` (RESOLVED Q3, AM-2 row 5).
 8. No cost figures; no web.
 
 ## 9. Verification commands (W = `~/projects/agent-hq-worktrees/delivery-w0`)
-```
-S=$W/skills/review-tailor
-test "$(grep -c '^## \(Trigger\|Steps\|Red flags\|Exit criteria\|Provenance\)$' $S/SKILL.md)" = 5
-grep -q '^version: ' $S/SKILL.md && ! grep -q 'disable-model-invocation' $S/SKILL.md
-[ "$(wc -w < $S/SKILL.md)" -le 3500 ] && [ "$(wc -l < $S/SKILL.md)" -le 500 ]
-for t in 'RUNG:' 'D12' 'G48' 'D57' 'INPUT-ERROR' 'security-audit' 'finds what'; do grep -rq -- "$t" $S || echo FAIL missing $t; done
-! grep -rEi '/Users/xavier|touri|runfrist|jetblue|notion' $S
-bash $W/tools/check-doc-length.sh $W
+```bash
+set -eu; W=~/projects/agent-hq-worktrees/delivery-w0; S=$W/skills/review-tailor; R=${FIXTURE_DIR:?the non-author verifier sets FIXTURE_DIR to its dry-run output directory}
+test "$(grep -c '^## \(Trigger\|Steps\|Red flags\|Exit criteria\|Provenance\)$' $S/SKILL.md)" -eq 5
+grep -q '^version: 0\.1\.0$' $S/SKILL.md
+if grep -q 'disable-model-invocation' $S/SKILL.md; then echo "FAIL: disable-model-invocation"; exit 1; fi
+sed -n '/^description:/p' $S/SKILL.md | grep -q 'Use when'
+[ "$(wc -w < $S/SKILL.md)" -le 3500 ]; [ "$(wc -l < $S/SKILL.md)" -le 500 ]
+for t in 'RUNG:' 'D12' 'G48' 'D57' 'INPUT-ERROR' 'security-audit' 'finds what' 'mechanism:' 'dispatch:'; do grep -rq -- "$t" $S || { echo "FAIL missing $t"; exit 1; }; done
+if grep -rEi --exclude-dir=templates '/Users/xavier|touri|ofw|runfrist|jetblue|notion|\$[0-9]+|cost' $S; then echo "FAIL: forbidden match"; exit 1; fi
+if find $S -type l | grep -q .; then echo symlink; exit 1; fi
+bash $W/tools/check-doc-length.sh $W >/dev/null
+# fixture: a reader follows SKILL.md on the four cases below and saves each record as $R/case<k>.md and the bad-enum output as $R/case4-bad.out
+head -1 $R/case1.md | grep -qx 'RUNG: 3 seats: 7'
+head -1 $R/case2.md | grep -qx 'RUNG: 1 seats: 1'
+head -1 $R/case3.md | grep -qE '^RUNG: 2b seats: [1-7]$'
+head -1 $R/case4.md | grep -qE '^RUNG: 4 seats: [0-9]+$'
+grep -qx 'INPUT-ERROR STAKES enum' $R/case4-bad.out
+for k in 1 2 3 4; do f=$R/case$k.md; n=$(head -1 $f | sed -E 's/.*seats: //'); r=$(awk 'NR>1 && /^$/ {exit} NR>1' $f | grep -c . || true); [ "$n" = "$r" ] || { echo "seat count $f"; exit 1; }; done
+echo SKILL-16-OK
 ```
 Fixture cases in `references/fixtures/` (a reader agent follows the SKILL.md, no dispatch) and the expected record first line:
 1. `KIND=diff`, any risk surface, small diff: `RUNG: 3 seats: 7` (D12 off).
-2. `KIND=doc`, `STAKES=reversible`, `CONTENTION=none`, `NOVELTY=known`, one small file: a Rung 1 record, `seats` matching the Rung 1 convention (SPEC-QUESTION 1).
+2. `KIND=doc`, `STAKES=reversible`, `CONTENTION=none`, `NOVELTY=known`, one small file: `RUNG: 1 seats: 1` (RESOLVED Q1).
 3. `KIND=doc`, epic architecture, `STAKES=reversible`: `RUNG: 2b seats: <n>` with n at most 7 and every omitted default seat justified.
 4. `KIND=doc`, `STAKES=one-way`: `RUNG: 4 ...`; and `STAKES=maybe` gives exactly `INPUT-ERROR STAKES enum`.
 Every first line matches `^RUNG: (0|1|2|2b|3|4) seats: [0-9]+$` and the number of seat rows equals `seats`.
@@ -80,8 +91,8 @@ Worktree W, branch `wt/delivery-w0`; write only section 3 paths; no git add, com
 Write `.decisions/16-review-tailor.md` (fork, options, recommendation, `Outcome: Blocked`) instead of choosing when a value is open, when a fix needs an INTERFACES change, or when anything would lower the code-diff seat count below 7. Owner rulings (D12) are quoted, never reworded.
 
 ## Open points
-- SPEC-QUESTION 1: D1.1 fixes `seats: [0-9]+` and a 3-column seat table, but Rung 0 and Rung 1 (single reviewer, no seats) and Rung 2 (one agent simulating nine members) have no stated seat convention. Plan-checker to set it (default proposed: 0 seats for Rung 0, 1 for Rung 1, 9 for Rung 2).
-- SPEC-QUESTION 2: Card 4 requires "mechanism, tiers, budget, dispatch count" in the table, but the D1.1 record has only `seat-id, role, reason` columns. Where do mechanism, tier, budget and ledger count go (non-seat lines after the table, or extra columns)? Also: whether `SECURITY_AUDIT` may be omitted (default `guidance`, as A.2) or is required in Step 0.
-- SPEC-QUESTION 3: The per-repo review profile has no key in A.2.2; its name and shape are unfrozen. Default: read the heading "review profile" of the linked profile, treat absence as no mandatory seats.
-- SPEC-QUESTION 4: For `KIND=diff` the seven seat ids are the `pr-review` agent ids, while §3.4-3.5 lists seats as lenses (Correctness vs design, Test adequacy, ...). The mapping between the two vocabularies is not defined. Default: diff uses the seven `pr-review` ids; doc and plan use the lens seats.
-- SPEC-QUESTION 5: How the D12 recording is detected mechanically ("recorded in `INTERFACES.md`") is unstated; this task keeps the skill fixed at 7 and leaves the switch to an amendment.
+- RESOLVED Q1 (PLAN-CHECK DEFAULT; AM-2 row 9): seat counts per rung: Rung 0 `seats: 0` (no rows), Rung 1 `seats: 1` (the one reviewer), Rung 2 the simulated members (at most 9), Rung 2b at most 7, Rung 3 exactly 7 (D12), Rung 4 the `panel-review` roster (11).
+- RESOLVED Q2 (PLAN-CHECK DEFAULT, AM-2 row 9; INTERFACES D2.2 transport "every caller passes them"): the seat table is lines 2 up to the first blank line (`seat-id<TAB>role<TAB>reason`, the D1.1 form `pr-review` `ROLES` derives from); after the blank line come four `key: value` lines `mechanism:`, `tiers:`, `budget:`, `dispatch:` (the card 4 items). `SECURITY_AUDIT` is required like every NEW-skill input (`INPUT-ERROR SECURITY_AUDIT missing`); callers pass `state.md` `security_audit`.
+- RESOLVED Q3 (PLAN-CHECK DEFAULT; INTERFACES A.2.2 has no key; AM-2 row 5): read the profile keys `review_profile.mandatory_seats[]` and `review_profile.blocking_rules[]`; absent keys mean no mandatory seats (never an `INPUT-ERROR`, since A.2.2 does not list them yet).
+- RESOLVED Q4 (INTERFACES D2.3 `pr-review` `ROLES` = seat ids; D1.1): `KIND=diff` uses the seven `pr-review` agent ids; `doc` and `plan` use the §3.4-3.5 lens seats.
+- RESOLVED Q5 (INTERFACES D2.3 `pr-review` row "seat count 7 until the D12 remap and probe are recorded here"): no runtime detection; the skill is fixed at 7 for code and the switch is a later INTERFACES amendment with a skill change.

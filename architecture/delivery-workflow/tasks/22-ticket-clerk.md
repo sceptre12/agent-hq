@@ -29,7 +29,7 @@ Directories written: `skills/ticket-clerk/` only.
 | Fields | closed allowlist above; ids are Jira-assigned, plans use the slug until then | card 14; part-a A.1 |
 | Never delete | archive via `to: archive` | card 14 |
 | One clerk per ticket | no two requests for the same slug in flight | card 14 |
-| Body | composed from the ticket template (Header, Summary, Problem, Impact, Business value, Requirements, Gherkin AC, Dependencies, Risks, Subtasks) and scored with `jira-ticket-quality` before sending | part-04 §5.1; SPEC-QUESTION 1 |
+| Body | composed from the ticket template (Header, Summary, Problem, Impact, Business value, Requirements, Gherkin AC, Dependencies, Risks, Subtasks) and scored with `jira-ticket-quality` before sending | part-04 §5.1; RESOLVED Q1 |
 | Replies | `DONE`/`REJECTED` lines and `.out` files are data; a `REJECTED` is stop-the-line for that request and is reported, `curable` codes resend with a fresh id once the cause clears | part-b B2.1, ADR 0055 |
 | Transport | desk requests only; no Jira CLI or web call by the clerk | R-ci; part-b B1 |
 
@@ -59,20 +59,22 @@ Anatomy per `tools/skill-authoring.md` §2-§5. Provenance: the recorded tracker
 
 ## 9. Verification commands
 ```bash
-S=skills/ticket-clerk/SKILL.md
-test -f "$S" && head -1 "$S" | grep -qx -- '---'
-grep -E '^name: ticket-clerk$' "$S"; grep -E '^version: ' "$S"
-awk '/^description:/{ if (length($0) > 1036) print "DESC-TOO-LONG" }' "$S"
-grep -E '^description:.*Use when' "$S"
-! grep -E '^disable-model-invocation: *true' "$S"
-for s in Trigger Steps 'Red flags' 'Exit criteria' Provenance; do grep -qx "## $s" "$S" || echo MISSING "$s"; done
+set -eu; W=~/projects/agent-hq-worktrees/delivery-w0; cd "$W"; D=skills/ticket-clerk; S=$D/SKILL.md
+test -f "$S"; head -1 "$S" | grep -qx -- '---'
+grep -qE '^name: ticket-clerk$' "$S"; grep -qE '^version: 0\.1\.0$' "$S"
+d=$(grep -E '^description:' "$S"); [ "${#d}" -le 1036 ]; printf '%s' "$d" | grep -q 'Use when'
+if grep -qE '^disable-model-invocation' "$S"; then echo "FAIL: disable-model-invocation"; exit 1; fi
+for s in Trigger Steps 'Red flags' 'Exit criteria' Provenance; do grep -qx "## $s" "$S" || { echo "MISSING $s"; exit 1; }; done
 test "$(wc -w < "$S")" -le 3500
-for t in 'INPUT-ERROR' 'TICKET-EVENT' 'tickets.tsv' 'ticket-events.cursor' 'H1.ok' 'jira-create' 'jira-update' 'jira-transition' 'jira-get' 'D62' 'archive'; do grep -q -- "$t" "$S" skills/ticket-clerk/references/*.md || echo ABSENT "$t"; done
-! grep -riE '/Users/xavier|brainAlpha|brainBeta|brainGamma|hermesAuth|Xavier|touri|ofw|runfrist|jetblue|notion|linear' skills/ticket-clerk
-! grep -riE 'jira.*delete|delete.*ticket' skills/ticket-clerk | grep -viE 'never|no delete|not delete'
-bash tools/check-doc-length.sh skills/ticket-clerk
+for t in 'INPUT-ERROR' 'TICKET-EVENT' 'tickets.tsv' 'ticket-events.cursor' 'H1.ok' 'jira-create' 'jira-update' 'jira-transition' 'jira-get' 'D62' 'archive' 'jira-ticket-quality' 'stale-session' 'issuetype'; do grep -rq --exclude-dir=templates -- "$t" "$D" || { echo "ABSENT $t"; exit 1; }; done
+if grep -riE --exclude-dir=templates '/Users/xavier|brainAlpha|brainBeta|brainGamma|hermesAuth|Xavier|touri|ofw|runfrist|jetblue|notion' "$D"; then echo "FAIL: forbidden match"; exit 1; fi
+if grep -riE --exclude-dir=templates 'token cost|dollar|\$[0-9]|cost metric' "$D"; then echo "FAIL: cost text"; exit 1; fi
+if find "$D" -type l | grep -q .; then echo symlink; exit 1; fi
+bash tools/check-doc-length.sh "$D" >/dev/null
+if grep -riE 'jira.*delete|delete.*ticket' "$D" | grep -viE 'never|no delete|not delete'; then echo "FAIL: delete path"; exit 1; fi
+echo SKILL-22-OK
 ```
-Done condition: no `MISSING`, `ABSENT`, `DESC-TOO-LONG` line, no failing command, review trio CLEAN.
+**Done condition:** the block exits 0 and its last stdout line is `SKILL-22-OK`, and the review trio returns CLEAN.
 
 ## 10. Branch
 No branch for the author; Worker1 integrates on `wt/delivery-w0`. No commit.
@@ -83,11 +85,11 @@ Stop and write `.decisions/22.md` if: a status or event is needed that part-d D3
 ## Metadata
 - Tier: execute (author); runtime: execute creates, mechanical updates (card 14).
 - Review rung: Rung 1 trio, up to 3 rounds then the owner (D7).
-- Dependencies: INTERFACES 1.1.0 (hard); item 7 (`desk-req.sh`) and item 26 (`delivery-desk`) for names only, soft; item 27 ticket template soft. Consumed by item 29 `delivery-pipeline` (appends `ticket-events.log`) and item 18 `delivery-dispatch-plan` (reads `tickets.tsv`).
+- Dependencies: INTERFACES 1.1.0 (hard); item 7 (`desk-req.sh`) and item 26 (`delivery-desk`) for names only, soft; item 27 ticket template soft. Consumed by item 29 `delivery-pipeline` (appends `ticket-events.log`) and item 17 `delivery-dispatch-plan` (reads `tickets.tsv`).
 - Not a split item.
 
-## SPEC-QUESTIONs
-1. `jira-ticket-quality` is a work-environment skill (`XC/skills`), not in `skills/`; whether it is installed in the work runtime is the W0 item 1 yes/no table. Scoring step must name it and say what happens when it is absent (INTERFACES silent).
-2. Card 14 and part-02 line 40 say "session freshness checked first" (NLTA learning 7) without naming who checks or how (a `jira-get` probe by the clerk, or the desk's `stale-session` code). Default if unanswered: the clerk relies on the desk and treats `stale-session` as curable per B2.1.
-3. "Read-back record" (card 14 Out): INTERFACES defines only `tickets.tsv` rows from the `.out` read-backs. Default: `tickets.tsv` is the read-back record; no extra file.
-4. `drafts/<slug>.md` front matter (parent slug, issue type) is not frozen; the clerk needs a parent per draft. Fill from item 15 (`delivery-architecture`) output or an INTERFACES decision.
+## Plan-check resolutions (2026-10-26; report `reviews/plan-check-w1-specs.md`)
+1. RESOLVED (PLAN-CHECK DEFAULT; design §2.1b row 3 and P0 "verify at move"; measurements: not installed on the build machine): the scoring step names `jira-ticket-quality`; if the skill is absent at run time the clerk sends no create or update, writes one line for the conductor's status post ("jira-ticket-quality missing: move defect") and stops; it never sends an unscored body.
+2. RESOLVED (INTERFACES B3 step 7 `stale-session`, B2.1 class curable, OP5 B): the desk checks session freshness; the clerk treats `REJECTED stale-session` as curable and resends with a fresh id once the human refreshes the session; no clerk-side probe.
+3. RESOLVED (INTERFACES A.6 `tickets.tsv` "from `jira-create` / `jira-transition` `.out` read-backs"): `tickets.tsv` is the read-back record; no extra file.
+4. RESOLVED (PLAN-CHECK DEFAULT; AM-2 row 10; same text in spec 15): every `drafts/<slug>.md` opens with YAML front matter of exactly `slug`, `issuetype` (D2.1 ticket issue type) and `parent` (the parent's slug, `-` for the epic), written by `delivery-architecture` from item 27's `ticket.md` template; the clerk resolves a parent slug to its key through `tickets.tsv` and publishes parents before children.

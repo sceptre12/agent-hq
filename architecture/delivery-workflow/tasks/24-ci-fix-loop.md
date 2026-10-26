@@ -60,27 +60,32 @@ Tier names only (diagnoser mechanical or verify per design §7 tier column, fixe
 - [ ] Every token and verb field name matches INTERFACES (script below).
 - [ ] No cost metrics; no personal-project terms.
 
-SPEC-QUESTION 1: "signature" is undefined in card 11 and INTERFACES. Candidate: the tuple `class + job` (file_set excluded so a moving fix still counts). The plan-checker rules; until then the skill states `signature = class + job` marked draft and is flagged in the reference.
-SPEC-QUESTION 2: where the global capacity-failure count lives (suggest `RUN_HOME/ci/capacity.count`, plane table D6 lists no file). Rule needed.
-SPEC-QUESTION 3: which `HUMAN` reason token a D23 stop uses (`policy` is the closest class). Rule needed.
-SPEC-QUESTION 4: the pipeline-definition path set the D23 check uses; the profile has a sensitive-path deny list (§5.8, M25) but no named pipeline-path key in A.2.2. Suggest reading that list and refusing any `file_set` hit; add a key via amendment if it lacks pipeline paths.
+RESOLVED Q1 (PLAN-CHECK DEFAULT; AM-2 row 12): `signature = class + job` (the diagnoser record's `class` and `job`; `file_set` excluded so a moving fix still counts); the budget is 3 failures per signature (D2.2 row 11).
+RESOLVED Q2 (PLAN-CHECK DEFAULT; no new artifact, D6 unchanged): the count is derived, not stored: each capacity-induced failure is one line `capacity: <job> <ci_run_id>` in the body of its `RUN_HOME/ci/<pr>.md`, and the run-wide count is the number of such lines over `RUN_HOME/ci/*.md`.
+RESOLVED Q3 (INTERFACES D1.1 `CI:` "`HUMAN` reason = a D2.2 row 11 class token or `budget`"; A.3 row id `D23`): a D23 stop writes `CI: HUMAN policy` and the lead sets `stop_reason: stop-the-line:D23`.
+RESOLVED Q4 (design §5.8 sensitive-path deny list, card 10 step 5 "manifests, lockfiles, hooks, CI config"; AM-2 row 5): the D23 check reads the profile sensitive-path list (key proposed as `sensitive_paths[]`) and refuses any `file_set` path that matches it; if the profile has no list, every path under the CI config paths the profile names counts, and with neither the fixer is not dispatched and the loop ends `CI: HUMAN policy`.
 
 ## 9. Verification commands
 ```bash
-W=$HOME/projects/agent-hq-worktrees/delivery-w0; S=$W/skills/ci-fix-loop
-for f in SKILL.md references/diagnoser-schema.json references/classes.md references/provenance.md; do test -f $S/$f || echo MISSING $f; done
-python3 -c "import json,sys; d=json.load(open('$S/references/diagnoser-schema.json')); s=json.dumps(d); \
+set -eu; W=$HOME/projects/agent-hq-worktrees/delivery-w0; S=$W/skills/ci-fix-loop
+for f in SKILL.md references/diagnoser-schema.json references/classes.md references/provenance.md; do test -f $S/$f || { echo "MISSING $f"; exit 1; }; done
+python3 -I -c "import json,sys; d=json.load(open('$S/references/diagnoser-schema.json')); s=json.dumps(d); \
 want='code-defect deterministic-test flake infra-runner missing-secret-or-permission external-service policy commit-message-format label-policy static-analysis-gate timeout artifact-path workspace-mismatch approval-timeout'.split(); \
 assert all(w in s for w in want) and 'additionalProperties' in s"
-grep -q 'Use when' $S/SKILL.md; ! grep -q 'disable-model-invocation' $S/SKILL.md
-for h in '## Trigger' '## Steps' '## Red flags' '## Exit criteria'; do grep -q "^$h" $S/SKILL.md || echo MISSING $h; done
+grep -q 'Use when' $S/SKILL.md
+if grep -q 'disable-model-invocation' $S/SKILL.md; then echo "FAIL: disable-model-invocation"; exit 1; fi
+for h in '## Trigger' '## Steps' '## Red flags' '## Exit criteria'; do grep -q "^$h" $S/SKILL.md || { echo "MISSING $h"; exit 1; }; done
+grep -qE '^version: 0\.1\.0$' $S/SKILL.md
+[ "$(wc -w < $S/SKILL.md)" -lt 3500 ]
+bash $W/tools/check-doc-length.sh $W >/dev/null
 grep -q 'Provenance: pending pilot' $S/SKILL.md
-for t in D23 'ci-status' 'ci-logs' 'ci-rerun' 'pr-comments-read' 'GATE-PASS' 'fix-verifier' 'G48' 'CI: GREEN' 'CI: HUMAN' 'A.7'; do grep -q -- "$t" $S/SKILL.md || echo MISSING $t; done
-! grep -n 'HUSKY=0' $S/SKILL.md   # A.7 is the single statement; the skill links to it
-[ $(wc -w < $S/SKILL.md) -lt 3500 ]
-bash $W/tools/check-doc-length.sh $W
-! grep -rn -i -E 'touri|ofw|runfrist|jetblue|notion|/Users/xavier' $S
+for t in D23 'ci-status' 'ci-logs' 'ci-rerun' 'pr-comments-read' 'GATE-PASS' 'fix-verifier' 'G48' 'CI: GREEN' 'CI: HUMAN' 'A.7' 'signature' 'capacity:'; do grep -rq -- "$t" $S/SKILL.md $S/references || { echo "MISSING $t"; exit 1; }; done
+if grep -n 'HUSKY=0' $S/SKILL.md; then echo "FAIL: restates A.7"; exit 1; fi
+if grep -rn -i -E 'touri|ofw|runfrist|jetblue|notion|/Users/xavier|\$[0-9]|cost' $S; then echo "FAIL: forbidden match"; exit 1; fi
+if find $S -type l | grep -q .; then echo symlink; exit 1; fi
+echo SKILL-24-OK
 ```
+**Done condition:** the block exits 0 and its last stdout line is `SKILL-24-OK`, then the Rung 1 trio.
 
 ## 10. Branch and worktree
 `~/projects/agent-hq-worktrees/delivery-w0`, branch `wt/delivery-w0`; no git add/commit/branch/push. Tier: execute. Review rung: Rung 1 trio (D7 stop after round 3). File scope dirs: `skills/ci-fix-loop/` only.

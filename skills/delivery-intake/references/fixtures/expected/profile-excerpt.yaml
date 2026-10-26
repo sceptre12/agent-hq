@@ -1,31 +1,40 @@
-clones: [<PRIMARY_REPO>]
-linked_profiles: []
-worktree_base: <DELIVERY_ROOT>/worktrees        # human-answered, brief.md Q2
-merge_method: squash                             # measured: docs/CONTRIBUTING.md
-merge_reach: 'a merge to main deploys nothing'   # measured
+# Excerpt: the A.2.2 keys only (the part-04 section 5.8 fields are omitted here); comments name each value's source.
+ports:
+  bus_base: FILL_IN_BEFORE_DISPATCH              # human's machine choice; facts.md cannot-measure row
+  lane_base: FILL_IN_BEFORE_DISPATCH
+sensitive_paths: ['^\.github/workflows/']        # measured (find .github/workflows), human-confirmed, brief.md Q4
+review_profile:
+  mandatory_seats: []                            # human-answered, brief.md Q3
+  blocking_rules: []                             # human-answered, brief.md Q3
+zephyr:
+  execute_tool: FILL_IN_BEFORE_DISPATCH          # no test-management tool named; brief.md open items
+  read_ops: [FILL_IN_BEFORE_DISPATCH]
+clones: [<PRIMARY_REPO>]                         # measured: facts.md row git rev-parse --show-cdup; no other clone, brief.md Q5
+linked_profiles: []                              # single-repo epic, brief.md Q5
+worktree_base: <DELIVERY_ROOT>/worktrees         # human-answered, brief.md Q2
+merge_method: squash                             # measured: grep -i merge docs/CONTRIBUTING.md
+merge_reach: 'a merge to main deploys nothing'   # measured: facts.md rows sed -n '/^on:/,/^jobs:/p', grep -rliE 'deploy|publish|release', grep -i merge
 ci:
-  required_checks: [lint, typecheck, test]       # job names; hosting-service list is cannot measure
+  required_checks: [lint, typecheck, test]       # measured: ci.yml jobs; hosting-service list is cannot measure
   min_push_spacing_s: FILL_IN_BEFORE_DISPATCH
   max_open_pr_pipelines: FILL_IN_BEFORE_DISPATCH
 merge_pipeline:
-  stages: [lint, typecheck, test]
+  stages: [lint, typecheck, test]                # measured: ci.yml jobs on push to main, file order (no needs:)
 jira:
   status_map: FILL_IN_BEFORE_DISPATCH
   archive_status: FILL_IN_BEFORE_DISPATCH
 secrets:
   pattern_file: FILL_IN_BEFORE_DISPATCH
 gates:
-  command: 'pnpm lint && pnpm typecheck && pnpm test'
+  command: FILL_IN_BEFORE_DISPATCH               # no affected-capable runner; facts.md cannot-measure row
   parallel: FILL_IN_BEFORE_DISPATCH
   min_free_kb: FILL_IN_BEFORE_DISPATCH
   runner_slots: FILL_IN_BEFORE_DISPATCH
 node:
   prefix_cmd: FILL_IN_BEFORE_DISPATCH
-zephyr:
-  read_ops: [FILL_IN_BEFORE_DISPATCH]
 durations:
   pr_review_min: FILL_IN_BEFORE_DISPATCH
   ci_round_min: FILL_IN_BEFORE_DISPATCH
   unit_median_min: FILL_IN_BEFORE_DISPATCH
 release_tags:
-  used: "no"
+  used: "no"                                     # measured: git tag -l | wc -l -> 0, no release workflow

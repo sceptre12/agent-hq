@@ -24,7 +24,7 @@ The nested `fields` map takes keys only from the part B4 allowlist `summary, des
 
 Nothing else is sent. Ids are Jira-assigned; plans and drafts use the slug until `tickets.tsv` holds a key. The agent-only sections of a draft (scope globs, persona and tier, blocked-by, lanes, done token, verifier) stay in the draft unless the template places them in the description.
 
-Required and optional fields (part B4 `jira-create` row and D3 "Ticket parents", AM-4 22; formerly OQ-22-2): apart from `summary` and `issuetype` every allowlisted field is optional, and the top-level `parent` is the only parent carrier, never a `fields` entry (a non-Epic create without it is `schema`, part B9). This skill sends `summary`, `description`, `issuetype` always, `priority` when the header has one, `labels` and `components` only when the draft names them, and carries the parent only as the top-level `parent`.
+Required and optional fields (part B4 `jira-create` row and D3 "Ticket parents", AM-4 22; formerly OQ-22-2): apart from `summary` and `issuetype` every allowlisted field is optional, and the top-level `parent` is the only parent carrier, never a `fields` entry (a non-Epic create without it is `schema`, part B9; top-level `parent` only, `fields.parent` refused, INTERFACES 1.6.0 AM-6 B-9a). This skill sends `summary`, `description`, `issuetype` always, `priority` when the header has one, `labels` and `components` only when the draft names them, and carries the parent only as the top-level `parent`.
 
 ## Request files
 

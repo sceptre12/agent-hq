@@ -53,8 +53,9 @@ st<N>:
 Human hand-test rows (no harness, D17): same columns, `command` is the written manual procedure, `evidence owner` is `human`.
 
 ## C. Consumer simulation
-| id | consumer | how it is simulated | expected |
-|---|---|---|---|
+| id | consumer | how it is simulated | expected | class (gating|informational) |
+|---|---|---|---|---|
+Every consumer row carries a `class`, as a §B row does (INTERFACES 1.6.0 AM-6 B-9c; the class `post-merge-verify` writes into `postmerge-<sha>.md`).
 
 ## D. Test-management reporting
 | row | what is reported | via |

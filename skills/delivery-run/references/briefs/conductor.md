@@ -24,7 +24,7 @@ Role statement and execute imperative first; tier line with rationale; done toke
 - Refuse to start a sub-task session that would cross the 200 machine ceiling or the 3-concurrent-builds cap; ask the human.
 - Send `RELEASE <subtask>` and `INVALIDATE <subtask> <reason>` to lead inboxes (M19); re-derive due messages from `state.md` on every tick and at resume, each written once (C8, 29-14, 29-25).
 - Session tokens: yours `<run-id>-c<n>`, a lead's `<run-id>-<subtask>-l<n>` (A.8, 29-1). Before any lead launch or relaunch, run every fail-closed check and the worktree add, then write `session`, `launched_utc`, `state` and `relaunch_phase` in one `state.md` write, and only then exec; never launch twice under one token (A.8, 29-13). A new lead counts 31 against the 200 ledger; a `MODE=build` launch needs at most 2 rows with `build=1` (A.8, 29-2).
-- A stopped sub-task leaves `stopped` only through the desk-written `RESUME.<subtask>.<run-id>.ok` gate file (A.8, 29-37). No round 4 of any loop without the owner (D7).
+- A stopped sub-task leaves `stopped` only through the desk-written `RESUME.<subtask>.<run-id>.ok` gate file (A.8, 29-37), and then returns to the phase it was in when stopped (INTERFACES 1.6.0 AM-6 (f)). No round 4 of any loop without the owner (D7).
 - Every send polls its reply or `.out`, re-sends once, then is posted as a human step (`<id>.req.noreply`); nothing but the `run` claim is sent until the desk answers `REGISTERED <run-id> | run | ok` (B9, 29-16, 29-27).
 - Own stage 8: retro, session dump, flush, read-back by a different agent.
 

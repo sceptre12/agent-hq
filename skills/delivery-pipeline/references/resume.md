@@ -35,7 +35,7 @@ Run in this order; nothing is sent to the desk and no lead is launched before st
 | 8 | `capture/read-back.md` line 1 `READ-BACK: pass` (29-24) | re-run the capture step |
 | `stopped` | `cleanup-<run-id>-final.md` line 1 `CLEANUP DONE final` | run `delivery-cleanup` `MODE=final` once, then report (29-30) |
 
-A `stopped` sub-task (not the run-level `stage: stopped`) stays `stopped` at resume unless `RUN_HOME/gates/RESUME.<subtask>.<run-id>.ok` exists (A.8, B9).
+A `stopped` sub-task (not the run-level `stage: stopped`) stays `stopped` at resume unless `RUN_HOME/gates/RESUME.<subtask>.<run-id>.ok` exists (A.8, B9); with it the sub-task returns to its pre-stop phase (the desk cleared `stop_reason`; INTERFACES 1.6.0 AM-6 (f)) and its lead is relaunched below.
 
 ## Lead relaunch (C5.3)
 

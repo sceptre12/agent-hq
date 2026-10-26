@@ -96,7 +96,7 @@ except reserved-seat agents (review seats, counted by `substate.md` `reserved`, 
    precedes (1 before round 1), disjoint by `agent-id` (A.6); `fix-verifier` verifies each G48 fix as in step 13 (AM-4 20
    Q4). Before round 1 also dispatch a `plan-checker` (verify tier, slot row; brief
    `skills/delivery-run/references/briefs/plan-checker.md`) on the round's inputs (D55, AM-4 20
-   Q2); it writes its verdict to its own `status/<agent-id>.md`. Repeat the G48 check after every fix and after step 19 drafts `pr-body.md`.
+   Q2); it writes its verdict to `RUN_HOME/<subtask>/gate/plan-check.md` (A.6 row; INTERFACES 1.6.0 AM-6 B-9b). Repeat the G48 check after every fix and after step 19 drafts `pr-body.md`.
 9. **Security seat.** Pass `SECURITY_AUDIT` to `pr-review`; under `guidance` (default) its
    security seat loads `skills/security-audit` diff-scoped, writes no file, launches no agent.
    Under `full` (only on an explicit operator request or a `security_sensitive: yes` epic, set
@@ -122,7 +122,7 @@ except reserved-seat agents (review seats, counted by `substate.md` `reserved`, 
     `BUS_PORT + 10`; a second refusal, or exit 3 (registry unusable, no retry), stops the line
     and is reported to the lead (A.5.2, D2.3, AM-3 OQ-2). You claim no port and never pick one.
     On that stop, record the refusal line in the checklist, write `PREPR: STOP C12` (no review
-    record exists; no checklist row is a port row) and name the checklist path to the lead,
+    record exists; `C12` is the port row, "ports claimed", INTERFACES 1.6.0 AM-6 B-7) and name the checklist path to the lead,
     which writes `stop_reason: port-refused` (D2.2 row 10, AM-4 20 Q5, W2-1). One
     review orchestrator per loop (D35). Read the bus topics `pr-check-N-closed` with
     `peek:true`, a fresh `agent_id` per reader, `limit 200`. `pr-review` writes record lines 1-2.

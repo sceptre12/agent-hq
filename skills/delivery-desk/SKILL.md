@@ -52,7 +52,9 @@ Fallback).
    each ok). Any other pair: say so in this session and write nothing. Otherwise write the file
    named in part A.2.1 atomically with `utc=`, `by=` (`id -un`), `ref=`, `text=`; every name
    carries the run id, `<gate>.<run-id>.ok` (A.2.1 AM-5 26). `RESUME.<subtask>.<run-id>.ok` is the
-   only exit from `stopped` (A.8, owner action); `H-destructive.<row-id>.<run-id>.ok` is the grant
+   only exit from `stopped` (A.8, owner action); when the desk writes it, it also clears `stop_reason`
+   in `RUN_HOME/<subtask>/substate.md` (temp file, `mv`), so the sub-task returns to its pre-stop
+   phase (INTERFACES 1.6.0 AM-6 (f)); `H-destructive.<row-id>.<run-id>.ok` is the grant
    `post-merge-verify` reads for a destructive row. Detail in `references/human-gates.md`. Agents never write `gates/`; the desk is the only writer (M30).
 3. **`DESK <id> | <verb> | <path> | sha256=<hex>`**: run the 12 checks of B3 in order; **the
    first failure wins** and names exactly one reason code (steps 4-14 below; detail in

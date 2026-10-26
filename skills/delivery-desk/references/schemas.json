@@ -811,7 +811,7 @@
     "desk_address": "^desk$",
     "conductor_only_verbs": "^(pr-merge|publish|tag-push|test-report-push)$",
     "gate_verdicts": {"H0": ["ok"], "H1": ["ok", "changes", "reject"], "H-e2e.<subtask>": ["ok"], "H-prod.<step_id>": ["ok"], "H-pr": [], "grant.<subtask>.<n>": ["ok"], "H-destructive.<row-id>": ["ok"], "RESUME.<subtask>": ["ok"]},
-    "gate_source": "B8 plus the B9 gate lines (AM-5 26, 21, queue row 29): grant.<subtask>.<n>, H-destructive.<row-id> (row id as D2.2 row 12, [A-Za-z0-9.-]+), RESUME.<subtask>; B9 writes them without <run-id>, the desk takes the B8 form GATE <run-id> <gate> ... so the run resolves; a grant line's text must start with ref=<sensitive path> (DEFAULT (author))",
+    "gate_source": "B8 plus the B9 gate lines (AM-5 26, 21, queue row 29): grant.<subtask>.<n>, H-destructive.<row-id> (row id as D2.2 row 12, [A-Za-z0-9.-]+), RESUME.<subtask>; B9 GATE lines carry <run-id> in the B8 form GATE <run-id> <gate> ... (INTERFACES 1.6.0 AM-6 (f)) so the run resolves; a grant line's text must start with ref=<sensitive path> (DEFAULT (author))",
     "gate_file": "^(H0|H1|H-e2e\\.(st[0-9]+|pm)|H-prod\\.[a-z0-9-]+|grant\\.(st[0-9]+|pm)\\.[0-9]+|H-destructive\\.[A-Za-z0-9.-]+|RESUME\\.(st[0-9]+|pm))\\.([a-z0-9-]+)\\.(ok|changes|reject)$",
     "gate_file_source": "A.2.1 AM-5 26: every gate-file name is <gate>.<run-id>.<verdict>; H-e2e under RUN_HOME/<subtask>/gates/, the rest under RUN_HOME/gates/; only .ok satisfies a gate; changes and reject exist for H1 only"
   }

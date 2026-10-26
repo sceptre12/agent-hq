@@ -36,14 +36,14 @@ A pair outside the matrix fails filter step 3.
 
 ### `PASS`
 
-1. Run `git -C <worktree> rev-parse HEAD`, where `<worktree>` is the unit worktree `<worktree_base>/<run-id>-<subtask>-<unit>` for `u<N>`; it must equal `head`. For an Integrator record `i<N>` the worktree is the sub-task worktree, whose HEAD the Integrator advances with every merge, so a batch read sees earlier records behind it: `git -C <worktree> merge-base --is-ancestor <head> HEAD` must succeed, and step 2 runs at the current HEAD (proposed CV33; the strict equality stays for `u<N>`).
+1. Run `git -C <worktree> rev-parse HEAD`, where `<worktree>` is the unit worktree `<worktree_base>/<run-id>-<subtask>-<unit>` for `u<N>`; it must equal `head`. For an Integrator record `i<N>` the worktree is the sub-task worktree, and its HEAD must equal `head` too (C2 as frozen; the CV33 ancestor relaxation is not adopted, INTERFACES 1.6.0 AM-6 (e)).
 2. Re-run **one load-bearing command** (M15): the work_item's `done_condition` `command` from its wave file, in that worktree at `head`, after the profile `node.prefix_cmd`. It must exit 0, and its last stdout line must equal the `done_condition` `token` exactly (C1.2).
 3. Only then:
    - rename the worker's slot row `.freed` (`ledger.md`);
    - for `i<N>`, append `u<N> <head>` to `substate.md` `integrated` (the `INTEGRATED:` entry, D1.1; one record per merged unit, A.3);
    - release the unit's lane lease if it was the lane's last work_item in the invocation;
    - below 3 live agents, run the drift and creep check (below).
-4. **Head mismatch** (step 1 fails: `u<N>` HEAD differs, or an `i<N>` `head` is not an ancestor): the post is incomplete. It is never accepted, the row is not freed on it, and nothing is appended. The unit is re-gated under its fix loop. The controller's `step_complete` gate reads the record and the branch at `head` (R-2), and the lead takes no action of its own on the controller. **Two consecutive mismatches on one unit** are a stop row for that unit. The lead counts them from the topic itself (two mismatching records for the unit with no accepted record between them), so the count survives a resume. On the second one, pause the unit as for `ESCALATE`, reason `human-step` (C8 CV6, owner answer O8; escalation record holding both records and the observed head), keep its dependents unreleased, and run the rest of the sub-task on.
+4. **Head mismatch** (step 1 fails: the worktree HEAD differs from `head`, for `u<N>` and `i<N>` alike): the post is incomplete. It is never accepted, the row is not freed on it, and nothing is appended. The unit is re-gated under its fix loop. The controller's `step_complete` gate reads the record and the branch at `head` (R-2), and the lead takes no action of its own on the controller. **Two consecutive mismatches on one unit** are a stop row for that unit. The lead counts them from the topic itself (two mismatching records for the unit with no accepted record between them), so the count survives a resume. On the second one, pause the unit as for `ESCALATE`, reason `human-step` (C8 CV6, owner answer O8; escalation record holding both records and the observed head), keep its dependents unreleased, and run the rest of the sub-task on.
 5. If step 2 fails while the head matches, handle it like a mismatch: the post is not accepted and the unit is re-gated.
 
 ### `ROLLED`

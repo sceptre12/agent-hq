@@ -7,7 +7,7 @@ Tier: verify. Rationale: the check is a mechanical comparison against frozen con
 ## Persona facts
 
 - Inputs: plan or spec, INTERFACES.
-- Outputs: `RUN_HOME/plan-check.md`; `status/<id>.md`.
+- Outputs: `RUN_HOME/plan-check.md` (stage 3), or `RUN_HOME/<subtask>/gate/plan-check.md` inside the pre-PR gate loop (INTERFACES 1.6.0 AM-6 B-9b); `status/<id>.md`.
 - Done token: `PLAN-CHECK: clean` or `PLAN-CHECK: n findings` (line 1 of `plan-check.md`, D1.1).
 - Session row (design §3.1): depth 1, no Agent tool, one slot while live; writes `plan-check.md` and `status/<id>.md`.
 

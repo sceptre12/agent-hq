@@ -38,7 +38,7 @@ The lead claims the candidate cell exactly as written. It never recomputes the f
    ```
    DATA_DIR=<data_dir> APP_NAME=swarm-mcp-<session_id> PORT_RANGE_START=<port> PORT_RANGE_END=<port> NODE_ENV=production pm2 start ecosystem.config.cjs
    ```
-   Both range variables carry the claimed port as two assignments (A.5.2, C1.1, AM-4 row 18). Poll for `<data_dir>/port` up to 30 times at 0.3 s.
+   Both range variables carry the claimed port as two assignments (A.5.2, C1.1, AM-4 row 18). Poll for `<data_dir>/port` up to 30 times at 0.3 s (the `swarm-communication` start idiom, `skills/swarm-communication/SKILL.md:88`).
 4. **Port equality.** `<data_dir>/port` must equal the claimed `port` (A.5.2), and `lsof -nP -iTCP:<port> -sTCP:LISTEN` must show the listener. Then run the identity preflight of `swarm-communication` (`/health` 2-3 times: `status: ok`, and `app_name`/`data_dir` equal to the values above).
    - On any failure here the launch failed after a claim: `pm2 delete swarm-mcp-<session_id>`, release the claim at once with a `released` row of the same port and source (`port-claim` Step 4, `resource-catalog` `references/ports.md`), `catalog.sh fail` each of the three rows, write `stop_reason: human` with the observed and claimed ports, and stop. A.5.2 requires the equality but names no `stop_reason` for a failure, so the lead uses the generic `human` stop.
 5. **Mark live** (A.5.2 step 4): `catalog.sh start port <port>`, `catalog.sh start pm2-app swarm-mcp-<session_id>`, `catalog.sh start bus <data_dir>`.

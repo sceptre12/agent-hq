@@ -48,28 +48,34 @@ the lead copies nothing (C1.2, R4-J14). Tier names only, never models (M19).
    logged in `lock_breaks`. `MODE=build`: copy `PLANS_DIR/subtasks/<subtask>/substate.seed.md`
    verbatim into `ST/` (never edit the copy) and create `substate.md` from it with every other
    A.3 field empty or derived. `plan-pr`/`post-merge`: `subtask_id`, `session_id`
-   (`<run-id>-<subtask>`) and `phase: seeded` only (A.2 modes). A resumed lead clears
+   (`<run-id>-<subtask>`) and `phase: seeded` only (A.2 modes), plus the A.3 seed `reserved`
+   map `{shepherd: 1, clerk: 1, ci: 1, review: 10}` (proposed CV29). A resumed lead clears
    `stop_reason: spawn-cap` here (PC-W2-8, AM-4 W2-5); `invalidate` stays until the fresh
    `RELEASE` is consumed; any other `stop_reason` (`stop-the-line:*`, `d7-round3`, `human`,
    `port-refused`): print it and stop, only the human clears it ([resume](references/resume.md)).
 
 3. **Machine-ledger row (A.4, PC-W2-1, AM-4 W2-9).** Both backends. Under `mkdir
    $DELIVERY_ROOT/machine/.lock` (reap dead-pid rows to `.dead` first), re-sum every
-   `machine/*.row` `live_count` plus yours against 200, and the `build=1` rows against rule 8
+   `machine/*.row` `live_count` plus 31 for yours (AM-5 29-2) against 200, and the `build=1` rows against rule 8
    (at most 3; yours is `build=1` only in `MODE=build`). Over either cap: write
    `stop_reason: human`, print the reason, stop. Else write `machine/<SESSION>.row`
-   (`session= pid= live_count= build= utc=`) atomically.
+   (`session= pid= live_count= build= utc=`, the real `live_count`) atomically. Then arm the
+   merged tick (step 9), its bus check skipped until `bus.endpoint` exists (proposed CV23).
 
 4. **Register (C5.1, B1).** Rename any earlier `ST/outbox/register`, `register.consumed` or
    `register.refused` to `<name>.<yyyymmddThhmmssZ>`; write one line
    `REGISTER <run-id> <subtask> <identity> <SESSION>` matching
    `^REGISTER ([a-z0-9-]+) (st[0-9]+|pm) ([^ ]+) ([a-z0-9-]+)$` (`<identity>` your `SendMessage`
    id, `-` for `claude-p`). Send no `DESK` line until `outbox/register.consumed` of this start
-   exists; `register.refused` stops this lead (`stop_reason: human`).
+   exists; `register.refused` stops this lead (`stop_reason: human`). No `register.consumed`
+   within 20 minutes of the write (default, proposed CV23): escalation `human-step`,
+   `stop_reason: human`, stop.
 
 5. **Wait for `RELEASE` (C6).** If the dispatch-plan sub-task table orders this sub-task after
    a predecessor, and always for `pm`, dispatch nothing until an inbox `RELEASE <subtask>` is
-   consumed (a file already renamed `.consumed` counts). Independent sub-tasks need none.
+   consumed (a file already renamed `.consumed` counts; after an `INVALIDATE` only a `RELEASE`
+   with a higher `<seq>`, proposed CV30). Independent sub-tasks need none. The tick reads
+   `inbox/` meanwhile ([wait states](references/tick.md#wait-states)).
 
 6. **Reconcile (C5.3 steps 1-5; also on a first start).** Rename every `ST/slots/*.row` to
    `.stale`, run `catalog.sh audit`; re-verify by `kill -0`, `lsof`, `git worktree list`, git
@@ -85,7 +91,8 @@ the lead copies nothing (C1.2, R4-J14). Tier names only, never models (M19).
    runs without the bus check. `plan-pr`: the `PLANS_DIR` files go onto the `st0` branch through
    an Integrator (A.6, R4-J17, M20), then steps 12-16. `post-merge`: `post-merge-verify`, then
    `release-track`, recording `pm_sha`, `postmerge`, `postmerge_record`, `release_record`; on a
-   terminal `RELEASE:` token, `delivery-cleanup` mode `subtask` for `pm` (C5.1).
+   terminal `RELEASE:` token, `delivery-cleanup` mode `subtask` for `pm` (C5.1). Inputs, the
+   `POSTMERGE: FAIL`/`STOP` ends and the `WAITING-HUMAN` wait are in the mode section there.
 
 7. **Wave 0, in-lead (C1).** Catalog check (`RUN_HOME/catalog.tsv` exists, else
    `stop_reason: human`); add each unit
@@ -93,16 +100,19 @@ the lead copies nothing (C1.2, R4-J14). Tier names only, never models (M19).
    `git worktree add --detach`, each a catalog `worktree` row; in parallel, the baseline gates on
    `origin/main` by a gate runner (a `gate-runner/<n>` lease, result in its `status/` file, no
    `GATE-PASS`), the facts re-measure by an Explorer (rows in its `status/` file). Each agent gets
-   a slot row first (step 10 rules). If `PLANS_DIR/subtasks/<subtask>/waves/constitution.md`
+   a slot row first (step 10 rules). If `PLANS_DIR/subtasks/<subtask>/constitution.md` (bundle
+   root, next to `waves/`, C1)
    exists (the planner writes it only for a repo with no profile, C1), run its one serial agent
    before `01-build.md` and verify its record as a C2 `PASS` (not a numbered wave, E26). Wave 0
    precedes the bus: its agents post to their `status/` files only and run as blocking calls in
-   the lead's turn (the tick is armed only at step 9); no agent that reads the bus starts before
-   step 8.
+   the lead's turn (the tick armed at step 3 cannot fire during a blocking call: owner question
+   O3); no agent that reads the bus starts before step 8. On a resume, skip each item the
+   catalog (`live` `worktree` rows), the `status/` files or the checkpoint show done (proposed CV31).
 
 8. **Bus (A.5.2, C1.1, D4, D5; [bus-and-ports](references/bus-and-ports.md)).** Read the P8 `bus`
    row `candidate` for this sub-task from `dispatch-plan.md` as written (`ports.bus_base + 20·2N`,
-   AM-4 W2-3; never recompute it). Order: (1) claim through `port-claim`
+   AM-4 W2-3; never recompute it). On a resume with `bus.endpoint` present, take the restart
+   path of `bus-and-ports.md` (no new claim, C5.3 step 4). Order: (1) claim through `port-claim`
    (`tools/port-check.sh --claim <port> ... claimed ...`, `project` = `<run-id>`, `source` =
    `<run-id>-<subtask>`); (2) `catalog.sh register` the `port`, `pm2-app` and `bus` rows
    (`planned`); (3) after `pm2 jlist` shows no `swarm-mcp-<session_id>`, start the bus per
@@ -117,11 +127,12 @@ the lead copies nothing (C1.2, R4-J14). Tier names only, never models (M19).
    `stop_reason: port-refused` and stops; the conductor reports to the owner (AM4-3, Q3, Q4,
    AM-4 W2-1). Never auto-pick, never a second retry.
 
-9. **Arm the merged tick (C7; [tick](references/tick.md)).** One session cron every 10 minutes,
-   `run_in_background`, armed in your own session for both backends, prompt verbatim from design
+9. **The merged tick (C7; [tick](references/tick.md)).** One session cron every 10 minutes,
+   `run_in_background`, armed in your own session at step 3 for both backends, prompt verbatim from design
    §4 (`part-03-personas-and-concurrency.md:92`, copied in `references/tick.md`); register it as
-   a catalog `cron` row. If a probe shows the cron does not fire in a `claude -p` lead, run each
-   invocation blocking and the watchdog half between invocations (PC-W2-7, C1.1).
+   a catalog `cron` row. A `claude -p` lead runs the C1.1 fallback from its start until PC-W2-7
+   is measured: each invocation blocking, the watchdog half between invocations and at each
+   wait (proposed CV23).
    Every tick (watchdog half; also below 3 live agents, R-3), in the `tick.md` order:
    - read `inbox/` in `<seq>` order and act only on lines matching the C5.1 grammar
      (`RELEASE`, `INVALIDATE`, `ANSWER`, `MERGED <subtask> <merge_sha>` per
@@ -145,32 +156,40 @@ the lead copies nothing (C1.2, R4-J14). Tier names only, never models (M19).
    - after every `TaskStop`, in order: `TaskStop`, orphan sweep under that agent's worktree
      (by cwd and pid, never by pattern; register, kill by pid; a dead gate runner's lease gets
      its `released` row, A.7, AM-4 20 Q9), re-read verdicts (bus and `status/*.verdict`), then
-     free rows.
-   - at 3 or more live agents run `delivery-shepherd` (`RUN_HOME`, `SUBTASK`, `PLANS_DIR`;
+     free rows. For a controller `TaskStop` the sweep covers every live row of its invocation,
+     and a row whose agent is not confirmed gone stays `.row` (proposed CV24, `tick.md`).
+   - no invocation live, the step 10 loop not ended and no escalation open: re-run step 10
+     from 10.1 (proposed CV21);
+   - at 3 or more live agents (`wave-controller` excluded) run `delivery-shepherd` (`RUN_HOME`, `SUBTASK`, `PLANS_DIR`;
      reserved seat `shepherd: 1`, no row); it flags only, you decide every `TaskStop` (D10);
    - rewrite your machine row `live_count` = `.row` count + `sum(reserved)` + 1, and
      `substate.md`, atomically;
    - print one line only if something changed; otherwise noop.
 
 10. **Invocation loop (C1.1, A.3, A.4; [ledger](references/ledger.md),
-    [verdicts](references/verdicts.md)).** Until the checkpoint shows `01-build.md` passed or
-    every unpassed unit is escalated or blocked:
+    [verdicts](references/verdicts.md)).** Loop until it ends per proposed CV21 (an invocation
+    whose dispatch record holds no line, with every unit in `integrated`); no invocation while
+    an escalation is open, since each invocation re-dispatches every unpassed work_item. Once,
+    before the first: the `i<N>` of `waves/02-integrate.md` must form a `depends_on` chain or
+    share one `lane` (M20), else `stop_reason: human`. Every invocation runs 10.1-10.8:
     1. Spawn check (Q2): `spawns + 1 + (dispatch_budget - dispatch-record lines so far) <= cap - 5`,
        and `spawns + 1 <= cap - 5` before any own Agent call. Otherwise, with no invocation
        live, run the hand-over: write `stop_reason: spawn-cap`, remove `substate.lock`, exit (C5.3).
     2. Lease every `lane/<name>` any work_item of the invocation names
-       (`catalog.sh register lane-lease ...`; exit 3 = held, wait). Release each lease once the
+       (`catalog.sh register lane-lease ...`; exit 3 = held: release the leases this pass took
+       and wait). Then require `30 - live_rows - sum(reserved) - 1 >= 1` (the controller row
+       to come), else release them and wait (S4). Release each lease once the
        last work_item of that lane has its C2 record accepted or escalated (C1.1, AM-4 9).
-    3. Bump `invocation` in `substate.md` before the call (and set `phase: building` before the
-       first one, A.3, A.2 transitions).
+    3. Desk `fetch {repo: REPO, ref: <default_branch>}`, `.out` read (Q5); bump `invocation` in
+       `substate.md` (and set `phase: building` before the first one, A.3, A.2 transitions).
     4. Write the controller's slot row (Q1, AM-4 W2-2): `persona` `wave-controller`, `unit` `-`,
        `tier` the wave `agents` tier, `budget_min` = the sum of the invocation's work_item
        `budget_min`, `worktree` the sub-task worktree, `pid` `<lead-pid>/<agent-id>`. It counts
        in `spawns`.
-    5. `max_concurrent = 30 - live_rows - sum(reserved)`, computed after that row exists. Below
-       1: dispatch nothing and wait (S4).
+    5. `max_concurrent = 30 - live_rows - sum(reserved)`, computed after that row exists.
     6. Call the extended `wave-execution` as a background Agent task with `spec_root`
-       `PLANS_DIR/subtasks/<subtask>/waves/`, `max_concurrent`, `invocation`, and
+       `PLANS_DIR/subtasks/<subtask>` (the bundle root holding `bundle.md` and `waves/`, proposed
+       CV20), `max_concurrent`, `invocation`, and
        `tier_override <unit>=<tier>` for a re-dispatch; the bundle carries
        `bus_endpoint` = `<run-id>/<subtask>/bus.endpoint`, `gate_type: step_complete`. At most
        one live invocation per sub-task. Idle; the cron does C2, C4, C7. A return of
@@ -192,21 +211,27 @@ the lead copies nothing (C1.2, R4-J14). Tier names only, never models (M19).
        (`^NEXT: (u[0-9]+)\.([0-9]+) .+$`, C3) against the plan and run `scope-check.sh` on each
        verdict yourself, for `u<N>` rows only (no DRIFT/CREEP on `i<N>` or `-` rows, C7 AM-4 23).
     8. When the task returns (TaskList), note the step 8 final result and rename the controller
-       row `.freed` (or after its `TaskStop`). A gate failure never releases dependents; `TaskStop`
+       row `.freed` (or after its `TaskStop`). A return whose `dispatch/<invocation>.jsonl` holds
+       no line ends the loop when every unit is in `integrated` (W' "All passed"), else it is
+       `stop_reason: human` (no progress, proposed CV21). A gate failure never releases dependents; `TaskStop`
        only live agents (A5, E15).
 
-11. **Integrate (`02-integrate.md`; C1.2, A.3, D1.1).** Before each invocation that runs
-    `02-integrate.md`, send desk `fetch {repo: REPO, ref: <default_branch>}` (profile key, A.2.2, AM-4 20 Q6) and read its `.out`
-    (Q5); the Integrator rebases onto the fetched ref, is the only writer of the sub-task branch
-    (M20) and never sends `DESK`. Set `phase: integrating`. Per accepted Integrator record `i<N>`
+11. **Integrate (`02-integrate.md`; C1.2, A.3, D1.1).** The controller rolls from `01-build.md`
+    into `02-integrate.md` inside one invocation (W' `wave-execution` step 6), so the step 10.3
+    `fetch` (`<default_branch>`, A.2.2, AM-4 20 Q6) precedes it; the Integrator rebases onto the fetched ref, is the only writer of the sub-task branch
+    (M20) and never sends `DESK`. Set `phase: integrating` when the first `i<N>` dispatch-record
+    line appears (proposed CV21). Per accepted Integrator record `i<N>`
     append `u<N> <head>` to `integrated` (`INTEGRATED:` entry).
 
-12. **`pre-pr-gate` (D2.2 row 10).** Before each call, the same `fetch` (Q5). Set `phase: prepr`;
+12. **`pre-pr-gate` (D2.2 row 10).** Hosted skills (here, steps 14-15, mode `post-merge`) run in
+    your turn: each of their Agent calls is your own (10.1 check, row or reserved seat), made in
+    the background and waited in slices with the watchdog half between them (proposed CV22,
+    [tick](references/tick.md#hosted-skills)). Before each call, the same `fetch` (Q5). Set `phase: prepr`;
     pass `RUN_HOME`, `SUBTASK`, `HEAD` (the rebased sub-task head), `WORKTREE` (the sub-task
     worktree), `REPO_PROFILE`, `SECURITY_AUDIT`. Copy checklist line 1 to `prepr`, the head to
-    `head`, `RUN_HOME/review/<subtask>/record-<head>.md` to `review_record`. `PREPR: STOP`:
-    `C<port row>` after the second review-bus refusal is `stop_reason: port-refused` (Q3, D2.2 row 10); a round-3 stop is `d7-round3`;
-    any other failed row is `stop-the-line:S2` (A.3). An `INPUT-ERROR` answer from any skill you
+    `head`, `RUN_HOME/review/<subtask>/record-<head>.md` to `review_record`. `PREPR: STOP` maps
+    to `port-refused`, `d7-round3` or `stop-the-line:S2` by the checklist evidence (proposed CV26,
+    [handoffs-and-modes](references/handoffs-and-modes.md#pre-pr-gate-d22-row-10)). An `INPUT-ERROR` answer from any skill you
     invoke is no D7 round and no fix-verifier iteration: fix the input, re-invoke with the same
     iteration (AM4-2).
 
@@ -216,16 +241,19 @@ the lead copies nothing (C1.2, R4-J14). Tier names only, never models (M19).
     record_path, expect_head}`, copy `pr` and set `phase: pr-open`; `pr-attach` the
     `ST/lanes/` paths; `pr-comment` listing the returned URLs. Later pushes to the same PR need
     the `GATE-PASS` record for the head plus `RUN_HOME/ci/<pr>.md` naming it, or `PREPR: PASS`
-    for it (AM4-1). Desk transport ([control-channel](references/control-channel.md)): build the
+    for it (AM4-1); before relaying each `ci-fix-loop` push, append `push-head: <expect_head>` to
+    `ci/<pr>.md` (proposed CV27). Desk transport ([control-channel](references/control-channel.md)): build the
     line with `desk-req.sh`; `agent-tool` sends it to `desk` by `SendMessage`, `claude-p` writes
-    `outbox/<id>.desk`; poll `.out` 5 minutes, re-send the same id once, then rename `.req` to
+    `outbox/<id>.desk`; poll `.out` 5 minutes, re-send the same id once (B1 `.out` polling), then rename `.req` to
     `.req.noreply` and escalate `human-step`. `outbox/<id>.desk.refused` is terminal `sender` at
     once (PC-W2-8).
 
 14. **`ci-fix-loop` (D2.2 row 11).** Set `phase: ci`; pass `RUN_HOME`, `SUBTASK`, `REPO`, `PR`.
     Copy `ci/<pr>.md` line 1 (`CI:`) to `ci`. `CI: GREEN <sha>` with `<sha>` not equal to `head`:
     `fetch`, then re-run `pre-pr-gate` with `HEAD=<sha>` so `prepr`, `head` and `review_record`
-    name `<sha>` (PC-W2-3). `CI: HUMAN policy` -> `stop_reason: stop-the-line:D23`; a round-3 stop
+    name `<sha>` (PC-W2-3); if that re-run moves the head again, later-push it, re-run
+    `ci-fix-loop` and repeat until `ci` names `head`; a third such cycle is `d7-round3` (proposed
+    CV28). `CI: HUMAN policy` -> `stop_reason: stop-the-line:D23`; a round-3 stop
     -> `d7-round3`; any other `CI: HUMAN` -> `human` (PC-W2-4).
 
 15. **`MERGED` -> `delivery-cleanup`.** On inbox `MERGED <subtask> <merge_sha>`, set
@@ -239,8 +267,10 @@ the lead copies nothing (C1.2, R4-J14). Tier names only, never models (M19).
 
 `INVALIDATE <subtask> <reason>` (C6): pause; write `stop_reason: invalidate`; `TaskStop` only
 live agents (then the step 9 order); a non-author delta verify of reviewed-head..new-head; past
-`pre-pr-gate`, re-run it if the head changed; clear `invalidate` when the fresh `RELEASE` is
-consumed. `ANSWER` resumes the named unit through a fresh invocation.
+`pre-pr-gate`, re-run it if the head changed; clear `invalidate` when a `RELEASE` with a higher
+`<seq>` is consumed (proposed CV30). `ANSWER` resumes the named unit through a fresh invocation.
+Every wait (`RELEASE`, `ANSWER`, `MERGED`, this pause, `WAITING-HUMAN`) follows
+[tick](references/tick.md#wait-states).
 
 ## Red flags
 

@@ -1,0 +1,11 @@
+id | sev | artifact file:line | defect | source file:line | fix
+--- | --- | --- | --- | --- | ---
+s7-1 | B | skills/delivery-desk/references/schemas.json:10,19; SKILL.md:75; verbs.md:25,88,135 | git_ref and tag patterns admit a leading '-' (e.g. --force, -d) for base/ref/merged_into/tag; desk-req-schema.sh:20-21 rejects it, so a forged .req passes the desk as a raw flag; no '--' guard in the commands | decisions/0055-desk-verb-permission-tiers-02.md:198; part-b-desk.md:77 | add ^[A-Za-z0-9._/][A-Za-z0-9._/-]*$ to git_ref and tag
+s7-2 | M | SKILL.md:17-19,27-28,53; checks.md:94 | STATUS/BUSY exists only in Trigger prose: no step, not in Step 0 classification or Exit criteria; no rule for in-flight/done/unknown ids; a 5-minute spacing wait blocks the 2-minute BUSY | part-b-desk.md:20; decisions/0055:72-75 | add a STATUS step and answer between spacing polls
+s7-3 | M | SKILL.md:141-143,195 vs SKILL.md:70-71, checks.md:28 | approve/trigger-prod/pipeline edit said to be REJECTED policy, but a verb outside the 20 stops at check 5 as schema | part-b-desk.md:41,59,64 | non-B4 verb = schema; policy only for B4 verbs with a refused form
+s7-4 | M | SKILL.md:77-80; checks.md:47,54 | jira-* and test-report-push have no repo field; skill never says which profile gives secrets.pattern_file / jira.status_map | part-a-state.md:136; part-b-desk.md:73,147 | state: no-repo verbs use the primary profile from state.md repo_profile
+s7-5 | M | checks.md:66-67; SKILL.md:83-84 | image = extension only; a text file named x.png in lanes/ skips the redaction scan | part-b-desk.md:147 | classify by content, scan all non-images
+s7-6 | M | schemas.json:9,134,169,408 vs SKILL.md:75,79; reason_codes.repo | branch regex sits in the request schema (check 5 = schema) while step 9/checks.md:48/reason_codes.repo say a bad branch is repo | part-b-desk.md:61 vs :79 | validate branch only in check 6, or say schema wins
+s7-7 | L | verbs.md:25,28,82,88,135; checks.md:94-96 | <remote>, gh repo selection and the last-push-time record are undefined | part-b-desk.md:83,14 | name the remote source and the last-push record
+(bus note: one stray "probe" message was posted to findings-r1-s7 by mistake before the findings)
+totals B/M/L 1/5/1

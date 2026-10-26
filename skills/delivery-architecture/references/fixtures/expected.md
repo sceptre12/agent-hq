@@ -11,6 +11,6 @@
 | `contracts/` | one owning file for the CSV columns (`order_id`, `status`, `placed_utc`, `customer_email`, `total_minor_units`); no draft restates the column list |
 | `test-plan.md` | human hand-test rows post-merge for both Stories |
 | `release-plan.md` | step table with unique `step_id`s; the production deploy step owner is `human` |
-| `review-architecture.md` line 1 | `ARCH: ready`; body links `RUN_HOME/review-tailor-run-doc-1.md` and records rung 2b, 1 round, 0/0/1 |
+| `review-architecture.md` line 1 | `ARCH: ready`; lines 2-4 exactly `STAKES: reversible`, `CONTENTION: <none|contested>` (per item 4), `NOVELTY: known` (an existing doc covers the surface), then a blank line; the body gives one `why <KEY>=<value>:` reason line each, links `RUN_HOME/review-tailor-run-doc-1.md` and records rung 2b, 1 round, 0/0/1 |
 | `h1-packet.md` | one page; no "Open findings" block; desk lines `GATE demo-1-20261102 H1 ok|changes|reject` |
 | not written | no gate file, no Jira call, no port claim, no `security-audit/` directory |

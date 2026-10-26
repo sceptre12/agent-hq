@@ -23,7 +23,7 @@ The checkpoint of `wave-execution` is the sole resume authority for what has pas
 ## Lifetime lock (A.3)
 
 1. `mkdir RUN_HOME/<subtask>/substate.lock`. On success, write `owner` (`<pid> <ISO UTC>`, `^[0-9]+ [0-9TZ:-]+$`) to a temp file inside the lock directory and `mv` it to `owner`. The lead holds the lock for its whole life, so header writes need no second lock.
-2. **The lock exists.** It is stale when the `owner` pid fails `kill -0`, or when `owner` is missing or unparsable and the directory is older than 120 s.
+2. **The lock exists.** It is stale when the `owner` pid fails `kill -0`, or when `owner` is missing or unparsable and the directory is older than 120 s (A.3 lock rule, `interfaces/part-a-state.md:186`, also for the 1 s / 60 s waiter below).
    - **Not stale:** another lead is live. Refuse to start: print `substate.lock held by <owner>` and stop, without touching `substate.md`. Two leads on one `substate.md` is stop-the-line S6, so this refusal is what keeps it from happening.
    - **Stale:** break it. `mv substate.lock substate.lock.broken-<own pid>-<yyyymmddThhmmssZ>` (only one breaker's `mv` succeeds), then read `owner` inside the renamed directory. If it is not the `<pid> <utc>` that was tested stale (another breaker's fresh lock was moved), rename the directory back to `substate.lock` with a plain rename and start over. Otherwise `mkdir substate.lock`. If the `mv` or `mkdir` fails, start over from the stale test; a waiter retries every 1 s and gives up after 60 s. Remove the renamed directory once the new lock is held, and append the break time to `substate.md` `lock_breaks`.
 3. **Seed copy (mode `build`, first start only):** copy `<PLANS_DIR>/subtasks/<subtask>/substate.seed.md` verbatim to `RUN_HOME/<subtask>/substate.seed.md`, never edit the copy, and create `substate.md` from it, adding every other A.3 field empty or derived. In `plan-pr` and `post-merge`, `substate.md` is initialized from `subtask_id`, `session_id` and `phase: seeded` only (A.2 Modes). On a resume, `substate.md` exists and is re-read, not re-created.
@@ -32,7 +32,7 @@ The checkpoint of `wave-execution` is the sole resume authority for what has pas
 
 - **Old lead:** once `ledger.md`'s spawn check fails and no invocation is live, it writes `stop_reason: spawn-cap`, removes its lifetime lock (`rm` of `owner`, then `rmdir substate.lock`), and exits.
 - **New lead:** it finds no lock, or only a stale one, and starts. It clears `stop_reason: spawn-cap` at resume (PC-W2-8, AM-4 W2-5). Its spawn count starts at 0 because it is a new session (A.3).
-- `stop_reason: invalidate` is not cleared at resume. It is cleared only when the fresh `RELEASE` is consumed (`control-channel.md`).
+- `stop_reason: invalidate` is not cleared at resume. It is cleared only when a `RELEASE` with a higher `<seq>` than the `INVALIDATE` is consumed (`control-channel.md`, proposed CV30).
 - Every other `stop_reason` (`stop-the-line:*`, `d7-round3`, `human`, `port-refused`) maps the sub-task to `stopped` (A.2 W2-5). A lead started on such a `substate.md` prints the reason and stops. Only the human's decision, delivered through the conductor, clears it.
 
 ## Reconcile: C5.3 steps, in order (also on a first start)
@@ -45,7 +45,7 @@ The checkpoint of `wave-execution` is the sole resume authority for what has pas
 4. **Bus.** Check the pm2 app against `bus.endpoint` and restart it with `pm2 restart` only, never `reload` (`bus-and-ports.md` "Resume"). Then re-arm the merged tick: a session cron does not survive a session restart (`tick.md`).
 5. **Read `inbox/` and `gates/`** (`control-channel.md`). Then read verdicts in the order TaskStop, orphan sweep, re-read verdicts (bus and `status/*.verdict`), then free rows. At resume there is nothing to stop, so the sweep runs over the dead rows' worktrees. Bus reads past `limit 200` repeat with the last seen message id as the cursor until a page returns fewer than 200.
    Also before any send: apply the desk applied-result scan (`RUN_HOME/desk/*.out` of the lead's own verbs whose result is not yet recorded), then re-attach to each `*.req` that has no `.out` and is not `.req.noreply` (B1).
-6. **Only then dispatch.** The next invocation bumps `invocation` in `substate.md` before the call. The controller resumes at the unpassed work_items.
+6. **Only then dispatch.** Wave 0 and the bus are not redone: each Wave 0 item that the catalog (`live` `worktree` rows), the `status/` files or the checkpoint show done is skipped, and an existing `bus.endpoint` takes the restart path, never a new claim (proposed CV31; `bus-and-ports.md` step 0). The next invocation bumps `invocation` in `substate.md` before the call. The controller resumes at the unpassed work_items.
 
 `REGISTER` is written again on every start, resume included. The new identity replaces the old one in the desk registry (B1 "a line for a `<subtask>` already registered replaces its id"). No `DESK` line goes out before this start's `register.consumed` (`control-channel.md`).
 

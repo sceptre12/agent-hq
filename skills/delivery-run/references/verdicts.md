@@ -53,7 +53,7 @@ A pair outside the matrix fails filter step 3.
 
 ### `ESCALATE`
 
-- Pause the unit: it is not re-dispatched, and its dependents stay unreleased.
+- Pause the unit: it is not re-dispatched, and its dependents stay unreleased. Because every invocation re-dispatches each work_item its checkpoint has not passed, no new invocation starts while an escalation is open (`handoffs-and-modes.md` "Loop end", proposed CV21).
 - Write `RUN_HOME/<subtask>/escalations/<unit>.md` holding the record and, when it exists, the `.decisions/<unit>.md` path. Run-level work, which has no sub-task, uses `RUN_HOME/escalations/<unit>.md` (AM-4 22).
 - Free the row (the record is from the registered agent and has been handled).
 - The conductor's next status post lists open escalations. The human's answer arrives as an inbox `ANSWER` line (`control-channel.md`). A `decision-gate` record follows the `.decisions` fork flow (`handoffs-and-modes.md`).

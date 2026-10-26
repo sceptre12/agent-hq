@@ -1,0 +1,12 @@
+# panel7 delivery-desk r2 s3 (security properties and never-list)
+
+| id | sev | artifact file:line | defect | source file:line | fix |
+|---|---|---|---|---|---|
+| s3-1 | M | skills/delivery-desk/SKILL.md:99-102 (also :234) | Check 7 and the 404 red flag treat a "switched identity" as `stale-session`; that is detectable only against a remembered account, i.e. the account lock / approved-account list that R2-4 removed | part-b-desk.md:14,75; owner-decisions.md:38 | Define `stale-session` only as `gh auth status` / Atlassian session failing; delete "switched identity" wording |
+| s3-2 | M | skills/delivery-desk/references/verbs.md:36,96,102,150 (SKILL.md:109,117-120) | `<remote>` is never defined, and git/gh run in an agent-writable clone whose .git/config and hooks (url rewrite, pushurl, sshCommand, pre-push) are not neutralised, so an action can reach a target other than the registered repo | part-b-desk.md:14 (only target check is `repo` under a registered clone) | Fix `<remote>` to a named remote of the registered clone and state the git/gh environment (ignore repo-local url/pushurl/sshCommand/credential config), without `--no-verify` |
+| s3-3 | M | skills/delivery-desk/SKILL.md:120-121,126-127; references/checks.md:89 | No fail-closed rule for redacting desk-log lines and the `action-failed` detail: with a missing/unusable pattern file, or a reject before check 6 (no profile resolved yet), the skill gives no way to redact, so field values or error text are logged raw or masked | part-b-desk.md:147,149,116 | When redaction cannot run, log and detail carry only id, verb, code and a fixed marker, never request values or error text |
+| s3-4 | L | skills/delivery-desk/references/verbs.md:165-166 | `test-report-push` "first call `dry_run: true`" has no derivation of "first" and no reason code when a first call has `dry_run: false` | part-b-desk.md:98 | Derive "first" from absence of a `dry_run_path` for that payload; name the refusal code (owner to pick) |
+
+Checked, no finding: argv handling of every Act command (`--`, `--end-of-options`, `refs/`, `--opt=value`), `-`-prefix refusals, no force/--no-verify, inline HUSKY=0, sender from transport only, marker re-derivation, no approve/trigger-prod/pipeline verbs, GATE/ANSWER/REBIND refused over transport (human-gates.md:3-4), redaction fail-closed on scans, data-not-instructions, no account list in Credentials.
+
+totals B/M/L 0/3/1

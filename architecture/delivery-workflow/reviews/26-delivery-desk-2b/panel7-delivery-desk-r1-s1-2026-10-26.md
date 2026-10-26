@@ -1,0 +1,11 @@
+Seat s1 (verb and schema exactness), round 1, agent desk26-r1-s1. Clean: 20 verbs, request field names/required sets/array types, B6 result fields, envelope, reason codes+classes, line regexes all match part B (checked by script).
+
+| id | sev | artifact file:line | defect | source file:line | fix |
+|---|---|---|---|---|---|
+| s1-1 | M | skills/delivery-desk/references/schemas.json:10,19 (git_ref, tag for base, merged_into, ref, tag); SKILL.md:75 | closed schema accepts a ref/tag starting with '-' (e.g. --force, --tags) that verbs.md Act lines pass as bare git/gh positionals, so a raw flag is reachable; desk-req-schema.sh:23-24 refuses a leading '-' | decisions/0055-desk-verb-permission-tiers-02.md:198; part-b-desk.md:83,85 | first char not '-' in git_ref/tag (or '--' separator in every Act line); match desk-req-schema.sh |
+| s1-2 | M | skills/delivery-desk/references/schemas.json:11,12,33,211,738 | extra bounds not in B4 (pr/ci_run_id minimum 1, paths minItems 1, jira-get fields minItems 1, jira_fields_write minProperties 1): requests desk-req.sh accepts (pr 0, pr-attach paths [], jira-get fields [], jira-update fields {}) get terminal REJECTED schema | part-b-desk.md:85; tools/delivery/desk-req-schema.sh:28-30,40,44 | align both sides (drop bounds or add them to the sender) |
+| s1-3 | L | skills/delivery-desk/references/verbs.md:149-150 | "first call for a payload is dry_run: true" is listed as a desk check with no reason code and no record of a prior dry run | part-b-desk.md:104; B2.1 :62-73 | name the code and the proof (dry_run_path file), or mark requester-side |
+| s1-4 | L | SKILL.md:41-47; references/checks.md:14 | a later REGISTER-SENDER for an existing token replaces its id and the token set includes run, so a later run line with another sender-id would replace the conductor id; only the first line is pinned to sender-id == transport sender | part-b-desk.md:22 | run line ok only when its sender-id equals the registry run id; else refused until REBIND |
+| s1-5 | L | skills/delivery-desk/references/schemas.json:148,187,224 (all 20 result schemas) | request_sha256 accepts null on DONE; DONE always follows B3 step 4 | part-b-desk.md:122 | plain sha256 ref in result schemas |
+
+totals 0/2/3

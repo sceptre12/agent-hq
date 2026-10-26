@@ -37,9 +37,9 @@ The controller appends the line before it dispatches the agent, and the lead wri
 max_concurrent = 30 - live_rows - sum(reserved)
 ```
 
-- `live_rows` counts `slots/*.row`. `reserved` is the seed map (`shepherd: 1, clerk: 1, ci: 1, review: 10`), copied into `substate.md` and never edited by the lead (A.3).
+- `live_rows` counts `slots/*.row`. `reserved` is the seed map (`shepherd: 1, clerk: 1, ci: 1, review: 10`), copied into `substate.md` and never edited by the lead (A.3). In `plan-pr` and `post-merge`, which have no seed, the lead writes the same map at SKILL.md step 2 (proposed CV29), so the formula and the machine row count `pre-pr-gate`'s `review: 10` seats.
 - Compute it **after** the controller row exists, so the controller's own slot is already subtracted (Q1).
-- `max_concurrent` is a caller argument passed on each invocation (C1.1). It is never a spec field and never a constant 30. A value below 1 means no invocation now: wait for a freed row (on the next tick) and recompute.
+- `max_concurrent` is a caller argument passed on each invocation (C1.1). It is never a spec field and never a constant 30. Before the controller row is written, the lead requires `30 - live_rows - sum(reserved) - 1 >= 1`; otherwise it bumps nothing, writes no row, releases the leases it took in this pass, and waits. The tick's pending-dispatch step re-enters the loop at 10.1 (`tick.md` step 3, proposed CV21).
 - A controller return of `VALIDATION_FAILED` or `BUNDLE-ERROR <field>` (C1.1, AM-4 9) dispatched nothing: free the `wave-controller` row, write `stop_reason: human` and stop.
 - At most one live invocation per sub-task. A re-dispatch (`ROLLED`, `.decisions` resolution, resume) waits until the live invocation has returned (Q1).
 - Before any lead-own or hosted dispatch the same formula must leave at least one free slot. A spawn without a free slot is stop-the-line S4.
@@ -63,17 +63,17 @@ The shepherd never frees a row. It flags `FREE-CANDIDATE`, and the lead frees on
 
 - `<cap>` = env `CLAUDE_CODE_MAX_SUBAGENTS_PER_SESSION`, read at ORCHESTRATOR-CHECK. If it is unset or not an integer, the check fails and the lead stops (fail closed).
 - `spawns` counts every Agent call made in this lead session, its own and those of the skills it hosts (`pre-pr-gate`, `ci-fix-loop`, `delivery-cleanup`, the shepherd, review seats), plus every dispatch-record line of the invocations this session started. Nested spawns are counted because it is unmeasured whether the session cap counts them. The lead writes `spawns: <n>/<cap>` to `substate.md` atomically after each Agent call and after each read of new record lines.
-- Before any own Agent call: `spawns + 1 <= cap - 5`.
+- Before any own Agent call: `spawns + 1 <= cap - 5`. Agent calls of a hosted skill are own calls; the headroom before an agent that dispatches on its own, and the mid-skill hand-over, are in `tick.md` "Hosted skills" (proposed CV22).
 - Before each invocation: `spawns + 1 + (dispatch_budget - dispatch-record lines so far) <= cap - 5`, where `dispatch_budget` is the `bundle.md` field.
 - When either check fails: dispatch nothing more. Once no invocation is live, run the C5.3 hand-over: write `stop_reason: spawn-cap`, remove the lifetime `substate.lock`, and exit (`resume.md`). The new lead is a new session, so its count starts at 0 (A.3), and it clears `spawn-cap` at resume (PC-W2-8).
 
 ## Machine ledger row (PC-W2-1, PC-W2-2, AM-4 W2-9)
 
 - **When:** after the seed copy and before `REGISTER`, for every lead on either backend.
-- **Lock:** `mkdir $DELIVERY_ROOT/machine/.lock`, with an `owner` file as for `substate.lock` (A.3). A waiter retries every 1 s and gives up after 60 s. A stale lock is broken by the A.3 break procedure.
-- **Under the lock:** reap first, renaming every `machine/*.row` whose `pid` fails `kill -0` to `.dead`. Then sum `live_count` over the remaining rows plus this session's starting `live_count`. The total must be at most 200. When `MODE=build`, the count of rows with `build=1`, including this one, must be at most 3 (rule 8).
+- **Lock:** `mkdir $DELIVERY_ROOT/machine/.lock`, with an `owner` file as for `substate.lock` (A.3). A waiter retries every 1 s and gives up after 60 s. A stale lock is broken by the A.3 break procedure (A.3 lock rule, `interfaces/part-a-state.md:186`, which covers `machine/.lock`).
+- **Under the lock:** reap first, renaming every `machine/*.row` whose `pid` fails `kill -0` to `.dead`. Then sum `live_count` over the remaining rows plus 31 for this session (at most 30 slot and reserved agents plus its own seat, AM-5 29-2). The total must be at most 200. When `MODE=build`, the count of rows with `build=1`, including this one, must be at most 3 (rule 8).
 - **Over either cap:** remove the lock, write `stop_reason: human`, print the reason (the sums and the cap crossed), and stop. A `claude -p` lead was already summed by the conductor before launch; this re-check under the lock closes the race.
-- **Row:** `$DELIVERY_ROOT/machine/<SESSION>.row`, holding one line `session=<SESSION> pid=<lead-pid> live_count=<n> build=<0|1> utc=<ISO>`. Here `build=1` only in `MODE=build`, and `live_count` = this session's `.row` count + `sum(reserved)` + 1 for the lead itself. It is written atomically (temp file plus `mv`) and then the lock is removed.
+- **Row:** `$DELIVERY_ROOT/machine/<SESSION>.row`, holding one line `session=<SESSION> pid=<lead-pid> live_count=<n> build=<0|1> utc=<ISO>`. Here `build=1` only in `MODE=build`, and `live_count` = this session's `.row` count + `sum(reserved)` + 1 for the lead itself (the real value; the 31 above is only the admission sum). It is written atomically (temp file plus `mv`) and then the lock is removed.
 - **Every tick:** rewrite `live_count` and `utc` atomically. The lead never deletes its row. After it exits, the reaper renames it `.dead`.
 - **ORCHESTRATOR-CHECK:** `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS` must be at least 30 in the lead's env. An `agent-tool` lead is not started by the launcher, which asserts this only for `claude -p` (PC-W2-2).
 
@@ -83,7 +83,7 @@ The shepherd never frees a row. It flags `FREE-CANDIDATE`, and the lead frees on
   ```
   catalog.sh register lane-lease lane/<name> <unit> <ticket> delivery-run <subtask> <SESSION>
   ```
-  For `lane-lease`, `register` writes `live` directly. Exit 3 means the lane is held, for example by another sub-task's lead on a shared lane: release nothing, make no call, and retry on the next tick. An invocation never starts with a lane unleased.
+  For `lane-lease`, `register` writes `live` directly. Exit 3 means the lane is held, for example by another sub-task's lead on a shared lane: never touch the holder's lease, release the leases this pass already took (so two leads cannot each hold a lane the other needs), make no call, and let the tick's pending-dispatch step retry (proposed CV21). An invocation never starts with a lane unleased.
 - Release a lease (`catalog.sh release lane-lease lane/<name>`) after the last work_item of that lane in the invocation has had its C2 record accepted, or after the work_item escalated. Inside the run, one live work_item per lane is the controller's rule (ADR 0054 A3; barrier-wave release on gate pass or escalate, AM-4 9).
 - **`gate-runner/<n>` leases** (`n` in `1..gates.runner_slots`) are taken by each gate runner itself (A.7 preconditions). The lead releases a dead holder's lease: after a `TaskStop`, its orphan sweep writes the `released` row (AM-4 13 / 20 Q9); at resume, step 3a does it (`resume.md`).
 - **Unit gates** are not the gate runner's: a unit posts its record, and the engine's per-work_item gate agent runs the gate command and writes `GATE-PASS` for that head (AM-4 13). The lead never requests a gate runner for a unit.

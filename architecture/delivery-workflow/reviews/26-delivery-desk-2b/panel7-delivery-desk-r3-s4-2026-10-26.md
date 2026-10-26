@@ -1,0 +1,6 @@
+| id | sev | artifact file:line | defect | source file:line | fix |
+|---|---|---|---|---|---|
+| s4-1 | M | skills/delivery-desk/references/verbs.md:48-51; checks.md:103 | PREPR: PASS is taken from substate.md (lead-written transport copy), not the producer file or a desk-derived head binding | part-d-enums-topics.md:22; ADR 0055 §3 (decisions/0055-desk-verb-permission-tiers-02.md) | read checklist-<subtask>.md line 1 per the D1 regex and re-derive the review record for expect_head; substate.md alone is not evidence |
+| s4-2 | M | skills/delivery-desk/references/verbs.md:49-51; checks.md:103 | later-push CI evidence = any line of ci/<pr>.md containing expect_head; a CI: HUMAN or prose line passes | part-d-enums-topics.md:25 (CI: GREEN <sha> line 1) | require line 1 ^CI: GREEN <expect_head>$ or a desk ci-status success on that head |
+| s4-3 | M | skills/delivery-desk/references/checks.md:76-90 | pr-attach image classified by mime-type then uploaded from the agent-writable lanes path; swap after classification sends unscanned text; the same-bytes rule names only scanned files | part-b-desk.md:147 (B7); ADR 0055 §3 | classify and upload one desk-owned copy under desk-inbox/ |
+totals 0/3/0

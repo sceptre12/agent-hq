@@ -23,10 +23,10 @@ dispatch prompt; an empty value is a set value and is validated like any other.
 | `TASK_ID` | local-diff (record line 2): `^[A-Za-z0-9_-]+$` (A.6) | `missing`, `format` |
 
 `ROLES` derives from the seat table of `review-tailor-<slug>.md` (lines 2+, `seat-id<TAB>role<TAB>reason`).
-The D2.3 `pr-review` inputs (INTERFACES 1.5.0, AM-5 10-B2) are `ROLES`, `SEAT_ID`, `RUN_ID`, `SUBTASK`,
+The D2.3 `pr-review` inputs (INTERFACES 1.5.0, AM-5 10-B2; `RUN_HOME` in a run, INTERFACES 1.9.0 AM-9 V15b) are `ROLES`, `SEAT_ID`, `RUN_HOME`, `RUN_ID`, `SUBTASK`,
 `BUS_PORT`, `SECURITY_AUDIT`, `PR_REVIEW_MODE`, `STACK_BASE`, `STACK_HEAD` and `RECORD_PATH`; `RUN_ID` and
 `SUBTASK` are the in-run identity of the review-bus path `RUN_HOME/review/<subtask>/<review-id>/bus/`
 (A.1, D5), and `BUS_PORT` is required when `RUN_HOME` is set, optional standalone (D2.3). The other rows
 are dispatch-prompt fields validated here. In a run their producer is `pre-pr-gate` step 11, which passes
-`REPO_DIR`, `SEAT_ID` (the orchestrator's own seat id), `MEMBER_SESSION_NAME` and `TASK_ID` (D2.3 producer;
+`RUN_HOME`, `REPO_DIR`, `SEAT_ID` (the orchestrator's own seat id), `MEMBER_SESSION_NAME` and `TASK_ID` (D2.3 producer;
 INTERFACES 1.8.0 AM-8 V15). Record line 2 is never written with an empty field.

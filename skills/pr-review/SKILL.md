@@ -91,7 +91,7 @@ The full table (rule and reason per field) is `references/step0-inputs.md`. Fiel
 `RECORD_PATH`, `BUS_PORT` (required in a run: `INPUT-ERROR BUS_PORT missing`), the mode inputs
 (`REPO_DIR`, `BASE_REF`, `HEAD_REF`; `REPO`, `PR_NUMBER`), the run fields (`RUN_HOME`, `RUN_ID`,
 `SUBTASK`) and the record fields (`SEAT_ID`, `MEMBER_SESSION_NAME`, `TASK_ID`). In a run, `pre-pr-gate`
-(step 11) is the producer of `REPO_DIR`, `SEAT_ID` (the orchestrator's own), `MEMBER_SESSION_NAME` and
+(step 11) is the producer of `RUN_HOME` (AM-9 V15b), `REPO_DIR`, `SEAT_ID` (the orchestrator's own), `MEMBER_SESSION_NAME` and
 `TASK_ID` (D2.3; INTERFACES 1.8.0 AM-8 V15). Record line 2 is never written with an empty field.
 
 ### Local-diff mode (`PR_REVIEW_MODE=local-diff`)
@@ -226,7 +226,7 @@ The synthesizer reads all bus messages and produces the Phase B report.
 
 In local-diff mode the orchestrator then writes `RECORD_PATH` with `references/review-record.md`:
 line 1 `CODE-GATE-REVIEW: PASS|FAIL head=<HEAD_SHA> blocking=<b> medium=<m>` (PASS only when both are 0),
-line 2 `Reviewed-By: <seat-id> <session> <TASK-id>` (A.6; from `SEAT_ID`, `MEMBER_SESSION_NAME`,
+line 2 `Reviewed-By: <seat-id> <session> <TASK-id>` (A.6 3-token form, INTERFACES 1.9.0 AM-9; from `SEAT_ID`, `MEMBER_SESSION_NAME`,
 `TASK_ID`, none empty), a blank line, then the Phase B report, which the orchestrator first saves to
 `$(dirname "$RECORD_PATH")/phase-b-<HEAD_SHA>.md` (never `/tmp` in a run). `B`/`M` are the report's
 Blocking/Medium counts. The skill never writes `Verified-By:`.

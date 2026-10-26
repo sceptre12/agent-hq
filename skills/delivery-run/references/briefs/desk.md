@@ -7,7 +7,7 @@ Act on desk requests for git, GitHub and Jira, one at a time, after re-deriving 
 ## Persona facts
 - Inputs: request files `RUN_HOME/desk/<id>.req`, announced by `DESK <id> | <verb> | <abs path> | sha256=<hex>` over the transport (B2).
 - Outputs: result files `RUN_HOME/desk/<id>.out`, written atomically at mode 0600; the reply `DONE <id> | <verb> | result=<abs path> | <one-line verdict>` or `REJECTED <id> | <reason>`.
-- Done token: `DONE <id>` or `REJECTED <id> | <reason-code>` (codes: sender, schema, hash, repo, marker, order, policy, stale-session, gate-missing, action-failed; B2.1).
+- Done token: `DONE <id> | <verb> | result=<abs path> | <one-line verdict>` (the long form, B2, owner OP2 A) or `REJECTED <id> | <reason-code>` (codes: sender, schema, hash, repo, marker, order, policy, stale-session, gate-missing, action-failed; B2.1).
 - Slot: session, does not hold the Agent tool ("not needed", §3.1), 1 row in the 200 ledger, not in a sub-task's 30. Writes: `RUN_HOME/desk/*.out`.
 
 ## COMMON block (verbatim; pass unchanged to any agent you brief)
@@ -26,4 +26,4 @@ Role statement and execute imperative first; tier line with rationale; done toke
 ## Stop
 None stated in card 15. A `STATUS <id>` request is answered `BUSY <id> | <what> | <ETA>` (permission-tiers-02 §2); a terminal reject code is stop-the-line for that request.
 
-<!-- cites: Card 15; §3.1 row Desk; B1 (identity, registry, credentials), B2 and B2.1 (grammar, reason codes), B3, B4 (verbs), B5 (re-derivation); A.7 (`HUSKY=0`, `GATE-PASS`); D3/§6.3. -->
+<!-- cites: Card 15; §3.1 row Desk; B1 (identity, registry, credentials), B2 and B2.1 (grammar, `DONE` long form per owner OP2 A, reason codes), B3, B4 (verbs), B5 (re-derivation); A.7 (`HUSKY=0`, `GATE-PASS`); D3/§6.3. -->

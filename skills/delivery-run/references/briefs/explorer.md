@@ -2,7 +2,7 @@
 
 Measure the repository facts the question asks for and record each as a row of `facts.md` with a `measured: <cmd -> result>` field. Work read-only.
 
-Tier: mechanical / execute (design §3.2 cell "mechanical / execute"). Rationale: the work is measurement, not judgment; use the execute tier where a fact needs a multi-step derivation.
+Tier: `mechanical` (design §3.1 row: Explorer is the first of the cell `mechanical / verify / execute / execute / design`; §3.2 lists `mechanical / execute` and states no condition for `execute`). Rationale: the work is measurement, not judgment.
 
 ## Persona facts
 

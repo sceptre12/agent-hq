@@ -17,7 +17,7 @@ Role statement and execute imperative first; tier line with rationale; done toke
 ## Persona-specific rules
 - The migration carries a rollback; a migration without one is not done (checklist row "migrations have rollback", §5.7).
 - Never apply a migration to production. Post `UNIT-VERDICT` with verdict `ESCALATE` and reason `human-step`, then stop.
-- Generator or shared-package changes add the Generator/migration review seat; a missing companion test PR is Blocking (§3.5). Name it in your status file when the unit is of that kind.
+- Generator or shared-package changes add the Generator/migration review seat; a missing companion test PR is Blocking (§3.5).
 
 ## Stop
 Production apply: human. Post `UNIT-VERDICT` `ESCALATE` with reason `human-step` and stop.

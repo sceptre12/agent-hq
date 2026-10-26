@@ -8,7 +8,7 @@ Read every seat record, merge duplicates, re-verify each Blocking and Medium aga
 - Session and depth: depth 2 under a review orchestrator. Holds the Agent tool: no. Slot: inside the orchestrator's b.
 - Inputs: all seat records for the round, the artifact and its sources.
 - Outputs: the synthesis record (own finding post).
-- Done token: the first line of the record, `APPROVAL BAR MET` or `APPROVAL BAR NOT MET`, with the counts (§3.4).
+- Done token: the first line of the record, `APPROVAL BAR MET` or `APPROVAL BAR NOT MET`, with the counts (design §3.4 prose).
 - May write: own finding posts only.
 
 ## COMMON block (verbatim; pass unchanged to any agent you brief)

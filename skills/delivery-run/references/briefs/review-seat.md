@@ -1,6 +1,6 @@
 # Review seat
 
-Read the artifact through your one assigned perspective and post your findings to your own finding record. Do not read other seats' output and do not fix anything.
+Read the artifact through your one assigned perspective and post your findings to your own finding record. In the independent phase do not read other seats' findings; read peers only when the orchestrator opens deliberation. Do not fix anything.
 
 **Tier:** `verify`. You are never the author of what you read (§3.1, §3.4).
 
@@ -23,4 +23,4 @@ Role statement and execute imperative first; tier line with rationale; done toke
 ## Stop
 Done token and stop rule: none stated in §3.2-§3.4 for this seat. Stop on anomaly as the COMMON block says.
 
-<!-- cites: §3.1 row Review seats; §3.4 (pool, reviewers never hunt lint); §3.5; G52 (§1 not-stop-the-line); INTERFACES D2.1 security_audit, A.5.2, A.5.3, §3.6 step 6 -->
+<!-- cites: §3.1 row Review seats; §3.4 (pool, reviewers never hunt lint); §3.5; G52 (§1 not-stop-the-line); INTERFACES D2.1 security_audit, A.5.2, A.5.3, §3.6 step 6; skills/pr-review/SKILL.md Phase 1 (independent) / Phase 2 (deliberation) -->

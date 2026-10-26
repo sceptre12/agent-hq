@@ -145,3 +145,11 @@ Working files are in `SCRATCH/r14/`:
 - fix log: `fix-r1.md`
 - verifications: `verify-r1..r3.md`
 - diffs: `diff-r*.patch`
+
+## Post-D7 fix (owner-authorized, 2026-10-26; no new review round)
+OQ-14-1 answered yes by the owner: S4-1 fixed as recommended.
+- `references/fixtures/expected/facts.md:37` now reads "package.json has only full-repo scripts (lint, typecheck, test, build, clean)"; `expected/brief.md:23` lists "lint, typecheck, test, build, clean". Both match facts row 10 and `repo/package.json`.
+- **Fresh non-author dry run (Sonnet):** `FIXTURE_DIR=SCRATCH/postd7/dry14/out`. The §9 block printed `SKILL-14-OK`, `exit=0`. The last stdout line was `PROFILE: <scratch>/postd7/dry14/work/repo/plans/repo-profile.md@badd58f98200d4353671d1b86ae7533506d405d6`, equal to `git hash-object`. The reader's `facts.md` is identical to `expected/facts.md` (36 rows, including the corrected line 37).
+- Caveats: the reader measured the facts in one script instead of dispatching explorers, and wrote `unset.txt` (`INPUT-ERROR DELIVERY_ROOT unset`) from `step0-inputs.md` instead of running a second, unset pass.
+- **Fix-verify (Sonnet, installed `fix-verifier`): CLEAN** for S4-1. Diff: `SCRATCH/postd7/di14.diff`.
+- The S4-2..S4-5 and V3-1 Lows stay for the pilot.

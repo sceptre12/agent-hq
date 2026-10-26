@@ -155,8 +155,9 @@ except reserved-seat agents (review seats, counted by `substate.md` `reserved`, 
     exists. Fail on any single failing Blocking row; never a weighted score.
 17. **Verified-By.** Dispatch a seat whose id differs from line 2's `Reviewed-By`; it re-derives
     the head sha and 0 Blocking / 0 Medium from line 1
-    (`CODE-GATE-REVIEW: PASS head=<sha> blocking=0 medium=0`) and appends line 3
-    `Verified-By: <seat-id> head=<sha>` to the record.
+    (`CODE-GATE-REVIEW: PASS head=<sha> blocking=0 medium=0`) and writes line 3
+    `Verified-By: <seat-id> head=<sha>` into the record in place (`pr-review` leaves line 3 empty for it;
+    the Phase B report starts at line 5), never appended at the end: the desk reads line 3 (A.6).
 18. **Catalog check (C21).** `catalog.sh list --live --subtask <SUBTASK>` prints the latest
     row of each pair that is `planned` or `live` (script table, AM-4 20); none may be `planned`. Confirm no
     `gate-runner/<n>` lease of this skill is still `live`. The review bus, its port and pm2 rows

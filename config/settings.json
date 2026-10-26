@@ -116,6 +116,16 @@
             "timeout": 5
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$HOME/projects/agent-hq/tools/hooks/port-precheck.sh",
+            "timeout": 5
+          }
+        ]
       }
     ],
     "SubagentStart": [

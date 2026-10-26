@@ -66,6 +66,9 @@ tools/hermes/verify_import.py	tools/hermes/test_verify-import-bundled.sh
 tools/hermes/verify_import.py	tools/hermes/test_verify-import.sh
 tools/hermes/verify_scan.py	tools/hermes/test_verify-import-bundled.sh
 tools/hermes/verify_scan.py	tools/hermes/test_verify-import.sh
+tools/hooks/port-precheck.sh	tools/hooks/tests/port-precheck/test_port-precheck.sh
+tools/lib/port-check-lib.sh	tools/test_port-check.sh
 tools/lib/preflight-lib.sh	tools/test_parallel-preflight.sh
 tools/parallel-preflight.sh	tools/test_parallel-preflight.sh
+tools/port-check.sh	tools/test_port-check.sh
 tools/tree-eq-check.sh	tools/test_tree-eq-check.sh

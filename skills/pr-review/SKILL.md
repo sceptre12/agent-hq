@@ -102,9 +102,10 @@ comment (`references/local-diff-mode.md`: inputs, read-only `git show` rule, no 
 
 ## Execution model — tier per dispatch (`tools/model-routing.md`)
 
-Every dispatch below names a tier, never a literal model (design part-01 "Tiers", M19); the tier is
-resolved to a model by `tools/model-routing.md` or `repo-profile.md`. Review seats on `verify`,
-synthesis on `design`, polling and scripts on `mechanical`:
+Every dispatch below names a tier, not a literal model (design part-01 "Tiers", M19; the one model named, Sonnet for the synthesizer, is the owner rule D35); the tier is
+resolved to a model by `tools/model-routing.md` or `repo-profile.md`. Review seats and synthesis on
+`verify` (Sonnet: D35, an adopted owner rule, is 7 Sonnet seats → Sonnet synthesizer → Opus fixer →
+Sonnet fix-verifier; part-03 lists the synthesizer as verify), polling and scripts on `mechanical`:
 
 | Dispatch | Count | Tier | Rationale |
 |---|---|---|---|
@@ -114,7 +115,7 @@ synthesis on `design`, polling and scripts on `mechanical`:
 | Step 5 — Gate 1 checker | 1 | mechanical | Mechanical: poll a bus topic, count distinct agent ids |
 | Step 6 — Phase 2 deliberation agents | 7 | verify | Judgment: evaluate peer findings, VALIDATE/CHALLENGE/ESCALATE/ADD |
 | Step 7 — Gate 2 checker | 1 | mechanical | Mechanical: same as Gate 1 |
-| Step 8 — synthesizer | 1 | design | Judgment: compile findings table, deliberation trails, verdict |
+| Step 8 — synthesizer | 1 | verify (Sonnet, D35) | Judgment: compile findings table, deliberation trails, verdict |
 | Step 9 — cleanup | 1 | mechanical | Mechanical: `end_session`, pm2 delete, remove scratch files |
 
 Each dispatch states a verifiable done condition and a stop-on-anomaly clause (`tools/model-routing.md`
@@ -131,13 +132,13 @@ script lives in `references/`; the sub-agent runs it as written.
   unavailable) prints `ERROR` and stops (report). P and P+10 are the whole range: no auto-pick. The bus
   starts pinned (`PORT_RANGE_START=PORT_RANGE_END`) and `$DATA_DIR/port` must equal it. All else
   (session id, `/tmp` data dir, health, identity and loopback checks) is unchanged.
-- **Inside a run (`RUN_HOME` set):** `references/bus-start-run.md`, in A.5.2 order: refuse an existing
-  pm2 app or `data_dir`; claim `BUS_PORT` with `tools/port-check.sh --claim` (through `port-claim`)
-  before the bind; register the `port`, `pm2-app`, `bus`, `tmpdir` rows; launch under
-  `RUN_HOME/<subtask>/bus/` pinned to the claimed port; `catalog.sh start`. Exit 1 or 2 refuses the
+- **Inside a run (`RUN_HOME` set):** `references/bus-start-run.md`, in A.5.2 order: claim `BUS_PORT`
+  with `tools/port-check.sh --claim` (through `port-claim`) before the bind; register the `port`,
+  `pm2-app`, `bus`, `tmpdir` rows; launch under `RUN_HOME/review/<subtask>/<review-id>/bus/` (never the
+  lead's `RUN_HOME/<subtask>/bus/`) pinned to the claimed port; `catalog.sh start`. Exit 1 or 2 refuses the
   launch (no auto-pick); exactly one retry at `BUS_PORT + 10`, claimed before the bind; a second refusal
   stops the line and is reported to the lead; exit 3 is stop-the-line (INTERFACES 1.3.0 A.5.2, C1.1,
-  D2.3, AM-3 / owner OQ-2). App name and `SESSION_ID` carry `<run-id>-<subtask>-review`.
+  D2.3, AM-3 / owner OQ-2). App name and `SESSION_ID` carry `<run-id>-<subtask>-review-<uuid8>`.
 
 Capture `SESSION_ID`, `DATA_DIR`, `APP_NAME`, `PORT` and `SESSION_SUFFIX` (in a run also `DIFF_PATH`).
 
@@ -210,7 +211,7 @@ gate2TimedOut agents. If `timedOut` is true and `found === 0`, proceed to the sy
 
 ### Step 8 — Dispatch the synthesizer
 
-Dispatch a single synthesizer agent (**design** tier) with:
+Dispatch a single synthesizer agent (**verify** tier, Sonnet, D35) with:
 - `session_id` and `data_dir` (session_id passed explicitly, per bus session rules above)
 - `repo`, `pr_number` (pr mode); in local-diff mode `repo_dir`, `base_ref`, `head_ref`, `head_sha`
 - `timed_out_checks`: `{ gate1: [...], gate2: [...] }` — agent IDs from gate1TimedOut and
@@ -284,4 +285,4 @@ network-check pre-check before any `gh` call and, when unreachable, skip as `ref
 
 Provenance: Hermes skill learnings/skill-sharing (imported from learnings/skill-sharing.md)
 Lineage: X-context-docs skills/pr-review@0e9281e
-Provenance: EXTEND 1.1.0 (2026-10-26), delivery-workflow item 10: peek/fresh-id/limit-200 reads, stacked diff, preamble, local-diff default, RACI-remap refusal (references/roles-subset.md), port guard (A.5.2; one checked or claimed `BUS_PORT + 10` retry, then stop, standalone and in a run, INTERFACES 1.3.0 AM-3 / owner OQ-2), security-audit guidance seat; scripts in references/. Pending pilot (no pilot run recorded).
+Provenance: EXTEND 1.1.0 (2026-10-26), delivery-workflow item 10: peek/fresh-id/limit-200 reads, stacked diff, preamble, local-diff default, RACI-remap refusal (references/roles-subset.md), port guard (A.5.2; one checked or claimed `BUS_PORT + 10` retry, then stop, standalone and in a run, INTERFACES 1.3.0 AM-3 / owner OQ-2), security-audit guidance seat; scripts in references/. Post-D7 fix (2026-10-26, lead decision 10-B2): in-run bus at `RUN_HOME/review/<subtask>/<review-id>/bus/` (spec 10 Q10-5), refusal pre-check removed; synthesizer back on Sonnet (D35). Pending pilot (no pilot run recorded).

@@ -58,6 +58,8 @@ case "${1:-}" in
       git cat-file -e "$c:$CG_DIR/scope.conf" 2>/dev/null ||
         { no "origin/main commit $c: gate config removed ($CG_DIR/scope.conf absent)"; continue; }
       p1="$(git rev-parse -q --verify "$c^1" 2>/dev/null)" || p1=""
+      # The parentless root commit is the repository bootstrap: it has nothing to merge from, so it is exempt.
+      [ -n "$p1" ] || continue
       srev="$c"; [ -n "$p1" ] && cg_has "$p1" "$CG_DIR/scope.conf" && srev="$p1"
       cg_scope_load "$srev" || { no "origin/main commit $c: gate config removed (unusable scope.conf at $srev)"; continue; }
       chg="$(cg_changed ACMRD "${p1:-$CG_EMPTY_TREE}" "$c" | cg_scoped | tr '\0' '\n')" ||

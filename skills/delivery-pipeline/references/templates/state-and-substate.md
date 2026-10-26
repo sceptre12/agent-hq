@@ -1,6 +1,6 @@
 # Template: `state.md` and `substate.md` (design 5.0; INTERFACES A.2, A.3, A.4)
 
-Fill-in skeletons for the two run-state files and the two single-line records that sit beside them (slot row, machine ledger row). Every field name, enum and regex below is copied from `INTERFACES.md` 1.1.0; if this file and INTERFACES differ, INTERFACES wins and this file is the defect. Regex dialect: POSIX ERE.
+Fill-in skeletons for the two run-state files and the two single-line records that sit beside them (slot row, machine ledger row). Every field name, enum and regex below is copied from `INTERFACES.md` 1.3.0; if this file and INTERFACES differ, INTERFACES wins and this file is the defect. Regex dialect: POSIX ERE.
 
 - **Writer / Reader (`state.md`):** writer the conductor (`delivery-pipeline`) only. Readers: conductor at resume, `delivery-run` Step 0 (`interfaces_version` only), `delivery-desk` (gate pointers, `plans_dir`, `repo_profile` pinned `@<sha>`), the human.
 - **Writer / Reader (`substate.md`):** writer the sub-task lead only. Readers: conductor (never the bus), shepherd tick, lead at resume. Two writers on one `substate.md` is stop-the-line `S6`.
@@ -26,6 +26,7 @@ Fill-in skeletons for the two run-state files and the two single-line records th
 Path: `RUN_HOME/state.md`. A gate field holds a pointer, never a verdict (M30): a verdict is a gate file the desk writes after the human types the confirmation, or external evidence the desk reads back. An agent never writes under `gates/`.
 
 ```yaml
+orchestrator_tier: design             # design|execute|verify|mechanical; the conductor's own tier, written at stage 1 (AM-3 errata (g))
 run_id: <run-id>                      # last path segment of RUN_HOME
 epic: <epic>                          # original-case key; the run-id cannot be reversed to it
 plans_dir: <abs path>                 # primary repo plans/<epic>/ (plans/<run-id>/ when the run-id is provisional)
@@ -51,7 +52,7 @@ subtasks:
 skill_versions:
   delivery-pipeline: <version>@<sha256 of installed SKILL.md>
   # one entry per skill the run uses: name: <version>@<sha256>
-interfaces_version: <version>@<sha256 of INTERFACES.md>   # e.g. 1.1.0@<64-hex>
+interfaces_version: <version>@<sha256 of INTERFACES.md>   # e.g. 1.3.0@<64-hex>
 security_audit: guidance              # guidance|full (AM-1); default guidance
 machine_ledger_row: <abs path>        # $DELIVERY_ROOT/machine/<session>.row of the conductor session
 ```
@@ -60,6 +61,7 @@ machine_ledger_row: <abs path>        # $DELIVERY_ROOT/machine/<session>.row of 
 
 | Field | Rule (INTERFACES) |
 |---|---|
+| `orchestrator_tier` | `design\|execute\|verify\|mechanical`; written at stage 1 from `tools/model-routing.md`; when it is not `design`, `review-tailor` applies the review ladder's +1 rung modifier (`tools/review-ladder.md`); AM-3 errata (g) |
 | `stage` | closed enum; `done` after CYCLE DONE, `stopped` after a run-level stop |
 | `gates` | `H0`, `H1` scalar; `H-e2e`, `H-pr`, `H-prod` lists; values are paths or external-evidence pointers (A.2.1) |
 | `subtasks[].state` | transitions in 1.2; `released` only after `RELEASE` (part C6) |
@@ -98,6 +100,7 @@ machine_ledger_row: <abs path>        # $DELIVERY_ROOT/machine/<session>.row of 
 ### 1.4 Example (shapes only; replace every value)
 
 ```yaml
+orchestrator_tier: design
 run_id: found-1234-20261102
 epic: FOUND-1234
 plans_dir: /abs/repo/plans/FOUND-1234
@@ -108,7 +111,7 @@ stage: 4
 gates: {H0: /abs/delivery/found-1234-20261102/gates/H0.ok, H1: /abs/delivery/found-1234-20261102/gates/H1.ok, H-e2e: [], H-pr: [], H-prod: []}
 subtasks: [{id: st0, session: lead-st0-a1, lead_id: lead-st0, backend: agent-tool, state: merged, pr: 812, merge_sha: <40-hex sha>, released_utc: 2026-11-02T10:14:00Z}]
 skill_versions: {delivery-pipeline: 0.1.0@<sha256>}
-interfaces_version: 1.1.0@<sha256>
+interfaces_version: 1.3.0@<sha256>
 security_audit: guidance
 machine_ledger_row: /abs/delivery/machine/conductor-a0.row
 ```
@@ -124,6 +127,7 @@ live: <n>/30 (derived)                # derived from the count of slots/*.row; n
 reserved: {shepherd: 1, clerk: 1, ci: 1, review: 10}   # review: 10 per concurrent pr-review
 spawns: <n>/<cap>                     # cap measured at P0 (unmeasured: verify at move); lead stops at cap - 5
 frontier: []                          # current DAG frontier, unit ids
+interfaces_version: <version>@<sha256> # kept from the seed unchanged (A.3; same value as state.md, A.2)
 waves_done: 0                         # completed lane-waves (count)
 stop_reason:                          # empty, or one value below
 invocation: 0                         # wave-execution counter: incremented and written BEFORE each call

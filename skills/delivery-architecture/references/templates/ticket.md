@@ -26,7 +26,7 @@ parent: <parent-slug or ->
 
 **Team:** <team>
 **Epic link:** <epic slug or key; omit on the epic itself>
-**Priority:** <Critical|High|Medium|Low>
+**Priority:** <the Jira project's priority name; Critical|High|Medium|Low is a template-local example, not an INTERFACES enum (B4 only allows the `priority` field)>
 **Requested by:** <channel, team or stakeholder>
 
 ## Summary

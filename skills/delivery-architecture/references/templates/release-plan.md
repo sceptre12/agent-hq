@@ -16,7 +16,7 @@ Purpose: what ships, in what order, who runs each step, and how to undo it. v0 i
 ## Skeleton
 ````markdown
 # Release plan: <epic>   (v0)
-correlation_id: <id>
+correlation_id: <JIRA-KEY>|PR-<n>|run   (INTERFACES A.5 column 5 shape)
 repo_profile: <path>@<40-hex sha>
 Scope: <what ships; sub-tasks and merge shas once known (40-hex)>
 

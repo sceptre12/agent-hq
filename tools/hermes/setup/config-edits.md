@@ -1,3 +1,4 @@
+# NOTE: the plans/... paths and h2b-install.md referenced below point at hq-only design records that are not mirrored in this repo. __HOME__ = the owner's home directory (placeholder).
 # H2a config edit list (in-place on installer config.yaml; key -> value). NOT a replacement file.
 # Key-existence check: names only, vs ~/claude-profiles/hermes/h1-home/config.yaml (H1 install, code 908e4a4).
 # Target state. Live file (after H2b, h2b-install.md:25-28) already has every key below except curator.enabled (last line, presence not in h2b-install.md); memory.memory_enabled, memory.user_profile_enabled, memory.write_approval, skills.write_approval (rows 5, 6, 7, 9) differ: edit those four, and set curator.enabled false (five lines in all), never add a duplicate key. E = key present in the live file.
@@ -17,7 +18,7 @@ approvals.cron_mode          -> deny    # E (live after H2b, h2b-install.md:27; 
 approvals.unattended_mode    -> deny    # E (live after H2b, h2b-install.md:27; unchanged). Same: approvals.unattended_mode, approval.py:923)
 approvals.deny               -> ["git push*","git commit*","rm -rf*","curl*","wget*","*| sh*","*| bash*","security *","launchctl*"]   # E (live after H2b, h2b-install.md:27; unchanged)
 mcp_servers                  -> {}      # E (live after H2b, h2b-install.md:27; unchanged)
-hooks.pre_tool_call          -> [{command: "<HOME>/claude-profiles/hermes/bin/pre-tool-call.sh", matcher: "read_file|write_file|patch|search_files", timeout: 10, fail_closed: true}]   # E (live after H2b, h2b-install.md:27; unchanged)
+hooks.pre_tool_call          -> [{command: "__HOME__/claude-profiles/hermes/bin/pre-tool-call.sh", matcher: "read_file|write_file|patch|search_files", timeout: 10, fail_closed: true}]   # E (live after H2b, h2b-install.md:27; unchanged)
 hooks_auto_accept            -> (leave unset/false; never set)   # not added
 # Also: `grep -v '^[[:space:]]*#' $HERMES_HOME/config.yaml | grep -c always` must stay 0 (data lines only; plain `grep -c always` counts 18 pre-existing comment lines on h1-home, so it can never be 0).
 # Existing but unrelated keys left alone (e.g. cron.catch_up_missed, terminal.backend: untouched; terminal toolset is off via disabled_toolsets).

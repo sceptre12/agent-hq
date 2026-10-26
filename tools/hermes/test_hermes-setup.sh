@@ -110,4 +110,58 @@ if /bin/ps -axww -o pid=,ppid=,command= >/dev/null 2>&1; then
   eq "seed: one pre_tool_call approval for the hook path" "$(/usr/bin/python3 -I -c 'import json,sys; a=json.load(open(sys.argv[1]))["approvals"]; print(len(a), a[0]["event"], a[0]["command"])' "$AL")" "1 pre_tool_call $SHH/bin/pre-tool-call.sh"
 else echo "SKIP (not counted): /bin/ps unusable here; the seed success path was not exercised (refusals above were)"; fi
 
+# --- 9. hermes-up gateway and CLI branches, hermetic. A fixture HOME holds a fake code dir (stub `hermes`, a stub hermes_cli loader that
+# reads JSON), a stub `git` on PATH (the only seam: it reports the README pin sha, clean tree), a python wrapper at the path hermes-up
+# expects, and a facts.json selector. hermes-up itself is run unmodified; no real HERMES_HOME, network or Hermes ever runs.
+GH="$FX/gw"; GHH="$GH/claude-profiles/hermes"; GHOME="$GHH/h1-home"; CODE="$GHH/hermes-agent"; HKP="$GHH/bin/pre-tool-call.sh"
+mkdir -p "$GHH/bin" "$GHOME/work" "$CODE/hermes_cli" "$FX/gbin" "$GHOME/tools/python-3.14.7+20260901-darwin-arm64/bin"; chmod 700 "$GHOME"
+cp "$SETUP/pre-tool-call.sh" "$HKP"; chmod 555 "$HKP"
+printf '#!/bin/sh\nprintf "stub-hermes args=%%s host=%%s token_set=%%s\\n" "$*" "${API_SERVER_HOST:-}" "${CLAUDE_CODE_OAUTH_TOKEN:+1}"\n' >"$CODE/hermes"; chmod 755 "$CODE/hermes"
+: >"$CODE/hermes_cli/__init__.py"
+printf 'import os\ndef backup_config(*a, **k):\n    open(os.path.join(os.path.dirname(__file__), "..", "BACKUP_RAN"), "w").write("x")\n' >"$CODE/hermes_cli/config_backups.py"
+printf 'import json\nimport hermes_cli.config_backups as b\ndef load_user_config_effective(path, fail_closed=False):\n    b.backup_config()\n    return json.load(open(path))\n' >"$CODE/hermes_cli/config_effective.py"
+printf '#!/bin/sh\nexec /usr/bin/python3 "$@"\n' >"$GHOME/tools/python-3.14.7+20260901-darwin-arm64/bin/python3"; chmod 755 "$GHOME/tools/python-3.14.7+20260901-darwin-arm64/bin/python3"
+printf '#!/bin/sh\ncase "$*" in\n *"rev-parse HEAD"*) echo "${STUB_GIT_SHA:-908e4a4b44480912ae3571833492c1aeac2d0eda}" ;;\n *"status --porcelain"*) [ -n "${STUB_GIT_DIRTY:-}" ] && echo " M x" ;;\n *) exit 1 ;;\nesac\n' >"$FX/gbin/git"; chmod 755 "$FX/gbin/git"
+h16="$(printf '%s' "$(cd "$CODE" && pwd -P)" | shasum -a 256 | cut -c1-16)"; ST="$GHOME/installs/$h16"; mkdir -p "$ST/environments/e1/lib/python3.12/site-packages"
+printf 'version = 3.12.0\n' >"$ST/environments/e1/pyvenv.cfg"; printf '{"packages":{"venv":{"environment":"%s"}}}' "$ST/environments/e1" >"$ST/facts.json"
+TS="$(sed -n 's/^GW_TOOLSETS="\(.*\)"$/\1/p' "$SETUP/hermes-up")"
+cfg() { # cfg <host|-> [unattended] [dropped-toolset]: JSON is valid YAML; the fixture loader reads it with json
+  /usr/bin/python3 -I -c 'import json,sys
+h,u,drop,hook,ts=sys.argv[1:6]; t=[x for x in ts.split() if x!=drop]
+c={"agent":{"disabled_toolsets":t},"hooks":{"pre_tool_call":[{"command":hook}]},"approvals":{"unattended_mode":u}}
+if h!="-": c["platforms"]={"api_server":{"extra":{"host":h}}}
+json.dump(c,open(sys.argv[6],"w"))' "$1" "${2-deny}" "${3-}" "$HKP" "$TS" "$GHOME/config.yaml"; }
+allow() { printf '{"approvals":[{"event":"pre_tool_call","command":"%s"}]}' "$HKP" >"$GHOME/shell-hooks-allowlist.json"; }
+envf() { printf '%s\n' "$@" >"$GHOME/.env"; }
+gup() { out="$(env -i PATH="$FX/gbin:/usr/bin:/bin" HOME="$GH" HERMES_HOME="$GHOME" "$@" 2>&1)"; rc=$?; }
+reset_gw() { cfg 127.0.0.1; allow; envf "API_SERVER_KEY=dummy-not-a-credential"; rm -rf "$GHOME/hooks" "$GHOME/plugins" "$CODE/BACKUP_RAN"; }
+TOKV=CLAUDE_CODE_OAUTH_TOKEN=dummy-not-a-credential
+reset_gw; gup $TOKV "$SETUP/hermes-up" gateway run
+eq "gw branch: all checks pass: rc 0" "$rc" 0; has "gw branch: execs the stub hermes with 'gateway run' and API_SERVER_HOST=127.0.0.1" "$out" "stub-hermes args=gateway run host=127.0.0.1 token_set=1"
+[ ! -e "$CODE/BACKUP_RAN" ] && pass "gw branch: the loader's backup_config is neutralised" || fail "gw branch: backup_config ran"
+hasnt "gw branch: the token value is never printed" "$out" "dummy-not-a-credential"
+reset_gw; cfg 0.0.0.0; gup $TOKV "$SETUP/hermes-up" gateway run
+eq "gw: non-loopback api_server host refused (rc 0 parks the job)" "$rc" 0; has "gw: host refusal reason" "$out" "gateway refused: platforms.api_server.extra.host is not 127.0.0.1"; hasnt "gw: refused run never reaches hermes" "$out" "stub-hermes"
+reset_gw; cfg -; gup $TOKV "$SETUP/hermes-up" gateway run; has "gw: no api_server section is allowed (host defaults to loopback)" "$out" "stub-hermes args=gateway run host=127.0.0.1"
+for d in hooks plugins; do
+  reset_gw; mkdir -p "$GHOME/$d"; gup $TOKV "$SETUP/hermes-up" gateway run; has "gw: empty $d/ dir is allowed" "$out" "stub-hermes"
+  touch "$GHOME/$d/x"; gup $TOKV "$SETUP/hermes-up" gateway run; has "gw: non-empty $d/ refused" "$out" "gateway refused: $d/ exists and is not an empty dir"
+done
+reset_gw; cfg 127.0.0.1 allow; gup $TOKV "$SETUP/hermes-up" gateway run; has "gw: approvals.unattended_mode other than deny refused" "$out" "approvals.unattended_mode is not deny"
+reset_gw; cfg 127.0.0.1 deny "${TS%% *}"; gup $TOKV "$SETUP/hermes-up" gateway run; has "gw: a changed disabled_toolsets list refused" "$out" "agent.disabled_toolsets differs from expected list"
+reset_gw; envf "API_SERVER_KEY=x" "TELEGRAM_BOT_TOKEN=x"; gup $TOKV "$SETUP/hermes-up" gateway run; has "gw: .env with a chat credential key refused" "$out" ".env sets forbidden key TELEGRAM_BOT_TOKEN"
+reset_gw; envf "API_SERVER_KEY=x" "FOO=1"; gup $TOKV "$SETUP/hermes-up" gateway run; has "gw: .env with any other key refused" "$out" "unexpected key: FOO"
+reset_gw; envf "# no keys at all"; gup $TOKV "$SETUP/hermes-up" gateway run; has "gw: .env without API_SERVER_KEY refused" "$out" ".env lacks API_SERVER_KEY"
+reset_gw; rm -f "$GHOME/shell-hooks-allowlist.json"; gup $TOKV "$SETUP/hermes-up" gateway run; has "gw: hook consent missing refused" "$out" "hook not approved in shell-hooks-allowlist.json"
+reset_gw; gup $TOKV STUB_GIT_SHA=deadbeefdeadbeefdeadbeefdeadbeefdeadbeef "$SETUP/hermes-up" gateway run; has "gw: code sha other than the pin refused" "$out" "code sha deadbee != pin 908e4a4"
+reset_gw; gup $TOKV STUB_GIT_DIRTY=1 "$SETUP/hermes-up" gateway run; has "gw: dirty code dir refused" "$out" "code dir dirty"
+reset_gw; gup $TOKV HERMES_YOLO_MODE=1 "$SETUP/hermes-up" gateway run; has "gw: HERMES_YOLO_MODE in env refused" "$out" "HERMES_YOLO_MODE set"
+reset_gw; gup "$SETUP/hermes-up" gateway run; has "gw: missing token refused" "$out" "CLAUDE_CODE_OAUTH_TOKEN missing from env"
+# CLI mode: the argument whitelist (refusals are rc 1; accepted forms exec the stub)
+reset_gw; gup $TOKV "$SETUP/hermes-up" chat -q hello; eq "cli: chat -q <text> accepted: rc 0" "$rc" 0; has "cli: stub gets exactly the whitelisted args" "$out" "stub-hermes args=chat -q hello"
+gup $TOKV "$SETUP/hermes-up" --yolo; eq "cli: unknown arg refused: rc 1" "$rc" 1; has "cli: unknown arg reason" "$out" "arg not whitelisted: --yolo"
+gup $TOKV "$SETUP/hermes-up" gateway start; eq "cli: 'gateway start' is not the gateway form: refused" "$rc" 1; has "cli: gateway start reason" "$out" "arg not whitelisted: gateway"
+gup $TOKV "$SETUP/hermes-up" chat -q; has "cli: -q without a value refused" "$out" "-q needs a value"
+gup $TOKV "$SETUP/hermes-up" -q hello; has "cli: -q without chat refused" "$out" "-q needs chat"
+
 echo "=== hermes-setup: $passed passed, $failed failed ==="; [ "$failed" = 0 ]

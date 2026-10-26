@@ -216,7 +216,7 @@ done <<< "$AUD"
 eq "audit lines match regexes" "$BADL" 0
 cat_ release process "$ALIVE"
 cat_ audit; if rowin "$OUT" "$A_PROC"; then fail "released process still audited"; else pass; fi
-# port live truth fails closed (M4): no lsof or a failing lsof is exit 3 and no verdict, never GHOST
+# port live truth fails closed (M4): no lsof or a failing lsof is exit 4 and no verdict, never GHOST
 newrun aud-port
 r port 48731; P_ID=$RID
 r tmpdir "$RUN/gone2"; G2_ID=$RID
@@ -226,11 +226,11 @@ printf '#!/bin/sh\nexit 1\n' > "$FB/empty/lsof"
 printf '#!/bin/sh\necho "x 1 u 3u IPv4 0 0t0 TCP *:48731 (LISTEN)"\n' > "$FB/hit/lsof"
 chmod +x "$FB"/*/lsof
 aud() { OUT=$(PATH="$FB/$1:/usr/bin:/bin" RUN_HOME="$RUN" /bin/bash "$CATSH" audit 2>"$ROOT/aud.err"); RC=$?; }
-aud none; eq "no lsof rc 3" "$RC" 3
+aud none; eq "no lsof rc 4" "$RC" 4
 if rowin "$OUT" "$P_ID"; then fail "no lsof printed a port verdict"; else pass; fi
 has "no lsof other rows still audited" "$OUT" "GHOST$T$G2_ID"
 has "no lsof stderr" "$(cat "$ROOT/aud.err")" "failing closed"
-aud fail; eq "failing lsof rc 3" "$RC" 3
+aud fail; eq "failing lsof rc 4" "$RC" 4
 if rowin "$OUT" "$P_ID"; then fail "failing lsof printed a port verdict"; else pass; fi
 aud empty; eq "lsof no match rc 0" "$RC" 0; has "lsof no match GHOST" "$OUT" "GHOST$T$P_ID"
 aud hit; eq "lsof hit rc 0" "$RC" 0; has "lsof hit MATCH" "$OUT" "MATCH$T$P_ID"

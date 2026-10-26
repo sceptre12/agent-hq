@@ -6,6 +6,8 @@ Builds the read-only snapshot of hq `main` that Hermes reads, its `MANIFEST.tsv`
 §7 and §13 D3/D8. These scripts never run Hermes,
 never fetch, never read a token and never write under the hq repo.
 
+The Hermes setup templates and records (launcher, hook, plist, config extract) are in `setup/`; see `setup/README.md`.
+
 ## Files
 
 - `build-digest.sh <sha> <out-root>` — snapshot of the digest set at `<sha>` into `<out-root>/hq/<sha>/`.

@@ -54,6 +54,10 @@ tools/hermes/restore-hermes.sh	tools/hermes/test_backup-hermes-3.sh
 tools/hermes/restore-hermes.sh	tools/hermes/test_backup-hermes-4.sh
 tools/hermes/restore-hermes.sh	tools/hermes/test_backup-hermes-5.sh
 tools/hermes/restore-hermes.sh	tools/hermes/test_backup-hermes.sh
+tools/hermes/setup/hermes-gw	tools/hermes/test_hermes-setup.sh
+tools/hermes/setup/hermes-up	tools/hermes/test_hermes-setup.sh
+tools/hermes/setup/pre-tool-call.sh	tools/hermes/test_hermes-setup.sh
+tools/hermes/setup/seed-hook-allowlist	tools/hermes/test_hermes-setup.sh
 tools/hermes/verify-digest.sh	tools/hermes/test_build-digest.sh
 tools/hermes/verify-import	tools/hermes/test_verify-import.sh
 tools/hermes/verify_bundled.py	tools/hermes/test_verify-import-bundled.sh

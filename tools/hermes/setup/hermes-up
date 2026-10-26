@@ -1,0 +1,148 @@
+#!/bin/zsh
+# hermes launcher (fail-closed). Never bare `hermes`. Reads no token file; token must already be in env.
+# Args are a WHITELIST: none | chat [-q|--query TEXT] | -h/--help | (H2c, T-411) exactly `gateway run`. Everything else refused (kills abbreviations, --yolo, --safe-mode...).
+# Gateway mode (`gateway run`): every refusal prints `hermes-up: gateway refused: <reason>` and exits 0 (launchd KeepAlive SuccessfulExit=false then parks the job, no respawn storm). CLI-mode refusals: rc 1, unchanged.
+set -u
+setopt extendedglob
+PIN=908e4a4            # owner-confirmed 2026-10-12 (installed HEAD 908e4a4b44480912ae3571833492c1aeac2d0eda, verified by rev-parse)
+H="$HOME/claude-profiles/hermes"; CODE="$H/hermes-agent"
+HOOK="$H/bin/pre-tool-call.sh"
+GW=0; [[ $# -eq 2 && "$1" == gateway && "$2" == run ]] && GW=1
+die() { if (( GW )); then print -u2 -r -- "hermes-up: gateway refused: $1"; exit 0; fi; print -u2 -r -- "hermes-up: refused: $1"; exit 1; }
+# H2c gateway-mode constants. The toolset list MUST match config-edits.md (agent.disabled_toolsets, 25 names).
+GW_TOOLSETS="terminal code_execution web browser browser-cdp browser-use computer_use vision image_gen video_gen video tts cronjob delegation x_search kanban project start_chat desktop_ui feishu_doc feishu_drive hermes-yuanbao connections discord discord_admin"
+# Code-dir interpreter = the one the installed launcher (hermes-agent/.hermes/bin/hermes line 2) execs.
+GW_PY="${HERMES_HOME:-/nonexistent}/tools/python-3.14.7+20260901-darwin-arm64/bin/python3"
+# Dependency-state root (the ONE location variable; tests point a patched copy elsewhere). The loader's third-party deps (ruamel,
+# hermes_yaml.py:10) are NOT in GW_PY's own site-packages; the real launcher adds the committed generation's site-packages in
+# hermes_bootstrap.py:613 activate_dependencies (pm/environments.py:448): <installs>/<install_key>/facts.json -> packages.venv.environment.
+GW_INSTALLS="${HERMES_HOME:-/nonexistent}/installs"
+# Known-forbidden .env keys (specific refusal reason); ANY other key except API_SERVER_KEY is refused too (generic reason).
+GW_ENV_KNOWN="API_SERVER_HOST API_SERVER_PORT API_SERVER_CORS_ORIGINS API_SERVER_MODEL_NAME WEBHOOK_ENABLED"
+# Chat-platform / inbound credential env keys (names only), from gateway/config_env.py: _ENV_ENABLE_CREDENTIALS :38-58,
+# _Cred table :512-640 (secrets/tokens/passwords/enable flags), _whatsapp :266, _msgraph_webhook :329-335. Plugin platforms
+# (_enable_plugin_platforms_from_env) read dynamic keys not listed here (residual, see README H2c).
+GW_CHAT_KEYS="TELEGRAM_BOT_TOKEN DISCORD_BOT_TOKEN SLACK_BOT_TOKEN WHATSAPP_ENABLED WHATSAPP_CLOUD_PHONE_NUMBER_ID WHATSAPP_CLOUD_ACCESS_TOKEN WHATSAPP_CLOUD_APP_SECRET WHATSAPP_CLOUD_VERIFY_TOKEN SIGNAL_HTTP_URL MATTERMOST_TOKEN MATRIX_ACCESS_TOKEN MATRIX_PASSWORD EMAIL_ADDRESS EMAIL_PASSWORD EMAIL_IMAP_HOST EMAIL_SMTP_HOST TWILIO_ACCOUNT_SID TWILIO_AUTH_TOKEN DINGTALK_CLIENT_ID DINGTALK_CLIENT_SECRET FEISHU_APP_ID FEISHU_APP_SECRET FEISHU_ENCRYPT_KEY FEISHU_VERIFICATION_TOKEN WECOM_BOT_ID WECOM_SECRET WECOM_CALLBACK_CORP_ID WECOM_CALLBACK_CORP_SECRET WECOM_CALLBACK_TOKEN WECOM_CALLBACK_ENCODING_AES_KEY WEIXIN_TOKEN WEIXIN_ACCOUNT_ID BLUEBUBBLES_SERVER_URL BLUEBUBBLES_PASSWORD QQ_APP_ID QQ_CLIENT_SECRET YUANBAO_APP_ID YUANBAO_APP_KEY YUANBAO_APP_SECRET GATEWAY_RELAY_URL MSGRAPH_WEBHOOK_ENABLED MSGRAPH_WEBHOOK_CLIENT_STATE"
+[[ -n "${HERMES_HOME:-}" ]] || die "HERMES_HOME not set (owner exports it; expected $H/h1-home)"
+[[ "$HERMES_HOME" == "$H/h1-home" ]] || die "HERMES_HOME is not $H/h1-home"
+[[ -d "$HERMES_HOME" ]] || die "HERMES_HOME dir missing"
+[[ "$(stat -f %Lp "$HERMES_HOME")" == 700 ]] || die "HERMES_HOME mode not 700"
+[[ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]] || die "CLAUDE_CODE_OAUTH_TOKEN missing from env"
+sha=$(git -C "$CODE" rev-parse HEAD 2>/dev/null) || die "cannot read code sha"
+[[ "$sha" == ${PIN}* ]] || die "code sha ${sha[1,7]} != pin $PIN"
+[[ -z "$(git -C "$CODE" status --porcelain 2>/dev/null)" ]] || die "code dir dirty"
+[[ -x "$CODE/hermes" ]] || die "hermes entrypoint missing"
+# forbidden env (any value, even empty): safe-mode/ignore-config/rules skip config, hooks, SOUL.md
+for v in HERMES_YOLO_MODE HERMES_ACCEPT_HOOKS HERMES_SAFE_MODE HERMES_IGNORE_USER_CONFIG HERMES_IGNORE_RULES; do
+  [[ -z "${(P)v+x}" ]] || die "$v set"
+done
+# arg whitelist (gateway mode: exactly `gateway run`, already matched into GW above)
+n=0; want=0; qseen=0
+if (( GW == 0 )); then
+for a in "$@"; do
+  n=$((n+1))
+  if (( want )); then [[ -n "$a" && "$a" != -* ]] || die "-q value empty or starts with -"; want=0; continue; fi
+  case "$a" in
+    chat) [[ $n -eq 1 ]] || die "arg order: $a";;
+    -q|--query) [[ "${1:-}" == chat ]] || die "-q needs chat"; (( qseen == 0 )) || die "repeated -q"; qseen=1; want=1;;
+    -h|--help) ;;
+    *) die "arg not whitelisted: $a";;
+  esac
+done
+(( want == 0 )) || die "-q needs a value"
+fi
+# hook consent must already be recorded (seeded by seed-hook-allowlist; non-TTY runs silently skip unapproved hooks)
+/usr/bin/python3 -I -c '
+import json,sys
+try:
+    e=json.load(open(sys.argv[1]+"/shell-hooks-allowlist.json")).get("approvals",[])
+    sys.exit(0 if any(isinstance(x,dict) and x.get("event")=="pre_tool_call" and x.get("command")==sys.argv[2] for x in e) else 1)
+except Exception: sys.exit(1)
+' "$HERMES_HOME" "$HOOK" || die "hook not approved in shell-hooks-allowlist.json (owner consents once, interactively)"
+[[ -x "$HOOK" ]] || die "hook script not executable"
+for v in ANTHROPIC_API_KEY ANTHROPIC_TOKEN OPENAI_API_KEY OPENROUTER_API_KEY GOOGLE_API_KEY GEMINI_API_KEY NOUS_API_KEY HF_TOKEN GITHUB_TOKEN GH_TOKEN; do unset $v; done
+export HERMES_HOME CLAUDE_CODE_OAUTH_TOKEN
+if (( GW )); then
+  # (1) config.yaml via Hermes's own loader (fail-closed; backup_config neutralised: the loader would otherwise write backups/ into HERMES_HOME)
+  [[ -x "$GW_PY" ]] || die "code-dir interpreter missing"
+  [[ -f "$HERMES_HOME/config.yaml" ]] || die "config.yaml missing"
+  reason=$("$GW_PY" -I -B -c '
+import sys
+code, cfgp, want, hook, inst = sys.argv[1:6]
+def fail(m):
+    print(m); sys.exit(1)
+# (0) dependency path: mirror hermes_bootstrap -> activate_dependencies -> committed_venv/_recorded_venv/site_packages (pm/environments.py)
+try:
+    import hashlib, json
+    from pathlib import Path
+    st = Path(inst) / hashlib.sha256(str(Path(code).resolve()).encode("utf-8")).hexdigest()[:16]
+    facts = json.loads((st / "facts.json").read_text(encoding="utf-8-sig"))
+    env = Path(facts["packages"]["venv"]["environment"]).resolve()
+    if not env.is_relative_to((st / "environments").resolve()) or not (env / "pyvenv.cfg").is_file(): raise ValueError
+    ver = None
+    for ln in (env / "pyvenv.cfg").read_text(encoding="utf-8-sig").splitlines():
+        k, _, v = ln.partition("=")
+        if k.strip() == "version":
+            a, _, r = v.strip().partition("."); b = r.partition(".")[0]
+            if a.isdigit() and b.isdigit(): ver = (a, b)
+    if ver is None:
+        for c in sorted((env / "lib").glob("python3*")):
+            a, _, r = c.name.removeprefix("python").partition("."); b = r.partition(".")[0]
+            if a.isdigit() and b.isdigit(): ver = (a, b); break
+    sp = env / "lib" / ("python%s.%s" % ver) / "site-packages"
+    if not sp.is_dir(): raise ValueError
+except BaseException:
+    fail("dependency selector missing, malformed or unresolved")
+try:
+    sys.path.insert(0, code)
+    sys.path.insert(1, str(sp))
+    import hermes_cli.config_backups as _b
+    _b.backup_config = lambda *a, **k: None
+    from hermes_cli.config_effective import load_user_config_effective
+    c = load_user_config_effective(Path(cfgp), fail_closed=True)
+except BaseException as e:
+    fail("config load error: " + type(e).__name__)
+def sub(d, *ks):
+    for k in ks:
+        d = d.get(k) if isinstance(d, dict) else None
+    return d
+dt = sub(c, "agent", "disabled_toolsets")
+if not isinstance(dt, list) or not dt or not all(isinstance(x, str) for x in dt): fail("agent.disabled_toolsets missing, empty or not a list")
+if set(dt) != set(want.split()): fail("agent.disabled_toolsets differs from expected list")
+hp = sub(c, "hooks", "pre_tool_call")
+if not isinstance(hp, list) or not any((isinstance(x, dict) and x.get("command") == hook) or x == hook for x in hp): fail("hooks.pre_tool_call lacks " + hook)
+if sub(c, "approvals", "unattended_mode") != "deny": fail("approvals.unattended_mode is not deny")
+pl = c.get("platforms")
+if pl is not None and not isinstance(pl, dict): fail("platforms malformed")
+ex = sub(c, "platforms", "api_server", "extra")
+if isinstance(pl, dict) and "api_server" in pl and not isinstance(sub(pl, "api_server"), dict): fail("platforms.api_server malformed")
+if ex is not None and not isinstance(ex, dict): fail("platforms.api_server.extra malformed")
+if isinstance(ex, dict) and "host" in ex and ex["host"] != "127.0.0.1": fail("platforms.api_server.extra.host is not 127.0.0.1")
+' "$CODE" "$HERMES_HOME/config.yaml" "$GW_TOOLSETS" "$HOOK" "$GW_INSTALLS" 2>/dev/null) || { local -a rl; rl=("${(@f)reason}"); die "${rl[-1]:-config check failed}"; }
+  # (2) .env: plain-text key names only (never sourced, values never used or printed). INVERTED allowlist: only API_SERVER_KEY may be set.
+  [[ -f "$HERMES_HOME/.env" ]] || die ".env missing (API_SERVER_KEY required)"
+  typeset -A ek; typeset -a eo; local ln
+  while IFS= read -r ln || [[ -n "$ln" ]]; do
+    ln="${ln##[[:space:]]#}"; [[ -z "$ln" || "$ln" == \#* ]] && continue
+    [[ "$ln" == export[[:space:]]* ]] && ln="${ln#export}" && ln="${ln##[[:space:]]#}"
+    ln="${ln%%=*}"; ln="${ln%%[[:space:]]#}"     # a line without "=" is itself treated as a key name (fail closed)
+    (( ${+ek[$ln]} )) || eo+=("$ln"); ek[$ln]=1
+  done < "$HERMES_HOME/.env"
+  ln=""
+  for v in "${eo[@]}"; do
+    [[ "$v" == API_SERVER_KEY ]] && continue
+    [[ " $GW_ENV_KNOWN $GW_CHAT_KEYS " == *" $v "* ]] && die ".env sets forbidden key $v"
+    [[ "$v" =~ '^[A-Za-z0-9_.-]+$' ]] || v="<malformed>"
+    die "unexpected key: $v"
+  done
+  (( ${+ek[API_SERVER_KEY]} )) || die ".env lacks API_SERVER_KEY"
+  # (3) plugins/ and hooks/ must be absent or empty
+  for d in plugins hooks; do
+    if [[ -e "$HERMES_HOME/$d" || -L "$HERMES_HOME/$d" ]]; then
+      [[ -d "$HERMES_HOME/$d" && -z "$(/bin/ls -A "$HERMES_HOME/$d" 2>/dev/null)" ]] || die "$d/ exists and is not an empty dir"
+    fi
+  done
+  export API_SERVER_HOST=127.0.0.1   # 02b design; matches DEFAULT_HOST (api_server.py:216)
+fi
+cd "$HERMES_HOME/work" 2>/dev/null || cd "$HERMES_HOME" || die "cwd missing"
+exec "$CODE/hermes" "$@"

@@ -10,7 +10,7 @@
 - Do not perform substantive work directly in the main chat.
 - All work is delegated to subagents (the Agent tool). The main thread only orchestrates, validates subagent output, and synthesizes results.
 - Subagents must themselves follow Rule 1 (validate, don't assume).
-- Exception: the Session Startup bootstrap (running the session-startup skill on the first message of a session) may run in the main thread. Everything else delegates.
+- Exception: the Session Startup bootstrap may run in the main thread. Everything else delegates.
 
 ## Rule 3 — Always Pin the Subagent Model Explicitly
 - Every subagent dispatch (Agent tool) MUST set the `model` parameter explicitly. Never rely on default or inherited model selection.
@@ -22,7 +22,7 @@
 - Ladder top: first Opus failure → retry once with upgraded spec + verification rigour; second Opus failure → mandatory Fable dispatch. Never a third Opus attempt.
 - Fable escalation is MANDATORY when any ADR 0014 trigger fires (T1 two Opus failures; T2 falsified working hypothesis; T3 unresolved safety-stop or gate-bypass pressure; T4 cross-system failure; T5 extreme-caution-file scope; T6 architecture ratification; T7 user says hard/stuck/escalate). No discretion to skip a fired trigger; discretionary escalation is allowed in addition, never instead.
 - Qualifying incidents get a post-incident assessor per ADR 0014 (curated input packet, ≤10-line steering output); a "fix wrong / masks deeper cause" verdict is stop-the-line.
-- Log every trigger fire and assessor verdict as one line in the current eval log (hq retros/, per ADR 0014 Appendix B).
+- Log every trigger fire and assessor verdict as one line in the current eval log (per ADR 0014 Appendix B).
 - When dispatching, state the chosen model and a one-line rationale.
 - Escalate, don't retry: if a subagent stalls, fails, or hits genuine ambiguity, stop it and re-dispatch one model tier up — never re-run the same tier hoping for a better result.
 - Design expensive, execute cheap, verify independently: settle designs once with a top-tier model; mid/low tiers execute the settled spec; verification goes to a separate agent instance, never the author.
@@ -35,7 +35,7 @@
   2. **Dispatch plan** — HOW it gets built: the ordered subagent dispatches derived from the architecture, each with its model (Rule 4), done condition, and independent verification step.
 - Only then execute, dispatch by dispatch. Never design and execute in the same breath.
 - Prefer existing architecture docs over recreating from scratch — locate them, validate their currency against ground truth (Rule 1), and update them; a stale doc is corrected, not duplicated.
-- In hq-governed work: architecture lives in `~/projects/agent-hq/architecture/`, dispatch plans in `~/projects/agent-hq/plans/`.
+- In hq-governed work: architecture lives in `~/projects/agent-hq/architecture/`.
 - Exemption: sub-threshold mechanical work (single-file edits, lookups, status flips, memory updates) proceeds without the ceremony.
 
 ## Rule 6 — Repo Work Happens in Worktrees; the Default Branch Is for Integration Only
@@ -72,7 +72,7 @@
 
 ## Rule 11 — Planned Work and Runs Are Auto-Approved (owner 2026-10-11)
 - Owner, 2026-10-11 12:58Z (verbatim): "Make this a rule moving forward alll runs for the work we're doing re apprpoved do not stop or deny that from happening again"; 12:59Z (verbatim): "Makie the rule moving forward regarding auto approving all runs and work that we plan out"; 13:02Z: "Yes that should be apart of the global rules".
-- Every run (pipeline rounds, sets, relaunches, new set ids) and every work unit that comes out of a plan produced under Rule 5 (architecture + dispatch plan, plan-checked where Rule 7 / R-bb applies) is approved for execution the moment the plan exists. Plan first, then execute. Never hold, stop, deny, or ask "may I proceed" for such work or runs; never park execution behind an approval question.
+- Every run (pipeline rounds, sets, relaunches, new set ids) and every work unit that comes out of a plan produced under Rule 5 (architecture + dispatch plan, plan-checked where Rule 7 applies) is approved for execution the moment the plan exists. Plan first, then execute. Never hold, stop, deny, or ask "may I proceed" for such work or runs; never park execution behind an approval question.
 - Only the owner's own pause/stop instruction halts a run or a work unit; a lift is the owner's word (plus removal of any PAUSED marker the pause created).
 - Unchanged by this rule: stop-the-line safety stops (classifier block, isolation BREACH, failing gates/checks, Rule 6 and Rule 10 anomalies) are reported and stop the line; Rule 9 (only the owner makes rules) and genuinely owner-only choices (new rules, money, external publication, deleting data) are still asked, one question per message, without blocking the rest of the plan.
 

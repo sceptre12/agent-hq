@@ -53,7 +53,6 @@ Tags: MEASURED = read at file:line; UNVERIFIED = not read or not run, and gets a
 | `memory/README.md:19` | durable knowledge promoted by Compound into hq git | same as §8 |
 | `tools/skill-authoring.md:99` | skills freeze notes from `learnings/` or `retros/` | read from Hermes |
 | `skills/new-context-project/SKILL.md:58,88`, `skills/panel-consultation/SKILL.md:99-105` | link or write learnings in hq | learnings go to the door |
-| `skills/session-startup/SKILL.md:13,90` | do not preload `learnings/`; grep on demand | grep target becomes the door |
 | ~20 skills' "Provenance: learnings/..." lines (e.g. `skills/pr-review/SKILL.md:403`) | citations | repoint to the skill id |
 | `config/CLAUDE.md:69` (global, Rule 9) | no agent writes a rule into a learning | OWNER-ONLY; Appendix A |
 - Measured: 224 `.md` files outside `learnings/`, `retros/`, `plans/`, `inbox/` cite `learnings/` (231 files counting plans/inbox, `.sh`, `.txt`): 20+ skills, many architecture/ADR files, projects. A dangling-citation inventory is the first step of the owner-gated removal (deliverable 12).

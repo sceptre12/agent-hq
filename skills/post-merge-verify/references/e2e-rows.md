@@ -1,10 +1,13 @@
 # E2E rows (post-merge-verify)
 
-- Run each e2e row through the `nl-run-e2e` plugin skill (work-environment NLTA plugin; cite it, do not copy its text). Inputs come from the repo profile `e2e.*` keys and the row's `.feature` path.
-- Ports: the e2e lane's servers follow Step 3 of the skill (claim, register, launch, start). A refused claim fails the row with reason `lane-unavailable`.
-- Auto-heal: if the run heals specs, collect every healed diff. A reviewer other than the runner reads each diff and decides accept or reject. A healed diff is never accepted blind. Record `auto-heal reviewed=yes|no` and the diff path in the evidence line. Healing that touches product source is a reject.
-- Failure classes (the plugin owns them; cited, not frozen): `SELECTOR_DRIFT`, `TIMING_BUG`, `TEST_BUG`, `SOURCE_BUG`, `ENV_BUG`, `AMBIGUOUS`.
-  - `SOURCE_BUG`: always escalate to the human. Stop that row, record `source-bug`, and do not heal or retry.
-  - `ENV_BUG`: the row fails with reason `env-bug`; the failure policy decides retries.
-  - Others: the row's failure policy decides; a healed pass counts only after the diff review.
-- Evidence line carries the `nl-run-e2e` result, the class if any, and the reviewed-diff paths.
+- Selector: an e2e row is a runner row whose command names a `.feature` path from the plan's §A3 batched `.feature` list (SKILL.md Step 1; §B has no e2e column). A §A3 path no §B row names is a stop condition (open author question, item 27 template).
+- Precondition: the profile `e2e.harness` is `nlta` (Step 0). With `none` there are no e2e rows, only hand-test rows (design part-03 §3.6 step 1, D17).
+- Run each e2e row through the `nl-run-e2e` plugin skill (work-environment NLTA plugin; cite it, do not copy its text) on its leased lane, with the profile `node.prefix_cmd` first. The target package and filter come from the row's command and `.feature` path (§3.6 step 3: passed as skill arguments). Design §3.6 step 8: stage 6 re-runs the e2e rows cold on main and the step 6 rules apply.
+- Ports: the e2e lane's servers follow `ports-and-servers.md`. A second refusal is a stop condition (`lane-unavailable`).
+- Auto-heal (§3.6 step 6): collect every healed diff. The Test-adequacy seat (verify tier, its own slot row; §3.6 steps 6 and 8) reads each diff and decides accept or reject; the runner never reviews its own heal. A healed diff is never accepted blind. An accepted heal is evidence only: it is never committed, pushed or opened as a PR.
+- Heal review file: the seat is the single writer of `RUN_HOME/pm/evidence/<row-id>.heal-review` (skill-local, `DEFAULT`), one line `<diff-path> accept|reject` per healed diff (the seat's per-diff review decision, not a row verdict: the row result stays `PASS`/`FAIL`, decided by the verify tier), written after the runner's `.line`. The runner never writes it. The verify-tier verdict agent reads it: a healed pass counts only when every diff path in the row's `.line` has an `accept` line; a `reject` or a missing line makes the row `FAIL`. The record's `auto-heal reviewed=yes|no` is set from this file at assembly (`yes` only when every diff has a line).
+- Failure classes (the plugin owns them; cited, not frozen, part-d D2.2 note): `SELECTOR_DRIFT`, `TIMING_BUG`, `TEST_BUG`, `SOURCE_BUG`, `ENV_BUG`, `AMBIGUOUS`.
+  - `SOURCE_BUG`: never healed or retried. It is a run-level stop condition (SKILL.md stop conditions): stop, write no record, escalate to the human through the `pm` lead with C2 reason `source-bug`.
+  - `ENV_BUG`: the row fails with reason `env-bug` (C2); the failure policy decides retries.
+  - Others: the row's failure policy decides; `AMBIGUOUS` is never auto-fixed (§3.6 step 6).
+- The runner's `.line` carries the `nl-run-e2e` result, the class if any, and the healed-diff paths (`auto-heal reviewed=` is not the runner's to write).

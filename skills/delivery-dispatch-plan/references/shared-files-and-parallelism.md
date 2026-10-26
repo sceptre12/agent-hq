@@ -26,43 +26,45 @@ Rules:
 
 Device lanes are human-run and listed as such. The table records port needs only; no value in it is promised free.
 
-## 3. Port table (RESOLVED: candidate formula, not a check)
+## 3. Port table (spec 17 Q4, INTERFACES A.5.2: candidate formula, not a check)
 
-One row per bind per sub-task.
+Only `bus` and `review-bus` rows are per sub-task. Lane rows are written once per lane for the run: lane leases are run-wide, so lane rows are not repeated per sub-task.
 
 | subtask | role | base_key | k | candidate |
 |---|---|---|---|---|
-| `st<N>` | `bus` | `ports.bus_base` | `2N` | `<ports.bus_base> + 10*k` |
-| `st<N>` | `review-bus` | `ports.bus_base` | `2N + 1` | `<ports.bus_base> + 10*k` |
-| `st<N>` | `lane/<name>` (one row per port the lane binds) | `ports.lane_base` | bind index | `<ports.lane_base> + 10*k` |
+| `st<N>` (build mode only) | `bus` | `ports.bus_base` | `2N` | `<ports.bus_base> + 10*k` |
+| `st<N>` (every sub-task that runs `pre-pr-gate`, `st0` included) | `review-bus` | `ports.bus_base` | `2N + 1` | `<ports.bus_base> + 10*k` |
+| `-` (run-wide) | `lane/<name>` (one row per port the lane binds) | `ports.lane_base` | next consecutive bind index | `<ports.lane_base> + 10*k` |
 
-- Write the computed integer in `candidate` and the integer `k` in its own column. If the profile lacks the base key, write `FILL_IN_BEFORE_DISPATCH` in the row; the checklist fails until intake supplies it.
-- Lane `k` is the bind's index in this table's lane rows, counted from 0 in table order across all lanes (one bind per lane means the lane index). Lane leases are run-wide, so a lane keeps one candidate across sub-tasks and the `pm` lead reuses it.
-- A serial lane whose ports are fixed in the app config keeps those ports with `k = 0`, and the row says "fixed by app config".
+- Write the computed integer in `candidate` and the integer `k` in its own column. If the profile lacks the base key, write `FILL_IN_BEFORE_DISPATCH` in the row (A.2.2 `ports.*` row); the checklist fails until intake supplies it.
+- Which sub-tasks get bus rows: a `bus` row only for a build-mode sub-task; `st0` (`plan-pr`) and `pm` (`post-merge`) run no bus (A.2 modes). `st0` gets a `review-bus` row (`k = 1`), because it opens the plan PR through `pre-pr-gate` (A.2), which passes the sub-task's `review-bus` candidate to `pr-review` as `BUS_PORT`, required when `RUN_HOME` is set (D2.3 `pr-review` row). `pm` is added by the conductor post-merge (A.2) and gets no row from this plan.
+- Lane `k`: each lane bind takes the next consecutive `k` in table order, from 0, across all lanes. With one bind per lane, `k` equals the lane index; this is how this skill reads A.5.2 "lanes by lane index" for a lane that binds several ports, so every bind keeps a distinct candidate. A lane keeps its candidates across sub-tasks and the `pm` lead reuses them.
+- A serial lane whose ports are fixed in the app config writes the app port as `candidate`, `k = 0`, with the note "fixed by app config"; it takes no index and is outside the formula, but it is included in the distinctness check (checklist row 8), so a fixed port equal to a formula candidate is caught.
 - The candidate is a proposal fixed before any check. The launcher claims each one per A.5.2 (`port-check.sh --claim`, then `catalog.sh register port`, launch, `catalog.sh start`); the plan runs no `port-check.sh`.
-- On a refusal the launcher makes exactly one retry at candidate + 10, itself claimed with `port-check.sh --claim` before any bind (the tool never auto-picks); a bus is then pinned to the retry port (`PORT_RANGE_START=PORT_RANGE_END=<port+10>`). A second refusal stops the line: a lane ends as C2 reason `lane-unavailable`; a bus is reported to the lead. Never a second +10 (INTERFACES 1.3.0 A.5.2, C1.1, AM-3, owner OQ-2). Distinctness (below) covers the plan candidates only; the retry port is checked by the claim.
+- On a refusal the launcher makes exactly one retry at candidate + 10, itself claimed with `port-check.sh --claim` before any bind (the tool never auto-picks); a bus is then pinned to the retry port (`PORT_RANGE_START=PORT_RANGE_END=<port+10>`). A second refusal stops the line: a lane ends as C2 reason `lane-unavailable`; a bus is reported to the lead. Never a second +10 (INTERFACES 1.3.0 A.5.2, C1.1, AM-3, owner OQ-2). `port-check.sh` exit 3 (registry unusable) is stop-the-line with no retry (A.5.2).
+- The retry port can equal a sibling's candidate; the claim resolves it, which is why row 8 covers plan candidates only.
 - Distinctness is checked across the whole table (checklist row 8).
 
 ## 4. Slot plan and dispatch arithmetic
 
-Per sub-task, with `g = 1` (one gate agent per work_item under `step_complete`) and `cap` = the wave `fix_loop_cap` (spec default 3):
+Per build-mode sub-task, with `g = 1` (one gate agent per work_item under `step_complete`) and `fix_loop_cap` = the wave value (spec default 3):
 
 | Term | Formula |
 |---|---|
-| `01-build.md` (frontier) | `n_units * (1 + (cap + 1) * g)` |
-| `02-integrate.md` (barrier, `step_complete` so gate agents = work_items) | `n_i + (cap + 1) * n_i`, `n_i` = Integrator work_items |
-| `constitution.md` (barrier, when present; bundle root, not a wave file, C1) | `1 + (cap + 1) * 1` |
+| `01-build.md` (frontier) | `n_units * (1 + (fix_loop_cap + 1) * g)` |
+| `02-integrate.md` (barrier, `step_complete` so gate agents = work_items) | `n_i + (fix_loop_cap + 1) * n_i`, `n_i` = Integrator work_items |
+| `constitution.md` (barrier, when present; bundle root, not a wave file, C1) | `1 + (fix_loop_cap + 1) * 1` |
 | `dispatch_budget` | the sum of the terms above |
 
-Illustration only: 12 units, `cap` 3, `g` 1 gives `12 * 5 = 60` for the build wave and `12 + 4 * 12 = 60` for integration, so `dispatch_budget` 120.
+Illustration only: 12 units, `fix_loop_cap` 3, `g` 1 gives `12 * 5 = 60` for the build wave and `12 + 4 * 12 = 60` for integration, so `dispatch_budget` 120.
 
 Checks and statements the plan carries for each sub-task:
-- (a) `dispatch_budget` against the lead's spawn stop: the lead stops dispatching at `spawns` cap minus 5 (A.3). Record the session cap by `printenv CLAUDE_CODE_MAX_SUBAGENTS_PER_SESSION` in this session; if it is unset or differs from the lead's environment, write "cap unmeasured for the lead session, verify at move" and do not claim headroom. If `dispatch_budget` plus an allowance for non-wave spawns (reviews, fixers, shepherd ticks) would pass cap minus 5, split the sub-task at a wave boundary.
-- (b) Peak concurrency: the widest frontier of `01-build.md` (units per topological level, one live work_item per lane), capped at `30 - sum(reserved)`. Reserved in build is shepherd 1, clerk 1, ci 1, so 27; each concurrent `pr-review` reserves 10 more. Peak is a count of agents live at once; a work_item has one live agent at a time (worker, then gate, then fixer).
-- Machine line: list the sub-tasks planned to build concurrently (at most 3 and only with disjoint resource rows, rule 8), sum their peaks, and compare with 200. The ledger counts nested descendants whether or not the session cap does.
+- (a) `dispatch_budget` against the lead's spawn stop: the lead stops dispatching at `spawn_cap - 5`, `spawn_cap` being the `spawns` cap of A.3. Record `spawn_cap` by `printenv CLAUDE_CODE_MAX_SUBAGENTS_PER_SESSION` in this session; if it is unset or differs from the lead's environment, write "spawn_cap unmeasured for the lead session, verify at move" and do not claim headroom. If `dispatch_budget` plus an allowance for non-wave spawns (reviews, fixers, shepherd ticks) would pass `spawn_cap - 5`, the remedy is the spec format's: split the bundle at a wave boundary (`skills/wave-execution/references/spec-format.md` rule 11). The sub-task cut stays one PR each (D5); a shortfall the bundle split does not cure is an ask to the owner (rule 9).
+- (b) Peak concurrency: the widest frontier of `01-build.md` (units per topological level, one live work_item per lane), at most `30 - sum(reserved)` (spec 17 Q3; A.4 free-slot formula with `live_rows` 0). `reserved` is the seed value (A.3 `{shepherd: 1, clerk: 1, ci: 1, review: 10}`, sum 13), so at most 17; A.3 counts `review: 10` per concurrent `pr-review`. Peak is a count of agents live at once; a work_item has one live agent at a time (worker, then gate, then fixer).
+- Machine line: list the sub-tasks planned to build concurrently (at most 3 and only with disjoint resource rows, rule 8). The ledger counts every live agent, nested descendants included, whether or not the session cap does, so each concurrently building sub-task contributes its peak plus `sum(reserved)` (A.3 seed `reserved`, A.4); sum those contributions and compare with 200.
 - Full-mode `security-auditor` agents draw on free slots at launch (A.4); 0 pre-allocated; they are counted in the slot ledger and the budget of the audit is the free slot count at launch. When `security_sensitive: yes`, each sub-task lists the `pre-pr-gate` row `C26`. The audit is not a unit and has no wave.
 - A capacity shortfall is an ask to the owner, never a silent cut (rule 9).
-- Build duration inputs come from `durations.*` in the profile (measured medians); write "unmeasured" where the profile has none.
+- Build duration inputs come from `durations.*` in the profile (measured medians, A.2.2); an absent `durations.*` key is `INPUT-ERROR <key> missing` at Step 0 (A.2.2), never a guessed or "unmeasured" value.
 
 ## 5. The computed Rule 7 note
 

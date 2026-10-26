@@ -74,11 +74,15 @@ every part that the available documents allow. An unverifiable part is not a fin
 - Unit task spec, 11 sections: Objective; Context package; Scope (in, out, do-not-create);
   Contracts table; Inherited module API; What you inherit; Known risky values; Acceptance
   criteria; Verification commands; Branch and worktree; Decision Gate reminder.
-- `dispatch-plan.md`, the 18 items of template 5.3: Header (epic, repos, `repo-profile.md`
-  link plus sha); Sub-task table; Version-bump list; Persona roster with tiers; Repo table;
-  Unit table; Shared-file owner and serial-lane table; DAG and wave sketch; Lane table;
-  Parallelism note; Shepherd cadence; Branching and merge order; Pre-PR gate rule; Cleanup
-  rule; Pre-dispatch checklist; Stop-the-line table; Review rung table; Throughput formula.
+- `dispatch-plan.md`, the 13 sections of the template: P0 Header (epic, repos,
+  `repo-profile.md` link plus sha); P1 Sub-task table; P2 Persona roster with tiers; P3 Repo
+  table; P4 Unit table; P5 Shared-file owner and serial-lane table; P6 DAG and wave sketch;
+  P7 Lane table with per-lane resource profile; P8 Port table; P9 Capacity and parallelism;
+  P10 Cadence and rules; P11 Pre-dispatch checklist and stop-the-line; P12 Plan review.
+  The 18 design items of 5.3 (`architecture/delivery-workflow/part-04-templates.md` §5.3)
+  live inside these 13 sections (version-bump list in P1, parallelism note in P9, shepherd
+  cadence / branching / pre-PR gate / cleanup rules in P10, stop-the-line in P11, review
+  rung table in P12), and DOC-1 counts headings, not items.
 - Ticket drafts: not a DOC-1 target; see DOC-4.
 
 **`security_sensitive` line (`architecture.md` only; INTERFACES 1.5.0 D2.3, AM-4 12, AM-3; design
@@ -93,7 +97,7 @@ passes with its heading plus the template skeleton (empty rung / seats / rounds 
 the ACCEPT / CHANGES / REJECT options with a blank name and date). Only a missing heading
 12 or 13 fails.
 
-**Finding text:** `DOC-1: <doc> has <n> of <14|11|18> required sections; missing: <names>.`
+**Finding text:** `DOC-1: <doc> has <n> of <14|11|13> required sections; missing: <names>.`
 or `DOC-1: architecture.md Summary has <n> lines (template: 15 or fewer).`
 
 **Severity (plan-check default):** Blocking for a missing `architecture.md` section; Medium

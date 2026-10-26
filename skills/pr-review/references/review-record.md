@@ -2,7 +2,10 @@
 
 Line 1 is `CODE-GATE-REVIEW: PASS head=<HEAD_SHA> blocking=0 medium=0` only when both counts are 0, else
 `CODE-GATE-REVIEW: FAIL head=<HEAD_SHA> blocking=<b> medium=<m>`. Line 2 is
-`Reviewed-By: <seat-id> <session> <TASK-id>` (A.6). Then a blank line, then the Phase B report. File
+`Reviewed-By: <seat-id> <session> <TASK-id>` (A.6). Line 3 is an empty placeholder reserved for
+`Verified-By: <seat-id> head=<sha>` (A.6), line 4 is blank, and the Phase B report starts at line 5. The
+verifying seat REPLACES line 3 in place, e.g.
+`sed -i '' "3s/^$/Verified-By: <seat-id> head=<sha>/" "$RECORD_PATH"`, and never appends. File
 paths in the record (`repo_dir`, `RECORD_PATH`, any path the report names) are written `~`-relative,
 never as an absolute home path. Standalone, only a PASS record is copied to
 `task-pipeline/.review/<head-sha>.md` in the merge commit; a FAIL record stays with the author. Inside a
@@ -31,7 +34,7 @@ PHASE_B_REPORT_FILE="$(dirname "$RECORD_PATH")/phase-b-${HEAD_SHA}.md"
 [ -s "$PHASE_B_REPORT_FILE" ] || { echo "ERROR: Phase B report not written to $PHASE_B_REPORT_FILE — stop"; exit 1; }
 # PASS only if B=0 and M=0; otherwise FAIL with the real counts
 if [ "$B" -eq 0 ] && [ "$M" -eq 0 ]; then V=PASS; else V=FAIL; fi
-printf 'CODE-GATE-REVIEW: %s head=%s blocking=%s medium=%s\nReviewed-By: %s %s %s\n\n' \
+printf 'CODE-GATE-REVIEW: %s head=%s blocking=%s medium=%s\nReviewed-By: %s %s %s\n\n\n' \
   "$V" "$HEAD_SHA" "$B" "$M" "$SEAT_ID" "$MEMBER_SESSION_NAME" "$TASK_ID" > "$RECORD_PATH"
 cat "$PHASE_B_REPORT_FILE" >> "$RECORD_PATH"
 # Identity check — no secrets or tokens in the record; must print 0
@@ -40,8 +43,10 @@ grep -cE 'sk-ant-|gh[opsu]_|github_pat_' "$RECORD_PATH"
 sed -n 1p "$RECORD_PATH" | grep -cE '^CODE-GATE-REVIEW: (PASS|FAIL) head=[0-9a-f]{40} blocking=[0-9]+ medium=[0-9]+$'
 # A.6 shape check of line 2; must print 1
 sed -n 2p "$RECORD_PATH" | grep -cE '^Reviewed-By: ([a-z0-9-]+) ([a-z0-9-]+) ([A-Za-z0-9_-]+)$'
+# Line 3 is the empty Verified-By placeholder (must be empty before verification); line 4 blank
+[ -z "$(sed -n 3p "$RECORD_PATH")" ] && [ -z "$(sed -n 4p "$RECORD_PATH")" ] || { echo "ERROR: record line 3/4 not empty — stop"; exit 1; }
 ```
 
 A grep count other than 0 (secrets) or 1 (line 1 and line 2 shapes) is a stop-on-anomaly: do not hand
 the record over. The skill never writes `Verified-By:`; line 3 is written by the verifying seat (A.6),
-whose `seat-id` differs from line 2's.
+whose `seat-id` differs from line 2's, by replacing the empty line 3 in place.

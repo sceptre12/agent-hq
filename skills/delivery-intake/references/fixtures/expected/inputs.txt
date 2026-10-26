@@ -1,5 +1,5 @@
 DELIVERY_ROOT=<dry-run dir>/delivery
 RUN_HOME=<dry-run dir>/delivery/run-1-20261026
-PLANS_DIR=<dry-run dir>/delivery/plans-demo      (any existing directory)
-PRIMARY_REPO=<dry-run dir>/repo                  (copy of ../repo after git init and one commit)
+PLANS_DIR=<dry-run dir>/delivery/plans-demo
+PRIMARY_REPO=<dry-run dir>/repo
 INTENT=Add a Badge widget with three sizes.

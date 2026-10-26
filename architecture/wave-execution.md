@@ -153,7 +153,7 @@ code, env vars, task files, sibling files, or named pipes).
 
 ## Proposed capabilities (ADR 0023 — Workflow grafts)
 
-Documented design from ADR 0023, motivated by the ADR 0022 200-sub-agent-cap incident and
+Documented design from ADR 0023, motivated by
 architecture assessment(s) of wave-execution against Claude Code's closed built-in Workflow
 tool, conducted for this decision (see session record / conversation history — not
 separately filed as an hq artifact) (the grafts flow one direction only — into the skill
@@ -231,7 +231,7 @@ the run as already complete and exits without dispatching or bootstrapping a new
 
 - **Tier A (build now):** Graft 3 (`gate_type`) and Graft 4 (`output_schema`) — highest
   generality gain, lowest structural risk — **alongside** Grafts 1 (resume) and 2
-  (`dispatch_budget`), the original ADR-0022-motivated gap fixes.
+  (`dispatch_budget`).
 - **Tier B (deferred, not scheduled):** Graft 5 (`spec_ref` + `max_concurrent`) — real but
   no proven production need yet; build when one appears, not speculatively.
 

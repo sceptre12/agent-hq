@@ -153,7 +153,7 @@ versions of these:
 ## Resume / Checkpoint
 
 Machinery only — no new caller-facing field (ADR 0023 Graft 1 / D3). Turns the
-ADR 0022 manual "split at a wave boundary" discipline into an enforced resume
+manual "split at a wave boundary" discipline into an enforced resume
 path instead of always re-running a bundle from wave 1.
 
 - **Checkpoint location:**

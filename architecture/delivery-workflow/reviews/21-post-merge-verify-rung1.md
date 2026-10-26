@@ -126,3 +126,23 @@ SKILL-21-OK
 exit=0
 ```
 The done-condition's second half, "the review trio returns CLEAN", is **not met**. 8 Medium findings remain open for the owner (D7).
+
+## Post-D7 fix (2026-10-26, owner-authorized, no new review round)
+- **Basis:** the loop's recommendations for the 8 open Mediums and OQ-A..J, applied with the lead's decisions in the AM-4 queue row "(21, ...)". INTERFACES 1.4.0 (AM-4, d121866) landed during the fix, but it does not carry the item-21 row. Provenance cites 1.4.0, and the item-21 points are cited as "AM-4 queue".
+- **Applied:**
+  - The verdict agent writes the consumer-simulation `.line` and frees runner and seat slot rows.
+  - Slot rows carry all 9 A.4 fields: `lane-runner` (mechanical for E2E, execute otherwise), `review-seat` (verify) and `validator` (verify). Budgets come from `durations.unit_median_min` and `pr_review_min`.
+  - The Test-adequacy seat is dispatched in Step 10.1 with its own slot row.
+  - The verdict returns as a `RUN_HOME/pm/inbox/<seq>-<ts>-verdict.md` file, waited on for at most its budget.
+  - The heal `accept|reject` is stated as not a verdict vocabulary.
+  - The destructive grant is `RUN_HOME/gates/H-destructive.<row-id>.ok`.
+  - A stop writes the one-line record `POSTMERGE: STOP <reason>`, with a closed reason list in `record-format.md`.
+  - The stop list is complete.
+  - OQ-A: one row per stage, checked at Step 1. OQ-C: hand-test rows are informational only. OQ-D: consumer rows count as gating until item 27 adds a class column. OQ-F..I recommendations applied.
+  - Ports now use the 1.4.0 A.5.2 formula `<base> + 20·k`.
+- **Fix-verify:** a separate Sonnet agent ran the installed `fix-verifier` against 1.4.0. Result: ISSUES_FOUND B0 M1 L3, with all 8 Mediums FIXED and none regressed.
+  - The new M1 was the 1.4.0 D1 `sha` INPUT-ERROR reason for a `REPO_PROFILE` hash mismatch.
+  - The Lows were: set-count wording and the `.line`-writer exit criterion; an unbounded wait for the verdict; slot rows not freed on a stop.
+  - All four were fixed after the verify. They were not re-verified.
+- **§9 re-run:** `SKILL-21-OK`, exit 0.
+- **Still open for the integrator:** the item-21 INTERFACES text (A.2.2 readers, D2.2 row 12 `REPO_PROFILE`, D1 `POSTMERGE: STOP`, C5.1 `verdict` inbox type and writer, A.4 verdict-agent `.freed` writer, A.2.1 `H-destructive` gate) is not in 1.4.0.

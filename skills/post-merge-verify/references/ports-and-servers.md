@@ -4,7 +4,7 @@ Single statement of the rule: INTERFACES part-a A.5.2 (amendment AM-1, AM-3 owne
 
 ## Candidate
 - Lane-less rows: a row with lane `-` or empty that starts a server or names a port has no candidate (the table keys by `lane/<name>`) and no lease; it is not run: stop and report to the `pm` lead (A.5.2 scope "every port a run binds"; open author question).
-- Source: the `PLANS_DIR/dispatch-plan.md` port table, rows with role `lane/<name>` (`base_key` `ports.lane_base`, `candidate = <base> + 10*k`, `k` the lane index; fixed app ports keep `k = 0`). Lane leases are run-wide, so the `pm` lead reuses the lane's candidate (`skills/delivery-dispatch-plan/references/shared-files-and-parallelism.md`, lane `k` rule).
+- Source: the `PLANS_DIR/dispatch-plan.md` port table, rows with role `lane/<name>` (`base_key` `ports.lane_base`, `candidate = <base> + 20·k`, `k` the consecutive bind index; fixed app ports keep their app port; INTERFACES 1.4.0 A.5.2, AM-4 W2-3). Lane leases are run-wide, so the `pm` lead reuses the lane's candidate (`skills/delivery-dispatch-plan/references/shared-files-and-parallelism.md`, bind-index rule).
 - No row for a bind, or a `FILL_IN_BEFORE_DISPATCH` candidate: stop and report to the `pm` lead. Never compute or pick a number yourself.
 
 ## Order per candidate

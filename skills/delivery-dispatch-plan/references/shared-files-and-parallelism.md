@@ -28,22 +28,21 @@ Device lanes are human-run and listed as such. The table records port needs only
 
 ## 3. Port table (spec 17 Q4, INTERFACES A.5.2: candidate formula, not a check)
 
-Only `bus` and `review-bus` rows are per sub-task. Lane rows are written once per lane for the run: lane leases are run-wide, so lane rows are not repeated per sub-task.
+Candidates step by 20 (`<base> + 20*k`, INTERFACES 1.4.0 A.5.2 and C1.1, AM-4 W2-3), so the one +10 retry of any candidate lands on an odd ten that no candidate uses. Only `bus` and `review-bus` rows are per sub-task. Lane rows are written once per lane for the run: lane leases are run-wide, so lane rows are not repeated per sub-task.
 
 | subtask | role | base_key | k | candidate |
 |---|---|---|---|---|
-| `st<N>` (build mode only) | `bus` | `ports.bus_base` | `2N` | `<ports.bus_base> + 10*k` |
-| `st<N>` (every sub-task that runs `pre-pr-gate`, `st0` included) | `review-bus` | `ports.bus_base` | `2N + 1` | `<ports.bus_base> + 10*k` |
-| `-` (run-wide) | `lane/<name>` (one row per port the lane binds) | `ports.lane_base` | next consecutive bind index | `<ports.lane_base> + 10*k` |
+| `st<N>` (build mode only) | `bus` | `ports.bus_base` | `2N` | `<ports.bus_base> + 20*k` |
+| `st<N>` (every sub-task that runs `pre-pr-gate`, `st0` included) | `review-bus` | `ports.bus_base` | `2N + 1` | `<ports.bus_base> + 20*k` |
+| `-` (run-wide) | `lane/<name>` (one row per port the lane binds) | `ports.lane_base` | next consecutive bind index | `<ports.lane_base> + 20*k` |
 
 - Write the computed integer in `candidate` and the integer `k` in its own column. If the profile lacks the base key, write `FILL_IN_BEFORE_DISPATCH` in the row (A.2.2 `ports.*` row); the checklist fails until intake supplies it.
 - Which sub-tasks get bus rows: a `bus` row only for a build-mode sub-task; `st0` (`plan-pr`) and `pm` (`post-merge`) run no bus (A.2 modes). `st0` gets a `review-bus` row (`k = 1`), because it opens the plan PR through `pre-pr-gate` (A.2), which passes the sub-task's `review-bus` candidate to `pr-review` as `BUS_PORT`, required when `RUN_HOME` is set (D2.3 `pr-review` row). `pm` is added by the conductor post-merge (A.2) and gets no row from this plan.
-- Lane `k`: each lane bind takes the next consecutive `k` in table order, from 0, across all lanes. With one bind per lane, `k` equals the lane index; this is how this skill reads A.5.2 "lanes by lane index" for a lane that binds several ports, so every bind keeps a distinct candidate. A lane keeps its candidates across sub-tasks and the `pm` lead reuses them.
-- A serial lane whose ports are fixed in the app config writes the app port as `candidate`, `k = 0`, with the note "fixed by app config"; it takes no index and is outside the formula, but it is included in the distinctness check (checklist row 8), so a fixed port equal to a formula candidate is caught.
+- Lane `k`: the per-bind index (INTERFACES 1.4.0 A.5.2 "lane binds by consecutive bind index"): each lane bind takes the next consecutive `k` in table order, from 0, across all lanes, so every bind keeps a distinct candidate. With one bind per lane, `k` equals the lane index. A post-merge re-entry appends new lanes' rows with `k` continuing from the last existing bind index (SKILL.md step 13). A lane keeps its candidates across sub-tasks and the `pm` lead reuses them.
+- A serial lane whose ports are fixed in the app config writes the app port as `candidate`, `k` = `-`, with the note "fixed by app config" (fixed app ports keep their app port, W2-3); it takes no index and is outside the formula, but it and its + 10 are included in the distinctness check (checklist row 8), so a fixed port equal to a formula candidate or a retry slot is caught.
 - The candidate is a proposal fixed before any check. The launcher claims each one per A.5.2 (`port-check.sh --claim`, then `catalog.sh register port`, launch, `catalog.sh start`); the plan runs no `port-check.sh`.
-- On a refusal the launcher makes exactly one retry at candidate + 10, itself claimed with `port-check.sh --claim` before any bind (the tool never auto-picks); a bus is then pinned to the retry port (`PORT_RANGE_START=PORT_RANGE_END=<port+10>`). A second refusal stops the line: a lane ends as C2 reason `lane-unavailable`; a bus is reported to the lead. Never a second +10 (INTERFACES 1.3.0 A.5.2, C1.1, AM-3, owner OQ-2). `port-check.sh` exit 3 (registry unusable) is stop-the-line with no retry (A.5.2).
-- The retry port can equal a sibling's candidate; the claim resolves it, which is why row 8 covers plan candidates only.
-- Distinctness is checked across the whole table (checklist row 8).
+- On a refusal the launcher makes exactly one retry at candidate + 10, itself claimed with `port-check.sh --claim` before any bind (the tool never auto-picks); a bus is then pinned to the retry port (`PORT_RANGE_START=<port+10> PORT_RANGE_END=<port+10>`, INTERFACES 1.4.0 A.5.2, AM-4 18). A second refusal stops the line: a lane ends as C2 reason `lane-unavailable`; a bus is reported to the lead. Never a second +10 (INTERFACES 1.4.0 A.5.2, C1.1, AM-3, owner OQ-2). `port-check.sh` exit 3 (registry unusable) is stop-the-line with no retry (A.5.2).
+- The plan checks that all candidates and all candidates + 10, across both bases and the fixed app ports, are pairwise distinct and at most 65535 (checklist row 8). A plan-time clash stops the skill and is reported; the plan never re-picks a port.
 
 ## 4. Slot plan and dispatch arithmetic
 

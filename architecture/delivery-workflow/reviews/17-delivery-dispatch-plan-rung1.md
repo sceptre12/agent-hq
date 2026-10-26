@@ -96,3 +96,26 @@
 ## §9 done condition (final; non-author dry run by the round-3 verifier, re-run by the orchestrator)
 
 `s9-17.sh` is identical to the spec §9 block (diff exit 0). Output: `SKILL-17-OK`, exit 0. `check-doc-length.sh`: 0 blocking. The diff covers 5 files, +52/-50. `references/templates/` was not touched.
+
+## Post-D7 fix (2026-10-26; owner-authorized, no new review round)
+
+- Scope: `skills/delivery-dispatch-plan/` (5 files, +22/-23); `references/templates/` untouched. Skill `version: 0.2.0`. Fixer: Worker1 subagent (not the author of rounds 1-3).
+- **Open Mediums closed:**
+  - R3-M1: the G48 re-run is "on the plan files" (SKILL step 12, plan-check-loop round step 5 and "After clean").
+  - F-M2: a Plan-checker inside a review round that finds problems is fixed by that round's fixer in the same round; the owner D7 cap ends the loop (plan-check-loop "After clean", SKILL step 12).
+  - F-M3: step 13 runs step 8 for new lanes. Lane rows are appended to the run-wide tables, and `k` continues from the last bind index.
+  - F-M4: step 11 makes a port-candidate clash (row 8) a stop, never a re-pick. The Red flags row and sfp §3 say the same.
+- **AM-4 applied, citing INTERFACES 1.4.0** (landed at d121866):
+  - W2-3, `<base> + 20·k`: one +10 retry, candidates and candidates + 10 pairwise distinct and at most 65535, fixed app ports keep their app port (`k` = `-`).
+  - Per-bind lane index: cites A.5.2 "lane binds by consecutive bind index".
+  - Row 18, bus pin shell text: `PORT_RANGE_START=<p> PORT_RANGE_END=<p>`.
+- **Still cited as "AM-4 queue row 17, not yet in INTERFACES 1.4.0":** 1.4.0's AM-4 row does not carry the item 17 gap row, and the verifier confirmed this. The four items are:
+  - `e2e.harness` read as an A.2.2 key;
+  - STAKES/CONTENTION/NOVELTY copied from the architecture handoff, `review-architecture.md` (D2.2 row 3 output to row 5 input);
+  - the re-entry output list in step 13;
+  - "no profile yet" = `repo-profile.md` absent or `FILL_IN_BEFORE_DISPATCH` in a required key.
+- §9: `SKILL-17-OK`, exit 0. Run by the fixer, then as a non-author dry run by the verifier in both iterations. `check-doc-length.sh`: 0 blocking.
+- Fix-verifier (Sonnet, installed `fix-verifier`), record `SCRATCH/17-postd7-verify.md`:
+  - iteration 1: CLEAN against the AM-4 queue;
+  - iteration 2: CLEAN against INTERFACES 1.4.0.
+- Advisory, for item 27: `references/templates/dispatch-plan.md` lines 71 and 77 still say `10*k` and "lane index".

@@ -7,6 +7,7 @@ set -uo pipefail
 unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX
 REAL="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ROOT="$(mktemp -d "${TMPDIR:-/tmp}/test_check-review.XXXXXX")"; trap 'rm -rf "$ROOT"' EXIT
+. "$REAL/tools/code-gate/lib.sh"   # CG_REPO: the one authority for the repo name (no env override)
 export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null   # hermetic: no user hooks/config
 passed=0; failed=0; NFX=0
 pass() { echo "PASS: $1"; passed=$((passed + 1)); }
@@ -62,7 +63,7 @@ good="CODE-GATE-REVIEW: PASS head=%s blocking=0 medium=0"
 
 setup "$TRAILER"; setjson "$SHA2" "$(printf "$good" "$SHA2")"; cr
 eq "clean merge + trailer + matching PR + marker: rc 0" "$rc" 0; has "PASS verdict counts the commit" "$out" "CODE-REVIEW: PASS commits=1"
-has "gh was asked about PR 7 on the right repo" "$(cat "$FAKE_GH_LOG")" "pr view 7 --repo sceptre12/agent-hq"
+has "gh was asked about PR 7 on the right repo" "$(cat "$FAKE_GH_LOG")" "pr view 7 --repo $CG_REPO"
 setjson "$SHA2" "approved by someone" "$(printf "$good" "$SHA2")"; cr; eq "marker among other comments: rc 0" "$rc" 0
 
 mkfix; echo "# doc" >>README.md; commit; cr
@@ -106,9 +107,9 @@ git merge -q --no-ff --no-commit wt/x >/dev/null 2>&1; printf '#!/usr/bin/env ba
 SHA2="$(git rev-parse HEAD^2)"; setjson "$SHA2" "$(printf "$good" "$SHA2")"; cr
 eq "evil merge adding a new in-scope file: rc 1" "$rc" 1; has "smuggled file named evil" "$err" "evil merge"
 
-# H8: no repo override. CODE_GATE_REPO is ignored; gh is always asked about sceptre12/agent-hq.
+# H8: no repo override. CODE_GATE_REPO is ignored; gh is always asked about $CG_REPO (lib.sh).
 setup "$TRAILER"; setjson "$SHA2" "$(printf "$good" "$SHA2")"; CODE_GATE_REPO=attacker/fork cr
-has "H8: CODE_GATE_REPO ignored, real repo queried" "$(cat "$FAKE_GH_LOG")" "--repo sceptre12/agent-hq"
+has "H8: CODE_GATE_REPO ignored, real repo queried" "$(cat "$FAKE_GH_LOG")" "--repo $CG_REPO"
 hasnt "H8: attacker repo never queried" "$(cat "$FAKE_GH_LOG")" "attacker/fork"
 eq "H8: no source mentions CODE_GATE_REPO" "$(grep -l CODE_GATE_REPO "$REAL"/tools/code-gate/{lib,check-review,run-mapped-tests,gate-invariants}.sh "$REAL/tools/git-hooks/pre-push" | wc -l | tr -d ' ')" 0
 # H9: the PR must target main and be OPEN or MERGED.

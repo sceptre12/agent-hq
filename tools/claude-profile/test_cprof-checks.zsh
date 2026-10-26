@@ -3,7 +3,7 @@
 # Hermetic: HOME and CPROF_ROOT point into a mktemp dir; `claude` is a stub on PATH; the user's
 # zsh config is never loaded (zsh -f); ~/claude-profiles, ~/.claude and ~/.zshrc are never touched.
 SRC=${0:A:h}
-T=$(mktemp -d) || exit 1
+_tb=${TMPDIR:-/tmp}; T=$(mktemp -d "${_tb%/}/test_cprof-checks.XXXXXX") || exit 1
 trap 'chmod -R u+rwx "$T" 2>/dev/null; rm -rf "$T"' EXIT
 mkdir -p "$T/bin" "$T/home" "$T/root"
 fails=0
@@ -12,7 +12,7 @@ bad()  { print -r -- "FAIL $1"; fails=$((fails+1)); }
 # zrun '<zsh code>' -> runs after sourcing cprof.zsh in a clean, hermetic zsh
 zrun() { env HOME=$T/home CPROF_ROOT=$T/root PATH=$T/bin:/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin \
          zsh -fc "source $SRC/cprof.zsh; $1" 2>&1 </dev/null; }
-command -v jq >/dev/null || { print "SKIP: jq missing"; exit 0; }
+command -v jq >/dev/null || { print -r -- "FAIL: jq required (these tests cannot run without it)"; exit 1; }
 
 # Stub claude: logs argv, prints canned /context table for `-p /context`.
 cat > $T/bin/claude <<STUB
@@ -32,7 +32,7 @@ cat > $T/context.txt <<'CTX'
 | x | y |
 CTX
 mkdir -p $T/cfg $T/work
-sed -i '' "s#CFGDIR#$T/cfg#" $T/context.txt
+_ctx=$(mktemp "${_tb%/}/test_cprof-checks.XXXXXX") && sed "s#CFGDIR#$T/cfg#" $T/context.txt > $_ctx && mv -f $_ctx $T/context.txt || { print -r -- "FAIL: could not rewrite context.txt"; exit 1; }
 
 # Defect 1: doctor trims /context path cells and skips `| --- |` separator rows.
 out=$(zrun "export CLAUDE_CONFIG_DIR=$T/cfg; cd $T/work; cprof doctor")

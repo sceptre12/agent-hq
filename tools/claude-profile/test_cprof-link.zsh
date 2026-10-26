@@ -4,10 +4,10 @@
 # zsh -f skips the user's config, real claude is never run. Same harness as test_cprof.zsh.
 SRC=${0:A:h}
 _TRK=(${(f)"$(zsh -fc "source $SRC/cprof.zsh; print -l \${_CPROF_TRACKED:#PS1}" 2>/dev/null)"}); CLEAN=(); for _v in $_TRK; do CLEAN+=(-u $_v); done
-T=$(mktemp -d) || exit 1
+_tb=${TMPDIR:-/tmp}; T=$(mktemp -d "${_tb%/}/test_cprof-link.XXXXXX") || exit 1
 trap 'chmod -R u+rwx "$T" 2>/dev/null; rm -rf "$T"' EXIT
 mkdir -p $T/bin $T/home $T/root
-command -v jq >/dev/null || { print "SKIP: jq missing"; exit 0; }
+command -v jq >/dev/null || { print -r -- "FAIL: jq required (these tests cannot run without it)"; exit 1; }
 fails=0
 ok()  { print -r -- "ok   $1"; }
 bad() { print -r -- "FAIL $1"; fails=$((fails+1)); }

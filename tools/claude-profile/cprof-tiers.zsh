@@ -48,7 +48,12 @@ _cprof_tier_md() {
   local src=$(_cprof_hqcfg)/../tools/claude-profile/templates/$2-CLAUDE.md dst=$1/workspace/CLAUDE.md
   [[ -r $src ]] || { _cprof_err "missing template: $src"; return 1; }
   [[ -e $dst && $4 != 1 ]] && { _cprof_err "$dst exists; use --force to overwrite"; return 1; }
-  ( umask 077; sed "s/<profile>/$3/g" "$src" > "$dst" )
+  local own=${CPROF_OWNER-}   # the GitHub account the template names; never defaulted, never a wildcard
+  if [[ "$(<$src)" == *'<owner>'* ]]; then
+    [[ -n $own ]] || { _cprof_err "CPROF_OWNER is unset or empty; the $2 template needs your GitHub account (export CPROF_OWNER=<account>)"; return 1; }
+    [[ $own =~ '^[A-Za-z0-9][A-Za-z0-9-]*$' ]] || { _cprof_err "CPROF_OWNER '$own' is not a valid GitHub account name"; return 1; }
+  fi
+  ( umask 077; sed -e "s/<profile>/$3/g" -e "s/<owner>/$own/g" "$src" > "$dst" )
 }
 
 # _cprof_tier_state <profile-dir>: sets the caller's locals tier, ov (overlay name) and rec (recorded rendered hash) from tier/tier.src.

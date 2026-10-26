@@ -13,6 +13,12 @@ Field shapes and preflight rules are in `spec-format.md`; this file is controlle
   work_item of the same wave. Frontiers are computed inside the wave; declared waves stay barriers to each other,
   so wave N+1 starts only after every work_item of a frontier wave N has passed its gate.
 - There is no global barrier-free flag and no cross-wave edge.
+- **Integrator items (INTERFACES 1.8.0 AM-8 V13):** in a delivery run the dispatch plan places each
+  blocker's Integrator item in the same wave as its dependents, as an ordinary work_item, and each
+  dependent declares `depends_on` on that Integrator item; a dependent is therefore released only
+  once the blocker is gated and integrated. A dependency across waves is expressed by wave order
+  (the barrier), never by an edge; rule 15 is unchanged. The skill reads the edges; placing them is
+  the caller's.
 
 ## Admission (both modes)
 
@@ -97,6 +103,19 @@ an unrecorded completion post is re-gated).
   skill is domain-agnostic).
 - Barrier wave: one gate agent per work_item; the wave passes only when every one passes.
   Frontier wave: the per-work_item gate above.
+
+## `gates_command` gate run (bundle field; INTERFACES 1.8.0 AM-8 V14)
+
+- When the bundle header declares `gates_command` (in a delivery run `delivery-dispatch-plan` copies the
+  repo profile's `gates.command`), the brief of every gate agent carries it verbatim, and the gate agent
+  that gates a work_item runs it on that work_item's posted head before its verdict, under any
+  `gate_type`. A non-zero exit is a `fail` verdict.
+- It takes a lane lease for the command like a worker (in a delivery run the A.7 `gate-runner/<n>` lease),
+  never runs the command without one, and releases it when the command ends; admission 1 (slots) still
+  applies to the agent itself.
+- It is the single writer of the head's `gate-runs/<head>.md` record (A.7 `GATE-PASS`, written only on a
+  pass; in a delivery run `RUN_HOME/<subtask>/gate-runs/<sha>.md`). The controller never runs the command
+  and never writes the record; the worker and the caller do not write it either.
 
 ## Budget (rule 11)
 

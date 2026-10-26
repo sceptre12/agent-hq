@@ -35,14 +35,20 @@ against every preflight rule (1-11, 13-15):
 Wave 4 and `bundle.md` demonstrate the ADR 0054 fields. Waves 1-3 declare none of
 them, so the legacy form (waves 1-3, no new fields) still validates and runs as before.
 
-- **`bundle.md`** carries the bundle-level fields `session_id`, `output_topic` and
-  `bus_endpoint` (and `dispatch_budget` when used). Option B has no other bundle-level
+- **`bundle.md`** carries the bundle-level fields `session_id`, `output_topic`,
+  `bus_endpoint` and `gates_command` (and `dispatch_budget` when used). Each wave 4 gate agent
+  runs `gates_command` on its work_item's posted head under a lane lease and alone writes that
+  head's `gate-runs/<head>.md` (INTERFACES 1.8.0 AM-8 V14). Option B has no other bundle-level
   home, so this file is the bundle header; `max_concurrent`, `invocation` and
   `tier_override` are invocation arguments and never appear in it.
 - **Wave 4** is a frontier wave: it enumerates its work_items, each with `persona`, `lane`,
   `depends_on` and a `done_condition` (`{"token", "command"}`), uses `gate_type:
   step_complete` and one `fix_loop_cap` declared for the wave and counted per work_item. `index` and `toc` share a lane, so
   they run one after the other; `site` waits for both; `release-note` waits for `site`.
+- **Integrator items (note):** this example has none. In a delivery run each blocker's Integrator
+  item is an ordinary work_item of its dependents' wave and each dependent `depends_on` it; a
+  dependency across waves is wave order, never an edge, so rule 15 is unchanged (INTERFACES 1.8.0
+  AM-8 V13).
 - **Runtime rules the example relies on** (`../../SKILL.md`, `../frontier-mode.md`): an
   `example-run/build/bus.endpoint` whose `session_id=` or `topic=` differs from `bundle.md`
   (or lacks a key) halts the run before any dispatch, and an invocation without the
@@ -60,4 +66,5 @@ them, so the legacy form (waves 1-3, no new fields) still validates and runs as 
   `  - **<id>**` entry; any other value is a runtime rule (e.g. waves 1-3).
 - **Tests:** `bash tests/run.sh` checks rules 4, 5, 9, 11, 13, 14 and 15 over this bundle,
   the legacy form (waves 1-3, no new fields), `tests/fixtures/valid/` and one `tests/fixtures/invalid-<rule>-<case>/`
-  per negative case. Last line: `WAVE-EXEC-TESTS: PASS <n>/<n>`.
+  per negative case, plus that `bundle.md` declares `gates_command` as one non-empty line. Last line:
+  `WAVE-EXEC-TESTS: PASS <n>/<n>`.

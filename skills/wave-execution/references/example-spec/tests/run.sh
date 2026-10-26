@@ -2,7 +2,8 @@
 # tests/run.sh — static checker of the wave-execution bundle rules over example-spec/ and
 # tests/fixtures/{valid,invalid-<rule>-<case>}/. Hermetic, bash 3.2 / BSD awk, no network.
 # Covers rules 4, 5, 9, 11, 13, 14, 15 (the rules new or amended by ADR 0054); rules 1-3, 6-8 and 10
-# need the caller's filesystem or judgement and are not checked here. Option B bundles only
+# need the caller's filesystem or judgement and are not checked here. Also checks that the example bundle
+# declares gates_command (INTERFACES 1.8.0 AM-8 V14) as one non-empty line. Option B bundles only
 # (bundle.md plus waves/NN-<name>.md). A wave enumerates its work_items when its work_items value
 # is empty or starts with "enumerated below" and each item is a "  - **<id>**" entry; any other
 # value is a runtime rule. Last line: WAVE-EXEC-TESTS: PASS <n>/<n>
@@ -143,6 +144,12 @@ expect "mutation: frontier step_complete wave whose work_items is a runtime rule
 # Rule 11 is the last check executed: with a rule 13 failure and an overrun, only rule 13 is reported.
 cp -R "$FX/invalid-13-uppercase" "$ROOT/last"; sed -i.bak 's/dispatch_budget:\*\* 14/dispatch_budget:** 1/' "$ROOT/last/bundle.md"
 expect "rule 11 runs last (suppressed while another rule fails)" "$ROOT/last" "13"
+# 5. Bundle field gates_command (INTERFACES 1.8.0 AM-8 V14): declared once, one non-empty line.
+total=$((total + 1))
+gc="$(sed -n 's/^- \*\*gates_command:\*\*[ \t]*//p' "$SPEC/bundle.md" | tr -d '`')"
+if [ "$(printf '%s\n' "$gc" | grep -c '[^[:space:]]')" -eq 1 ] && [ "$(grep -c '^- \*\*gates_command:\*\*' "$SPEC/bundle.md")" -eq 1 ]; then
+  passed=$((passed + 1)); echo "PASS: example bundle declares gates_command as one non-empty line"
+else echo "FAIL: example bundle gates_command missing, empty or repeated"; fi
 
 if [ "$passed" -eq "$total" ]; then echo "WAVE-EXEC-TESTS: PASS $passed/$total"; exit 0; fi
 echo "WAVE-EXEC-TESTS: FAIL $passed/$total"; exit 1

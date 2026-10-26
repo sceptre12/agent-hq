@@ -214,6 +214,7 @@ authoritative record of field shapes and rule text.
 | `session_id` | bundle | `^[a-z0-9-]+$`; pinned, stable on resume, in the content hash | minted per invocation | 0054 A6 |
 | `output_topic` | bundle | one literal topic, no placeholder; overrides per-wave values | per-wave values | 0054 A7 |
 | `bus_endpoint` | bundle | `$DELIVERY_ROOT`-relative `<run-id>/<subtask>/bus.endpoint`; declared without bundle `session_id`/`output_topic` or the `invocation` argument it halts before any dispatch with `BUNDLE-ERROR <field>` (INTERFACES 1.5.0 C1.1) | own bus bootstrap and teardown | 0054 A9 |
+| `gates_command` | bundle | one non-empty line (delivery run: repo profile `gates.command`); the gate agent that gates a work_item runs it on the posted head under a lane lease and is the single writer of `gate-runs/<head>.md` | no gate command run | INTERFACES 1.8.0 AM-8 V14 |
 
 Bundle fields live in `bundle.md` at the `spec_root` root (both layouts). With `bus_endpoint` the
 dispatch record line per agent carries `unit` = the served work_item id, or `wave-<N>` for a

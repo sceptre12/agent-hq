@@ -90,8 +90,9 @@ The full table (rule and reason per field) is `references/step0-inputs.md`. Fiel
 `SECURITY_AUDIT` (`guidance`|`full`, else `INPUT-ERROR SECURITY_AUDIT enum`), `STACK_BASE`/`STACK_HEAD`,
 `RECORD_PATH`, `BUS_PORT` (required in a run: `INPUT-ERROR BUS_PORT missing`), the mode inputs
 (`REPO_DIR`, `BASE_REF`, `HEAD_REF`; `REPO`, `PR_NUMBER`), the run fields (`RUN_HOME`, `RUN_ID`,
-`SUBTASK`) and the record fields (`SEAT_ID`, `MEMBER_SESSION_NAME`, `TASK_ID`). Record line 2 is never
-written with an empty field.
+`SUBTASK`) and the record fields (`SEAT_ID`, `MEMBER_SESSION_NAME`, `TASK_ID`). In a run, `pre-pr-gate`
+(step 11) is the producer of `REPO_DIR`, `SEAT_ID` (the orchestrator's own), `MEMBER_SESSION_NAME` and
+`TASK_ID` (D2.3; INTERFACES 1.8.0 AM-8 V15). Record line 2 is never written with an empty field.
 
 ### Local-diff mode (`PR_REVIEW_MODE=local-diff`)
 

@@ -80,3 +80,26 @@ exit=0
 - **OQ-10-3 (owner).** D2.3 says `BUS_PORT` is "absent standalone". The skill accepts an optional standalone `BUS_PORT` as the candidate and otherwise uses 7777. Recommended: accept it, because it gives standalone callers a way past the two-port OQ-2 range without auto-pick.
 - **OQ-10-4 (owner).** OQ-2 says the retry is "claimed before bind" and applies to standalone `pr-review`. Standalone has no run (no `project`/`source`), so the skill does an `lsof` re-check, as spec Q10-5 reads it ("the R-x +10 and re-check is done exactly once"). Recommended: accept the `lsof` re-check for standalone, with `port-check.sh --claim` only inside a run.
 - **OQ-10-5 (owner awareness).** Behaviour changes outside the mandated set: the synthesizer moves to the design tier (M19 / part-01), `MEMBER_SESSION_NAME` must be lowercase (A.6), and standalone tries two ports instead of a scan (OQ-2). Recommended: accept all three.
+
+## Post-D7 fix (2026-10-26)
+
+These are the lead's decisions from the SCRATCH/am4-queue.md row "(10-B2, ...)". They are applied in W' (`skills/pr-review/`, uncommitted) and in spec 10. The fixer did not author this item, and nothing was committed.
+
+- **B2 resolved.** Inside a run, the review bus now lives at `RUN_HOME/review/<subtask>/<review-id>/bus/`, where `<review-id>` is `pr-review-<uuid8>`, created fresh for each review. The app name and `SESSION_ID` carry the same suffix. The refusal pre-check ("app or data_dir exists") is removed. Cleanup removes only files under that review's own directory: the diff, then the bus directory if its `.created-by` file names this review, then `rmdir` of the review directory. The files are `references/bus-start-run.md` and `SKILL.md` Step 1.
+- **D35 revert.** The synthesizer is back on the verify tier (Sonnet). This is D35's adopted chain: 7 Sonnet seats → Sonnet synthesizer → Opus fixer → Sonnet fix-verifier, and it matches part-03:48. The tier-rename change in OQ-10-5(a) is withdrawn.
+- **OQ-10-2.** `SEAT_ID`, `RUN_ID` and `SUBTASK` are declared as dispatch-prompt fields that go to D2.3.
+- **OQ-10-3.** `BUS_PORT` is optional when running standalone.
+- **OQ-10-4.** Standalone mode re-checks the port with `lsof` and makes no port-check claim.
+- **OQ-10-5.** `MEMBER_SESSION_NAME` must be lowercase, and standalone mode tries port 7777 and then 7787 only. Both are accepted. All four items were already in the skill text, and the citations now point to the lead decisions.
+- **Spec 10 (W).** The RESOLVED Q10-5 line, the §2 namespacing line (which also dropped the stale `pm2 jlist` clause) and the §7 `DATA_DIR` row now give the new path. The Q10-7 line now says `BUS_PORT` is optional standalone.
+- **§9, non-author run.** A Haiku agent diffed the script against spec §9 and found them identical, then ran it: `EXT-10-OK`, exit=0. After the last citation edit the fixer re-ran it and got `EXT-10-OK` again. `check-doc-length` reports 0 blocking files.
+- **Fix-verifier (Sonnet, installed `fix-verifier`, a separate agent).** B2 and the D35 revert LANDED, with no stale in-run path and no `design` tier left. It raised the following Medium findings, all now handled:
+  - Spec 10:21 still mentioned `jlist`. Fixed.
+  - Citations to INTERFACES 1.4.0 were not supported by its text. They were re-pointed to the lead decisions.
+- **Open (integrator, AM-4 follow-up).** INTERFACES 1.4.0 (d121866) does not yet do any of the following:
+  - state the per-review bus path in A.1;
+  - name `SEAT_ID`, `RUN_ID` or `SUBTASK` in the D2.3 `pr-review` row;
+  - make `BUS_PORT` optional standalone (D2.3 still says "absent standalone").
+
+  Also, part-03:84 (M12) still gives a generic `RUN_HOME/<subtask>/bus/`.
+- **Final.** Blocking 0, Medium 0 in the skill. The INTERFACES text gap above is still open, and the Open Lows above are unchanged.

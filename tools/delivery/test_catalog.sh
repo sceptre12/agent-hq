@@ -195,6 +195,15 @@ r branch "$REPO#nope@main"; G_BR=$RID
 r bus "$RUN/st0/bus" - run s st0 agent-a; A_BUS=$RID
 mkdir -p "$RUN/st1/bus"
 r bus "$RUN/st1/bus" - run s st1 agent-a; G_BUS=$RID
+# in-run review buses (D5): bus.endpoint sits beside the review's own data dir, not at the sub-task root
+RV="$RUN/review/st2/pr-review-aaaa1111"; mkdir -p "$RV/bus"
+printf 'port=2\ndata_dir=%s\npm2_app=y\npid=%s\nsession_id=s\ntopic=t\n' "$RV/bus" "$ALIVE" > "$RV/bus.endpoint"
+r bus "$RV/bus" - run s st2 agent-a; A_RBUS=$RID
+RD="$RUN/review/st0/pr-review-bbbb2222"; mkdir -p "$RD/bus"
+printf 'port=3\ndata_dir=%s\npm2_app=z\npid=%s\nsession_id=s\ntopic=t\n' "$RD/bus" "$DEADP" > "$RD/bus.endpoint"
+r bus "$RD/bus" - run s st0 agent-a; G_RBUS=$RID
+RN="$RUN/review/st0/pr-review-cccc3333"; mkdir -p "$RN/bus"
+r bus "$RN/bus" - run s st0 agent-a; G_RBUS2=$RID
 r lane-lease lane/z; A_LL=$RID
 r container web:1; C_ID=$RID
 r tmpdir "$RUN/rel-dir"; R_ID=$RID; mkdir -p "$RUN/rel-dir"
@@ -202,8 +211,8 @@ cat_ release tmpdir "$RUN/rel-dir"
 # rowin <audit-output> <row_id>: exact match of field 2 (a plain substring test confuses row id ...-1 with ...-10)
 rowin() { printf '%s\n' "$1" | cut -f2 | command grep -qxF -- "$2"; }
 cat_ audit; AUD=$OUT; eq "audit rc" "$RC" 0
-for id in "$A_PROC" "$A_TMP" "$A_WT" "$A_BR" "$A_BUS" "$A_LL"; do has "MATCH $id" "$AUD" "MATCH$T$id"; done
-for id in "$G_PROC" "$G_TMP" "$G_WT" "$G_BR" "$G_BUS"; do has "GHOST $id" "$AUD" "GHOST$T$id"; done
+for id in "$A_PROC" "$A_TMP" "$A_WT" "$A_BR" "$A_BUS" "$A_RBUS" "$A_LL"; do has "MATCH $id" "$AUD" "MATCH$T$id"; done
+for id in "$G_PROC" "$G_TMP" "$G_WT" "$G_BR" "$G_BUS" "$G_RBUS" "$G_RBUS2"; do has "GHOST $id" "$AUD" "GHOST$T$id"; done
 has "SQUATTER stray" "$AUD" "SQUATTER$T-${T}worktree:$STRAY"
 if rowin "$AUD" "$C_ID"; then fail "container printed"; else pass; fi
 if rowin "$AUD" "$R_ID"; then fail "released printed"; else pass; fi

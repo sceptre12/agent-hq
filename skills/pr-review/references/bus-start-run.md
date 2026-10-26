@@ -10,13 +10,17 @@ Applies when `RUN_HOME` is set. Standalone use (`RUN_HOME` unset) keeps the Step
 1. **Claim.** Through `skills/port-claim` (Steps 1-4):
    `tools/port-check.sh --claim "$BUS_PORT" 127.0.0.1 "$BUS_PORT" swarm-bus "$RUN_ID" claimed "$RUN_ID-$SUBTASK" "pr-review bus"`.
    - Exit 0: claimed, continue.
-   - Exit 1 (taken) or 2 (registry and listener disagree): refuse the launch. Do not add 10, do not
-     auto-pick another port. Report to the lead (the dispatching `pre-pr-gate`).
+   - Exit 1 (taken) or 2 (registry and listener disagree): refuse the launch on `$BUS_PORT`; never
+     auto-pick. Make exactly one retry: set `BUS_PORT=$((BUS_PORT + 10))` and run the same `--claim`
+     line once more, before any bind (INTERFACES 1.3.0 A.5.2, D2.3, AM-3 / owner OQ-2). Exit 0 on the
+     retry: continue with this `BUS_PORT` in every step below. A second exit 1 or 2: stop the line and
+     report to the lead (the dispatching `pre-pr-gate`). Never a second +10.
    - Exit 3 (usage or registry unusable): stop-the-line.
 2. **Register** (all `planned`), before the launch: `catalog.sh register` for kinds `port`
    (`$BUS_PORT`), `pm2-app` (`$APP_NAME`), `bus` (`$DATA_DIR`) and `tmpdir` (the diff scratch dir),
    with correlation id `$RUN_ID-$SUBTASK`.
-3. **Launch**, with the port pinned so `get-port` cannot choose another:
+3. **Launch**, with the port pinned so `get-port` cannot choose another (the retry port when the
+   retry was taken, C1.1):
    ```bash
    DATA_DIR="$RUN_HOME/$SUBTASK/bus"; APP_NAME="swarm-mcp-$RUN_ID-$SUBTASK"
    "$PM2" jlist | command grep -q "\"name\":\"$APP_NAME\"" && { echo "ERROR: pm2 app exists"; exit 1; }
@@ -25,7 +29,7 @@ Applies when `RUN_HOME` is set. Standalone use (`RUN_HOME` unset) keeps the Step
      NODE_ENV=production "$PM2" start ecosystem.config.cjs
    ```
    Then poll `$DATA_DIR/port` as in the standalone script. If `$(cat "$DATA_DIR/port")` is not equal to
-   `$BUS_PORT`, stop and report; do not continue on the other port. Run the health, identity-sample and
+   the claimed `$BUS_PORT`, stop and report; do not continue on the other port. Run the health, identity-sample and
    loopback checks of the standalone script unchanged.
 4. **Start**: `catalog.sh start` for the four rows. The `SESSION_ID` includes `$RUN_ID-$SUBTASK`.
 

@@ -1,14 +1,17 @@
 # port-check-lib.sh — input validation and live-truth (lsof) helpers for tools/port-check.sh.
 # Sourced, never executed. Split out of port-check.sh because the review-round-1 fixes pushed it over
 # agent-hq's 300-line source default (ADR 0016), whose stated remedy is to split, not to compress.
-# Callers define EXIT_FREE=0, EXIT_TAKEN=1, EXIT_ERROR=3 before sourcing. Tests: tools/test_port-check.sh.
+# The functions read EXIT_FREE=0 / EXIT_ERROR=3 at call time; the caller defines them. Tests: tools/test_port-check.sh.
 #
 # LIVE TRUTH FAILS CLOSED: an lsof that is missing, cannot execute, or exits with anything other than
 # "1 and no output" (lsof's "no match") supports no verdict about any port. It returns EXIT_ERROR, so
-# a broken lsof can never read as "nothing listening" and turn into RESULT: FREE or a --claim append.
+# a broken lsof can never read as "nothing listening" and turn into RESULT: FREE or a --claim append
+# (cmd_claim refuses check exit 3 even with --force).
 
+# Canonical decimal only: no leading zero (045010 would text-miss a 45010 row and read FREE) and at most
+# 5 digits (a 20-digit value overflows the integer test), checked before the numeric range test.
 validate_port() {
-  if ! [[ "${1}" =~ ^[0-9]+$ ]] || [ "${1}" -lt 1 ] || [ "${1}" -gt 65535 ]; then
+  if ! [[ "${1}" =~ ^[1-9][0-9]{0,4}$ ]] || [ "${1}" -gt 65535 ]; then
     echo "FAIL: '${1}' is not a valid TCP port (1-65535)." >&2
     return "${EXIT_ERROR}"
   fi
@@ -33,6 +36,18 @@ port_matches() {
   esac
 }
 
+# held_only_by <port> <project> < active-rows — 0 when at least one row on stdin covers <port> and every
+# such row's project is <project> (cmd_claim's self-release test); 1 otherwise.
+held_only_by() {
+  local n=0 f_port f_project
+  while IFS=$'\t' read -r f_port _ _ _ f_project _; do
+    port_matches "$1" "${f_port}" || continue
+    [ "${f_project}" = "$2" ] || return 1
+    n=$((n + 1))
+  done
+  [ "${n}" -gt 0 ]
+}
+
 # validate_claim_fields <port> <bind> <container_port> <service> <project> <status> <source> <note>
 # Runs before anything is written. A tab or newline in any field would change the row's field count
 # (every later read then fails closed machine-wide) or forge an extra row, so every control character
@@ -49,8 +64,11 @@ validate_claim_fields() {
       return "${EXIT_ERROR}"
     fi
   done
-  if [ "$3" != "-" ] && ! [[ "$3" =~ ^[0-9]+(-[0-9]+)?$ ]]; then
-    echo "FAIL: --claim container_port '$3' must be '-', a port, or a numeric range." >&2; return "${EXIT_ERROR}"
+  if [ "$3" != "-" ]; then
+    local lo="${3%%-*}" hi="${3##*-}"
+    if ! [[ "$3" =~ ^[0-9]+(-[0-9]+)?$ ]] || ! validate_port "${lo}" 2>/dev/null || ! validate_port "${hi}" 2>/dev/null; then
+      echo "FAIL: --claim container_port '$3' must be '-', a port (1-65535, no leading zero), or a range of two." >&2; return "${EXIT_ERROR}"
+    fi
   fi
   return "${EXIT_FREE}"
 }

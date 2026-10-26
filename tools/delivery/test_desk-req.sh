@@ -154,6 +154,24 @@ OUT=$(DELIVERY_ROOT="rel/x" "$SUT" "$RID" st1 ci-status "$ok1" 2>&1); check "for
 check "format msg" "$OUT" "INPUT-ERROR DELIVERY_ROOT format"
 OUT=$(RUN_HOME=/nonexistent DELIVERY_ROOT="$DELIVERY_ROOT" "$SUT" "$RID" st1 ci-status "$ok1" 2>/dev/null); check "RUN_HOME ignored" "$?" 0
 
+# --- path-root canonicalization: a desk TMPDIR is /var/folders/.../T/ (trailing slash, /var -> /private/var) -------
+mkdir -p "$T/real"; ln -s "$T/real" "$T/lnk"
+canon() { # name delivery-root body-path-prefix want-rc (the run dir is $T/real/root/$RID)
+  rm -rf "$T/real/root"; mkdir -p "$T/real/root/$RID/review/st1" "$T/real/root/$RID/bodies"
+  local f; f=$(fx "$1" "{\"repo\":\"$REPO\",\"pr\":7,\"body_path\":\"$3/bodies/c.md\"}")
+  OUT=$(DELIVERY_ROOT="$2" "$SUT" "$RID" st1 pr-comment "$f" 2>"$T/err"); RC=$?; ERRT=$(cat "$T/err")
+  check "canon $1 rc" "$RC" "$4"
+  [ "$4" = 0 ] || match "canon $1 msg" "$ERRT" 'desk-req: schema: body_path root'
+}
+canon doubled-slash   "$T//real/root"   "$T//real/root/$RID" 0
+canon trailing-root   "$T/real/root/"   "$T/real/root/$RID"  0
+canon trailing-both   "$T/real/root//"  "$T/real/root/$RID/" 0
+canon symlink-root    "$T/lnk/root"     "$T/real/root/$RID"  0
+canon symlink-cand    "$T/real/root"    "$T/lnk/root/$RID"   0
+canon symlink-both    "$T/lnk/root/"    "$T/lnk//root/$RID"  0
+canon outside-via-lnk "$T/lnk/root"     "$T/lnk/other"       2
+canon dotdot-via-lnk  "$T/lnk/root"     "$T/lnk/root/$RID/../x" 2
+rm -f "$T/lnk"
 # --- lock ------------------------------------------------------------------
 reset; mkdir -p "$RH/desk/.lock"
 export DL_LOCK_TIMEOUT=2 DL_LOCK_INTERVAL=0.2

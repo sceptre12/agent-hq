@@ -87,11 +87,15 @@ dr_validate() {
 
 # dr_resolve <abs path>: print the physical path (deepest existing directory
 # resolved, the rest appended). rc 1 for a relative path, a "." or ".."
-# component, a doubled slash, or a symlink leaf.
+# component, or a symlink leaf. Doubled and trailing slashes are squeezed, not
+# rejected: a TMPDIR ending in "/" yields "//" in roots and candidates alike and
+# is not a traversal; root and candidate are canonicalized the same way.
 dr_resolve() {
   local p=$1 rest="" d
   case $p in /*) ;; *) return 1 ;; esac
-  case "$p/" in */../*|*/./*|*//*) return 1 ;; esac
+  while [[ $p == *//* ]]; do p=${p//\/\//\/}; done
+  [ "$p" = / ] || p=${p%/}
+  case "$p/" in */../*|*/./*) return 1 ;; esac
   [ ! -L "$p" ] || return 1
   while [ ! -d "$p" ] && [ "$p" != "/" ] && [ -n "$p" ]; do
     rest="/${p##*/}$rest"

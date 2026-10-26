@@ -20,6 +20,8 @@
 Phase 1 agents run independently. Do NOT read peer findings. Post findings, signal done, exit.
 
 ---
+Scope: lint and typecheck out of scope, gates attached. Do not report lint or typecheck findings; the gate results are attached to the review.
+
 You are **[ROLE NAME]** on a 7-member code review panel — Phase 1 (Independent Analysis).
 
 session_id: [SESSION_ID]
@@ -87,7 +89,7 @@ PORT=$(cat [DATA_DIR]/port)
 curl -s -X POST http://localhost:${PORT}/mcp \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
-  -d '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"read_messages","arguments":{"agent_id":"[your-agent-id]","topics":["pr-check-N"],"session_id":"[SESSION_ID]","peek":true}},"id":N0}'
+  -d '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"read_messages","arguments":{"agent_id":"[your-agent-id]","topics":["pr-check-N"],"session_id":"[SESSION_ID]","limit":200,"peek":true}},"id":N0}'
 ```
 If your message does NOT appear, return to Step 2 and retry. Do NOT proceed until confirmed.
 
@@ -114,6 +116,8 @@ Phase 2 agents run after all Phase 1 agents complete. The bus is fully populated
 Read peer findings and deliberate. Accountable agents close their checks.
 
 ---
+Scope: lint and typecheck out of scope, gates attached. Do not report lint or typecheck findings; the gate results are attached to the review.
+
 You are **[ROLE NAME]** on a 7-member code review panel — Phase 2 (Deliberation).
 
 session_id: [SESSION_ID]
@@ -140,7 +144,9 @@ YOU ARE ACCOUNTABLE FOR CLOSING: [list — post CLOSED when quorum met]
 
 ### PHASE 2 — Deliberation
 
-Read all findings from your Consulted topics using read_messages with peek:true:
+Read the findings on your Consulted topics using read_messages with peek:true, limit 200, your own
+agent-id (never another reader's id). With several topics, either list them as below or read each in its
+own call:
 ```bash
 PORT=$(cat [DATA_DIR]/port)
 curl -s -X POST http://localhost:${PORT}/mcp \
@@ -207,6 +213,33 @@ curl -s -X POST http://localhost:${PORT}/mcp \
 Exit immediately after broadcasting. The synthesizer is not dispatched until all 7 Phase 2 agents have posted PHASE2_DONE.
 
 ---
+
+## Per-seat preamble (open every seat brief with it)
+
+The orchestrator prepends the line for the seat to that seat's Phase 1 and Phase 2 prompts.
+
+- `platform-engineer`: lint and typecheck out of scope, gates attached.
+- `devops-engineer`: lint and typecheck out of scope, gates attached.
+- `fullstack-engineer`: lint and typecheck out of scope, gates attached.
+- `integration-architect`: lint and typecheck out of scope, gates attached.
+- `security-engineer`: lint and typecheck out of scope, gates attached.
+- `technical-writer`: lint and typecheck out of scope, gates attached.
+- `strategic-reviewer`: lint and typecheck out of scope, gates attached.
+
+## Security seat addendum (`security-engineer`, `pr-check-5`)
+
+Input `SECURITY_AUDIT` (`guidance` default, or `full`) is passed in the seat prompt.
+
+- Load the `security-audit` skill in **guidance mode**, scoped to the diff at `diff_path` only.
+- Guidance mode here means: no output directory, no files written, no automatic six phases, and no
+  agent launched (this seat runs at depth 2 and has no Agent tool). Do not execute target code; the
+  universal execution-safety rule of `security-audit` applies. Read files only as the mode says
+  (`git show` in local-diff mode).
+- Post the result as the usual `FINDING` or `PASS` on `pr-check-5`; the audit itself leaves no artifact.
+- `SECURITY_AUDIT=full` adds one thing: read the latest
+  `RUN_HOME/<subtask>/security-audit/run-<N>/findings.json` (highest `N`), read-only, and fold its
+  items into `pr-check-5`. The full audit is the caller's separate invocation, never this seat's. If
+  no `findings.json` exists, say so in a `pr-check-5` ADD note; do not launch anything.
 
 ## Per-Role Assignments
 

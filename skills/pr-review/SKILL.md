@@ -1,5 +1,6 @@
 ---
 name: pr-review
+version: 1.1.0
 description: >
   Real 7-agent code review panel: each agent independently reads the PR diff, runs
   domain-specific checks, and deliberates live over the swarm communication bus; an 8th
@@ -55,8 +56,12 @@ Every step below that touches the bus must observe two verified discrepancies:
 Measured on the live bus, 2026-10-09 (T-141/T-159 reviews) — facts, not rules:
 
 - Each member session starts its own bus app on its own port; none binds 7777 or another member's port.
-- Before binding, `lsof -nP -iTCP:$PORT -sTCP:LISTEN` must be empty; otherwise add 10 and re-check. (owner rule 2026-10-08 19:08Z, R-x)
+- Before binding, `lsof -nP -iTCP:$PORT -sTCP:LISTEN` must be empty; otherwise add 10 and re-check
+  (standalone only; inside a run a taken port is refused and reported, never re-picked). (owner rule 2026-10-08 19:08Z, R-x)
 - `read_messages` takes `session_id` (mandatory on every call), `agent_id` and `topics` as an ARRAY.
+- **Reader idiom (every orchestrator, gate-checker and synthesizer read):** `"peek":true`, a fresh
+  `agent_id` per reader and per read, `"limit":200`, one topic per call. Without `peek` a read consumes
+  the unread state; a reused id loses messages.
 - `broadcast` posts need `session_id` (mandatory on every call), `from_agent`, `topic` and `content`.
 - A reply's `data_dir` shows the app's directory, not the session id (expected).
 
@@ -70,8 +75,9 @@ serialize all concurrent reviews through one writer.
 
 ## Pre-flight
 
-Mode: env `PR_REVIEW_MODE` — unset or `pr` = the PR flow below; `local-diff` = see "Local-diff mode"
-(next subsection). Everything in this skill is pr mode unless a step says "In local-diff mode".
+Mode: input `PR_REVIEW_MODE` — unset resolves to `local-diff` (every delivery session is sandboxed;
+no tier detector); `pr` only when set explicitly = the PR flow below. See "Local-diff mode" (next
+subsection). Steps below say "In pr mode" or "In local-diff mode" where they differ.
 
 Required caller inputs in pr mode (must be present in the dispatch prompt):
 - `REPO` — repository in `owner/repo` format (e.g., `octocat/hello-world`)
@@ -84,6 +90,22 @@ local merge → push, Rule 6/ADR 0017), this skill does not apply — review the
 These values must be substituted into the dispatch prompt before invoking the skill. The
 skill does not prompt for missing inputs.
 
+### Step 0 — Validate inputs (D1)
+
+Run before Step 1. Print one `INPUT-ERROR <field> <reason>` line per failing field (reason in
+`missing|enum|path|unset|format`), then stop; start no bus.
+
+| Input | Rule | On failure |
+|---|---|---|
+| `PR_REVIEW_MODE` | `local-diff` (default when unset) or `pr` | `INPUT-ERROR PR_REVIEW_MODE enum` |
+| `ROLES` | unset = all 7 seat ids; a list of fewer than 7 is refused (`references/roles-subset.md`) | `INPUT-ERROR ROLES enum` |
+| `SECURITY_AUDIT` | `guidance` (default when unset) or `full` | `INPUT-ERROR SECURITY_AUDIT enum` |
+| `STACK_BASE`, `STACK_HEAD` | both 40-hex shas or both unset | `INPUT-ERROR STACK_HEAD missing` (or `STACK_BASE`); non-hex: `... format` |
+| `RECORD_PATH` | local-diff: absolute, outside `REPO_DIR` | `missing` if unset, `path` if relative or inside |
+| `BUS_PORT` | integer 1-65535; required when `RUN_HOME` is set; absent standalone | `INPUT-ERROR BUS_PORT missing` (inside a run), `... format` |
+
+`ROLES` derives from the seat table of `review-tailor-<slug>.md` (lines 2+, `seat-id<TAB>role<TAB>reason`).
+
 ### Local-diff mode (`PR_REVIEW_MODE=local-diff`)
 
 Review a local `git diff` with no GitHub PR; the review record goes to a file instead of a PR
@@ -92,8 +114,10 @@ choice here is a brain default under R-q (owner may veto). Differences from pr m
 
 - **Inputs** (replace `REPO`/`PR_NUMBER`, which are absent and not required): `REPO_DIR` (git checkout
   holding both refs; read-only for the whole run), `BASE_REF`, `HEAD_REF` (ref or sha), `RECORD_PATH`
-  (absolute, outside the reviewed tree, e.g. the caller's scratchpad).
-- **Step 2:** `git -C "$REPO_DIR" diff "$BASE_REF...$HEAD_REF"` replaces `gh pr diff`; capture `HEAD_SHA`.
+  (absolute, outside the reviewed tree, e.g. the caller's scratchpad). Stacked PR: `STACK_BASE` +
+  `STACK_HEAD` (both 40-hex) replace the ref pair; `HEAD_SHA` is `STACK_HEAD`.
+- **Step 2:** `git -C "$REPO_DIR" diff "$BASE_REF...$HEAD_REF"` replaces `gh pr diff` (stacked:
+  `git diff "$STACK_BASE..$STACK_HEAD"`, two dots, never the three-dot form); capture `HEAD_SHA`.
 - **Steps 4/6/8:** prompt fields `repo_dir`/`base_ref`/`head_ref`/`head_sha` replace `repo`/`pr_number`;
   agents read files only via `git -C "$REPO_DIR" show "$HEAD_SHA:<path>"`, never the working tree, never a write.
 - **Step 8:** the orchestrator writes `RECORD_PATH` (header format and identity grep in Step 8).
@@ -124,7 +148,13 @@ report is stop-the-line for the orchestrator, never bypassed.
 
 ### Step 1 — Start the per-session swarm bus
 
-Dispatch a sub-agent (Haiku) to run this bash script:
+Inside a run (`RUN_HOME` set) follow `references/bus-start-run.md` instead of the script below: it
+claims `BUS_PORT` with `tools/port-check.sh --claim` (through `port-claim`) before the bind, registers
+the `port`, `pm2-app`, `bus`, `tmpdir` rows, starts the bus under `RUN_HOME/<subtask>/bus/`, then
+`catalog.sh start`. Exit 1 or 2 refuses the launch (no auto-pick, report to the lead); exit 3 is
+stop-the-line. With `RUN_HOME` unset (standalone use outside a run) the script below is unchanged.
+
+Standalone only: dispatch a sub-agent (Haiku) to run this bash script:
 
 ```bash
 PM2=${PM2_BIN:-$(which pm2 2>/dev/null)}
@@ -191,7 +221,8 @@ wc -c "${DIFF_PATH}"
 
 Capture `DIFF_PATH`. Halt if the file is empty or gh fails.
 
-In local-diff mode, dispatch the Haiku sub-agent to run this instead (no `gh`, no network):
+In local-diff mode, dispatch the Haiku sub-agent to run this instead (no `gh`, no network). Inside a run,
+set `DIFF_PATH` under `RUN_HOME/<subtask>/` instead of `/tmp` (`/tmp` is unwritable in the executor tier):
 
 ```bash
 DIFF_PATH="/tmp/pr-review-${SESSION_SUFFIX}.diff"
@@ -201,7 +232,12 @@ git -C "$REPO_DIR" rev-parse --verify "$BASE_REF^{commit}" >/dev/null 2>&1 || { 
 git -C "$REPO_DIR" rev-parse --verify "$HEAD_REF^{commit}" >/dev/null 2>&1 || { echo "ERROR: HEAD_REF does not resolve"; exit 1; }
 case "$RECORD_PATH" in /*) ;; *) echo "ERROR: RECORD_PATH must be absolute"; exit 1;; esac; case "$RECORD_PATH" in "$(cd "$REPO_DIR" && pwd -P)"/*) echo "ERROR: RECORD_PATH is inside REPO_DIR"; exit 1;; esac
 HEAD_SHA=$(git -C "$REPO_DIR" rev-parse "$HEAD_REF^{commit}")
-git -C "$REPO_DIR" diff "$BASE_REF...$HEAD_REF" > "$DIFF_PATH" || { echo "ERROR: git diff failed"; exit 1; }
+if [ -n "${STACK_BASE:-}" ]; then   # stacked PR (Step 0 checked both are 40-hex)
+  HEAD_SHA=$(git -C "$REPO_DIR" rev-parse "$STACK_HEAD^{commit}")
+  git -C "$REPO_DIR" diff "$STACK_BASE..$STACK_HEAD" > "$DIFF_PATH" || { echo "ERROR: git diff failed"; exit 1; }
+else
+  git -C "$REPO_DIR" diff "$BASE_REF...$HEAD_REF" > "$DIFF_PATH" || { echo "ERROR: git diff failed"; exit 1; }
+fi
 chmod 600 "$DIFF_PATH"
 [ -s "$DIFF_PATH" ] || { echo "ERROR: diff is empty — nothing to review"; exit 1; }
 wc -c "${DIFF_PATH}"
@@ -236,10 +272,12 @@ pinned to **Sonnet** (see Execution model). Each agent prompt must include:
 - Instruction to read their **Phase 1 brief** from `references/agent-briefs.md` and their
   role assignments from `references/agent-roles.md`
 - Instruction to read the bus schema from `references/bus-schema.md`
+- The seat's preamble from `references/agent-briefs.md` ("lint and typecheck out of scope, gates
+  attached"); the security seat also gets the guidance-mode brief and `SECURITY_AUDIT`
 - Instruction: "After posting all findings, broadcast `PHASE1_DONE` to topic `rendezvous`
   with content `PHASE1_DONE | [your-agent-id] | [SESSION_ID]` and exit."
 
-The 7 roles to dispatch (agent-id in parentheses):
+The 7 roles to dispatch (agent-id in parentheses; always all 7 — a shorter `ROLES` was refused in Step 0):
 1. Platform/Infra Engineer (`platform-engineer`)
 2. DevOps Engineer (`devops-engineer`)
 3. Full Stack Engineer (`fullstack-engineer`)
@@ -261,8 +299,8 @@ Wait for all 7 agents to complete.
 ### Step 5 — Gate 1: Wait for all Phase 1 signals
 
 Dispatch a single gate-checker sub-agent (**Haiku**). It polls topic `rendezvous` every 5
-seconds, collecting distinct `from_agent` values from messages whose content starts with
-`PHASE1_DONE`. Stop when 7 distinct agent IDs are collected or after 8 minutes.
+seconds (reader idiom above: `peek:true`, fresh `agent_id` per poll, `limit` 200), collecting
+distinct `from_agent` values from messages whose content starts with `PHASE1_DONE`. Stop when 7 distinct agent IDs are collected or after 8 minutes.
 
 Return `{ done: boolean, found: number, agents: string[], timedOut: boolean }`.
 
@@ -292,7 +330,8 @@ Wait for all 7 Phase 2 agents to complete.
 ### Step 7 — Gate 2: Wait for all Phase 2 signals
 
 Dispatch a single gate-checker sub-agent (**Haiku**) to poll topic `phase2-rendezvous`
-until 7 distinct `PHASE2_DONE` signals are received (or 10 minutes have elapsed). Return
+until 7 distinct `PHASE2_DONE` signals are received (or 10 minutes have elapsed), with the same
+reader idiom (`peek:true`, fresh `agent_id` per poll, `limit` 200). Return
 the same structure as Step 5 (Gate 1). Capture gate2TimedOut agents.
 
 If `timedOut` is true and `found === 0`, proceed to synthesizer with a warning.
@@ -305,25 +344,26 @@ Dispatch a single synthesizer agent (**Sonnet**) with:
 - `timed_out_checks`: structured as `{ gate1: [...], gate2: [...] }` — agent IDs from
   gate1TimedOut and gate2TimedOut respectively, so the synthesizer can label findings
   PHASE 1 UNRESOLVED, PHASE 2 UNRESOLVED, or FULLY UNRESOLVED accordingly
-- Instruction to read `references/synthesizer-brief.md`
+- Instruction to read `references/synthesizer-brief.md`, which opens with the preamble "lint and
+  typecheck out of scope, gates attached" and reads each topic separately with the reader idiom
 
 The synthesizer reads all bus messages and produces the Phase B report.
 
 In local-diff mode the orchestrator then writes `RECORD_PATH` from that report. Line 1 is
 `CODE-GATE-REVIEW: PASS head=<HEAD_SHA> blocking=0 medium=0` only when both counts are 0, else
 `CODE-GATE-REVIEW: FAIL head=<HEAD_SHA> blocking=<b> medium=<m>`. Line 2 is
-`Reviewed-By: <member session name> <TASK id>`; then a blank line; then the Phase B report. File paths in
+`Reviewed-By: <seat-id> <session> <TASK-id>` (A.6; three fields, `seat-id` supplied by the caller); then a blank line; then the Phase B report. File paths in
 the record (`repo_dir`, `RECORD_PATH`, any path the report names) are written `~`-relative, never as an
 absolute home path.
 
-The orchestrator sets the snippet's inputs: `B`, `M` (counts from the Phase B verdict), `MEMBER_SESSION_NAME`,
+The orchestrator sets the snippet's inputs: `B`, `M` (counts from the Phase B verdict), `SEAT_ID`, `MEMBER_SESSION_NAME`,
 `TASK_ID`, `PHASE_B_REPORT_FILE`.
 
 ```bash
 # PASS only if B=0 and M=0; otherwise FAIL with the real counts
 if [ "$B" -eq 0 ] && [ "$M" -eq 0 ]; then V=PASS; else V=FAIL; fi
-printf 'CODE-GATE-REVIEW: %s head=%s blocking=%s medium=%s\nReviewed-By: %s %s\n\n' \
-  "$V" "$HEAD_SHA" "$B" "$M" "$MEMBER_SESSION_NAME" "$TASK_ID" > "$RECORD_PATH"
+printf 'CODE-GATE-REVIEW: %s head=%s blocking=%s medium=%s\nReviewed-By: %s %s %s\n\n' \
+  "$V" "$HEAD_SHA" "$B" "$M" "$SEAT_ID" "$MEMBER_SESSION_NAME" "$TASK_ID" > "$RECORD_PATH"
 cat "$PHASE_B_REPORT_FILE" >> "$RECORD_PATH"
 # Identity check — no secrets or tokens in the record; must print 0
 grep -cE 'sk-ant-|gh[opsu]_|github_pat_' "$RECORD_PATH"
@@ -348,7 +388,10 @@ APP_NAME="${APP_NAME}" DATA_DIR="${DATA_DIR}" DIFF_PATH="${DIFF_PATH}" bash -c '
 ```
 
 This is the identical PM2-resolution snippet from Step 1 — a single source of truth kept
-in sync by editing both call sites together (see the note at the end of Step 1).
+in sync by editing both call sites together (see the note at the end of Step 1). That `/tmp/*`
+guard is the standalone flow. Inside a run the `rm -rf` guard is the literal run path
+(`references/bus-start-run.md`, "Cleanup"), then `catalog.sh` marks the rows released; release is
+cleanup only.
 
 See `references/phase-b-c-severity.md` for Phase B (Reviewer Decides), Phase C (Apply
 Approved Fixes), Severity Reference, and Reference Files.
@@ -402,3 +445,4 @@ unreachable).
 
 Provenance: Hermes skill learnings/skill-sharing (imported from learnings/skill-sharing.md)
 Lineage: X-context-docs skills/pr-review@0e9281e
+Provenance: EXTEND 1.1.0 (2026-10-26), delivery-workflow item 10: peek/fresh-id/limit-200 reads, stacked diff, preamble, local-diff default, RACI-remap refusal (references/roles-subset.md), port guard (A.5.2), security-audit guidance seat. Pending pilot (no pilot run recorded).

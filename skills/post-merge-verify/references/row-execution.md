@@ -16,7 +16,7 @@
 - Pass: exit code and output satisfy the `expected` column. Anything else is a fail.
 - Failure policy: quote the row's policy text into the evidence line. Apply it literally (for example "retry once"). Empty or unclear: no retry, the row fails.
 - A retry that passes is recorded as `PASS` with evidence key `retried=<n>`, so the verify tier sees it.
-- A row that needs a product decision to judge, or a destructive row with no grant file `RUN_HOME/gates/H-destructive.<row-id>.ok` (desk-written, OQ-B, AM-4 queue), is a stop condition (SKILL.md): do not run it.
+- A row that needs a product decision to judge, or a destructive row with no grant file `RUN_HOME/gates/H-destructive.<row-id>.<run-id>.ok` (desk-written, part-a A.2.1, AM-5 21), is a stop condition (SKILL.md): do not run it.
 
 ## Evidence
 - Output tail and exit code go to `RUN_HOME/pm/evidence/<row-id>.log`; the runner then writes the staged line `RUN_HOME/pm/evidence/<row-id>.line` in the record format. One writer per file: the runner for the `.line` of each runner row it runs; the lead for the `.line` of each stage-covered row (`merge-pipeline.md`) and the `human` `.line` of each hand-test row (SKILL.md Step 8); the Test-adequacy seat for `<row-id>.heal-review` (`e2e-rows.md`); the lead for `ci-status-main.stages`; the verdict agent for the `.line` of each consumer-simulation row. The verdict reads them only after every runner and the seat have finished. All paths under `RUN_HOME/pm/` here are skill-local (`DEFAULT`), not INTERFACES paths.

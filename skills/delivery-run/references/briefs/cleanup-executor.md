@@ -17,7 +17,7 @@ Role statement and execute imperative first; tier line with rationale; done toke
 - Catalog rows only. A resource not in the catalog is reported, never deleted (D9).
 - Re-measure before you delete; delete by literal path, one `rm` per path. Processes by pid, with `kill -0` before and after.
 - Remove a worktree only with a clean `git status --porcelain`, `git status --ignored` showing no uncaptured ignored files, and its PR open or merged.
-- State both bases in the record: bytes (`du -sk`) and file count (`find -type f | wc -l`, `.git` internals included or excluded, stated).
+- State both bases in the record: bytes (`du -sk`) and file count (`find <path> -type f | wc -l`, `.git` included, stated on every row; A.5.1, A.8).
 - Delete a branch, local or remote, only when content-merged into main: ancestor check OR rebase/squash content equality (`git cherry` or patch-id); otherwise keep it and flag it (D8). Remote delete goes through the desk `branch-delete` verb.
 - Must never touch: the ledger and records, other sessions' worktrees, open PR branches, credentials.
 - Release `port` rows by the A.5.1 `port` cleanup (stop the listener, write the `released` registry row with `tools/port-check.sh`, then `catalog.sh release`).
@@ -25,4 +25,4 @@ Role statement and execute imperative first; tier line with rationale; done toke
 ## Stop
 Classifier block, or a count-basis mismatch (bytes or file count): stop and report; do not continue past either (card 9).
 
-<!-- cites: Card 9 (steps, must-never-touch, Exit, Stop); §3.1 row Cleanup executor; D8, D9, M32; A.5.1 `port` row; B4 `branch-delete`; D1.1 `CLEANUP DONE`. -->
+<!-- cites: Card 9 (steps, must-never-touch, Exit, Stop); §3.1 row Cleanup executor; D8, D9, M32; A.5.1 general rules (`.git` included) and `port` row; A.8 A.5.1 (AM-5 19-F6); B4 `branch-delete`; D1.1 `CLEANUP DONE`. -->

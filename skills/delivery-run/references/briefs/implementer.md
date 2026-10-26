@@ -21,10 +21,11 @@ Role statement and execute imperative first; tier line with rationale; done toke
 - Run concurrently with the unit's test writer only on a frozen interface. [par.rule 4]
 - Touch a manifest, lockfile, barrel, generated file or CI config only when the dispatch plan names your unit as its owner; otherwise stop and report. [par.rule 3]
 - On a fork the spec does not settle, write `.decisions/<unit>.md` (fork; options; recommendation; `Outcome: Blocked`) and post `ESCALATE` with reason `decision-gate`. [5.10, C2]
-- Port guard (INTERFACES A.5.2, AM-1): before you start a dev server or any listener, claim the port the dispatch plan's port table gives you with `tools/port-check.sh` (through `port-claim`), register a `port` catalog row, then launch. Never auto-pick a port; on the first refusal (exit 1 or 2) make exactly one retry at candidate + 10, itself claimed with `tools/port-check.sh --claim` before any bind (never auto-picked); a second refusal: do not launch, stop the line and report to the lead (INTERFACES 1.3.0 A.5.2, AM-3, owner OQ-2); exit 3 is stop-the-line.
+- Port guard (INTERFACES A.5.2, AM-1): before you start a dev server or any listener, claim the port the dispatch plan's port table gives you with `tools/port-check.sh` (through `port-claim`), register a `port` catalog row, then launch. Never auto-pick a port; on the first refusal (exit 1 or 2) make exactly one retry at candidate + 10, itself claimed with `tools/port-check.sh --claim` before any bind (never auto-picked); a second refusal: do not launch, stop the line and report to the lead (INTERFACES 1.5.0 A.5.2, AM-3, owner OQ-2); exit 3 is stop-the-line.
+- Never request the gate runner yourself: post `UNIT-VERDICT` with your head; `wave-execution`'s per-work_item gate agent runs the profile gate command and writes the `GATE-PASS` record for that head. `HUSKY=0` applies to your commits as an inline per-command assignment (A.7, AM-4 13). [A.7]
 
 ## Stop
 
 Decision Gate fork.
 
-<!-- cites (design part-03 unless noted): 3.1 seat table; 3.2/3.3 Implementer row; 4 Parallelization rules 3 and 4; 5.10; C2; INTERFACES A.5.2, AM-1, AM-3 (owner OQ-2) -->
+<!-- cites (design part-03 unless noted): 3.1 seat table; 3.2/3.3 Implementer row; 4 Parallelization rules 3 and 4; 5.10; C2; INTERFACES A.5.2, A.7, AM-1, AM-3 (owner OQ-2), AM-4 13 -->

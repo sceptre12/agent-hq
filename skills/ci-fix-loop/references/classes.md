@@ -25,4 +25,4 @@ Tokens are the 14 D2.2 row 11 tokens, exactly. `signature = class + job`. Budget
 ## D23 check (before any fixer dispatch)
 1. Read the profile `sensitive_paths[]` (A.2.2, a required key; missing is `INPUT-ERROR sensitive_paths[] missing` at Step 0).
 2. Any `file_set` path matching one of its EREs, any fix that needs a pipeline definition, shared pipeline repo, trigger, required-check or scan configuration change, or an empty list: no fixer, no edit.
-3. Write `CI: HUMAN policy` (RESOLVED Q3); the lead sets `stop_reason: stop-the-line:D23`. In every other case the line carries the record's class token.
+3. Write `CI: HUMAN policy` (RESOLVED Q3); the lead sets `stop_reason: stop-the-line:D23`. In every other case the line carries the record's class token, except `budget` (step 4) and the round-3 review stop `d7-round3` (SKILL.md step 9, AM-5).

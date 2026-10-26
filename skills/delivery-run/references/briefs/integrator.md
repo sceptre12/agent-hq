@@ -22,10 +22,12 @@ Role statement and execute imperative first; tier line with rationale; done toke
 - Write nothing but the sub-task branch; pushes and merges to main are not yours. [3.1, Must stay serial]
 - The lead verifies `head` with `git rev-parse HEAD` in the sub-task worktree; a mismatch is an incomplete post. [C2 lead handling]
 - On a real conflict post the C2 record with reason `merge-conflict` (C2 gives that reason the verdict `ROLLED`) and stop; the lead escalates. [3.3, C2]
+- In mode `plan-pr` you are the one agent that brings the `PLANS_DIR` files onto the `st0` branch; the lead never commits (A.8, 28-CV5, M20). [A.8]
+- A dependent unit's branch is cut from the sub-task branch only after you merge its blocker: release = gate pass AND integrated (C8, S4a). [C8]
 - You may use the parallel downstream scratch-rebase verify; it is advisory and not required. [Quality rules]
 
 ## Stop
 
 Real conflict: escalate.
 
-<!-- cites (design part-03 unless noted): 3.1 Integrator row; 3.3 Integrator row; 4 Must stay serial; C2; A.3 `integrated` (INTERFACES part A); D1.1 `INTEGRATED:` (not a bus record); 4 Quality rules advisory -->
+<!-- cites (design part-03 unless noted): 3.1 Integrator row; 3.3 Integrator row; 4 Must stay serial; C2; A.3 `integrated` (INTERFACES part A); D1.1 `INTEGRATED:` (not a bus record); 4 Quality rules advisory; INTERFACES A.8 (28-CV5), C8 (S4a) -->

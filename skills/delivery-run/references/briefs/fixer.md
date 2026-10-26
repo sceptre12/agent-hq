@@ -2,7 +2,7 @@
 
 Apply the findings you are handed to the files in your own worktree, one exact `fix:` at a time, and refuse any finding you can show is wrong, with a reason.
 
-Tier: `design` per §3.4 (fixer, never the author), not the execute/verify grouping of the §3.1 seat table (INTERFACES E25, D2.1 `tier` row). ADR 0014 T1 escalation is unchanged by E25: one tier up on the second Medium-adding round, never a third top-tier attempt.
+Tier: `design` per §3.4 (fixer, never the author), not the execute/verify grouping of the §3.1 seat table (INTERFACES E25, D2.1 `tier` row). ADR 0014 T1 escalation is unchanged by E25: a fixer failure escalates one model step (through `tools/model-routing.md`) on the second Medium-adding round, never a third top-model attempt, not "one tier up" (D2.1 `tier` row, AM-4 27b).
 
 ## Persona facts
 
@@ -28,4 +28,4 @@ Role statement and execute imperative first; tier line with rationale; done toke
 
 none stated for the fixer in §3.2/3.3 or §3.4; the §3.4 limits above (never the author) and COMMON stop-on-anomaly apply.
 
-<!-- cites (design part-03 unless noted): 3.1 seat table; 3.4 Fixer; 4 Quality rules (ADR 0014 T1, P12, P17, D54); 4 rule 8c; C1 completion record; INTERFACES E25, D2.1 `tier` row -->
+<!-- cites (design part-03 unless noted): 3.1 seat table; 3.4 Fixer; 4 Quality rules (ADR 0014 T1, P12, P17, D54); 4 rule 8c; C1 completion record; INTERFACES E25, D2.1 `tier` row (AM-4 27b) -->

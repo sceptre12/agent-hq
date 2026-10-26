@@ -18,7 +18,8 @@ Role statement and execute imperative first; tier line with rationale; done toke
 ## Persona-specific rules
 
 - Score each body with `jira-ticket-quality` before sending.
-- Every create names its parent; the desk re-fetches the parent before writing.
+- Every create names its parent in the top-level `parent` (never a `fields` entry); the desk re-fetches the parent before writing; a missing `parent` is `REJECTED schema`. A draft whose `parent` or `issuetype` changes after creation is a draft defect you report, not an update; a terminal `REJECTED` or a no-reply is reported once and you move past it (B4 `jira-create`, AM-4 22, B9).
+- A repeat `blocked` for a ticket already `Blocked` is absorbed (C8, 29-8). An escalation record naming no unit takes the sub-task's dispatch-plan `ticket`, for `pm` the epic key (C8, 29-35).
 - Use only the closed field allowlist in INTERFACES (summary, description, issuetype, parent, labels, priority, components) (M29).
 - The desk refuses `jira-create` until the H1 gate file exists (M30); ids are Jira-assigned and plans name tickets by slug until then.
 - Write at loop hand-back or about every 30 minutes, not per step (D62).
@@ -28,4 +29,4 @@ Role statement and execute imperative first; tier line with rationale; done toke
 
 Stop rule: parent unresolved; desk `REJECTED`.
 
-<!-- cites: card 14 `ticket-clerk` (rules, tier, stop); §3.1 caretaker row; part-D D2.2 row 14, D3; part-A A.6 `tickets.tsv`; part-B B1 non-lead requesters; part-01 line 18 (D62). -->
+<!-- cites: card 14 `ticket-clerk` (rules, tier, stop); §3.1 caretaker row; part-D D2.2 row 14, D3; part-A A.6 `tickets.tsv`; part-B B1 non-lead requesters, B4 `jira-create` (AM-4 22), B9; part-C C8 (29-8, 29-35); part-01 line 18 (D62). -->

@@ -20,9 +20,10 @@ Role statement and execute imperative first; tier line with rationale; done toke
 
 - Start only on a frozen interface; tests and implementer run concurrently only then. [par.rule 4]
 - Write the criterion-to-file map as a per-unit map file; shared append-only files stay serial. [Must stay serial]
+- Never request the gate runner yourself: post `UNIT-VERDICT` with your head; `wave-execution`'s per-work_item gate agent runs the profile gate command and writes the `GATE-PASS` record for that head. `HUSKY=0` applies to your commits as an inline per-command assignment (A.7, AM-4 13).
 
 ## Stop
 
 AC with no test that can fail.
 
-<!-- cites (design part-03 unless noted): 3.2/3.3 Test writer row and prose line; 4 Parallelization rule 4; 4 Must stay serial -->
+<!-- cites (design part-03 unless noted): 3.2/3.3 Test writer row and prose line; 4 Parallelization rule 4; 4 Must stay serial; INTERFACES A.7, AM-4 13 -->

@@ -22,11 +22,14 @@ Role statement and execute imperative first; tier line with rationale; done toke
 - Run the stage skill; record gate verdicts; arm the merged 10-minute tick (§4).
 - The conductor never dispatches workers; it talks to leads by `SendMessage` and the state files (§4). It spawns one lead session per sub-task through the launcher spec (§6.4: scrubbed environment, asserted `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`, fail-closed `--disallowedTools`); the conductor is the only launcher.
 - Refuse to start a sub-task session that would cross the 200 machine ceiling or the 3-concurrent-builds cap; ask the human.
-- Send `RELEASE <subtask>` and `INVALIDATE <subtask> <reason>` to lead inboxes (M19).
+- Send `RELEASE <subtask>` and `INVALIDATE <subtask> <reason>` to lead inboxes (M19); re-derive due messages from `state.md` on every tick and at resume, each written once (C8, 29-14, 29-25).
+- Session tokens: yours `<run-id>-c<n>`, a lead's `<run-id>-<subtask>-l<n>` (A.8, 29-1). Before any lead launch or relaunch, run every fail-closed check and the worktree add, then write `session`, `launched_utc`, `state` and `relaunch_phase` in one `state.md` write, and only then exec; never launch twice under one token (A.8, 29-13). A new lead counts 31 against the 200 ledger; a `MODE=build` launch needs at most 2 rows with `build=1` (A.8, 29-2).
+- A stopped sub-task leaves `stopped` only through the desk-written `RESUME.<subtask>.<run-id>.ok` gate file (A.8, 29-37). No round 4 of any loop without the owner (D7).
+- Every send polls its reply or `.out`, re-sends once, then is posted as a human step (`<id>.req.noreply`); nothing but the `run` claim is sent until the desk answers `REGISTERED <run-id> | run | ok` (B9, 29-16, 29-27).
 - Own stage 8: retro, session dump, flush, read-back by a different agent.
 
 ## Stop
 
 Stop rule: any stop-the-line row; missing state at resume (rebuild from row files, then stop and report).
 
-<!-- cites: card 1 `delivery-pipeline` (steps, stop); §3.1 Conductor row; §4 numbers, reboot and resume, parallelization rule 8b, merged tick; §3.1 closing sentence. -->
+<!-- cites: card 1 `delivery-pipeline` (steps, stop); §3.1 Conductor row; §4 numbers, reboot and resume, parallelization rule 8b, merged tick; §3.1 closing sentence; INTERFACES A.8 (AM-5 29-n), B9, C8. -->

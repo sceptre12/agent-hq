@@ -1,6 +1,6 @@
 # Profile keys for delivery-intake (writer of every key; part A.2.2 and part-04 section 5.8)
 
-Authority: the profile is the sole authority for repo facts (D22); other docs link `@<sha>` and never copy. Key names and types come from INTERFACES 1.3.0 part A.2.2 (with the AM-2 keys) and are not restated beyond what you need to measure them. Use the A.2.2 spelling exactly; a skeleton that spells a key differently is corrected to A.2.2, never followed.
+Authority: the profile is the sole authority for repo facts (D22); other docs link `@<sha>` and never copy. Key names and types come from INTERFACES 1.5.0 part A.2.2 (with the AM-2 keys, AM-4 20 `default_branch`, AM-5 17 `e2e.harness`, AM-5 19 `lanes[].db.cleanup_cmd`, AM-5 21 `commands.install`, `commands.pack`, `repo.consumer_repos[]`) and are not restated beyond what you need to measure them. Use the A.2.2 spelling exactly; a skeleton that spells a key differently is corrected to A.2.2, never followed.
 
 ## Serialization
 - One YAML document: a new profile at `<PRIMARY_REPO>/plans/repo-profile.md`; a refreshed one at the path it was read from (repo `plans/` or the context store its header names, A.6). A dotted name is a nested map (`ci.required_checks[]` = list `required_checks` under map `ci`).
@@ -24,6 +24,11 @@ An unmeasured, unanswered value is written as the bare scalar `FILL_IN_BEFORE_DI
 | `zephyr.execute_tool` | string | the Zephyr MCP `execute` tool name as Claude Code exposes it; the human or the move verifies it (A.2.2: unmeasured, verify at move) | `FILL_IN_BEFORE_DISPATCH` |
 | `clones[]` | list of abs paths | `git -C <PRIMARY_REPO> rev-parse --show-toplevel` (or `rev-parse --show-cdup` from the repo path: no output = the path is the top level); ask the human whether other clones exist on this machine | the primary path is always measured; other clones unanswered: `[<primary>, FILL_IN_BEFORE_DISPATCH]`, listed in the open items |
 | `linked_profiles[]` | list of `{clone, profile: <abs path>@<40-hex sha>}`; primary profile only | one entry per other repo of a multi-repo epic (human names them; each linked repo gets its own profile and `hash-object` sha); `[]` for a single-repo epic | `[FILL_IN_BEFORE_DISPATCH]` only when the human said more repos exist and has not named them |
+| `default_branch` | string | the branch the merge workflow runs on push (`on: push: branches:`), else `git -C <PRIMARY_REPO> symbolic-ref refs/remotes/origin/HEAD`; the human confirms (A.2.2: absent = `INPUT-ERROR default_branch missing`) | `FILL_IN_BEFORE_DISPATCH` |
+| `e2e.harness` | `nlta\|none` | an NLTA config or plugin in the repo: `nlta`; no e2e harness: `none`; else ask | `FILL_IN_BEFORE_DISPATCH` |
+| `commands.install`, `commands.pack` | strings | `package.json` scripts and lockfile (`--frozen-lockfile --ignore-scripts` form for install); no pack script: ask | `FILL_IN_BEFORE_DISPATCH` |
+| `repo.consumer_repos[]` | list of consumer clone paths | human only (consumers live outside the repo); `[]` when none | `[FILL_IN_BEFORE_DISPATCH]` |
+| `lanes[].db.cleanup_cmd` | string per lane with a `db` resource | human only; `lanes: []` when no lane has a db | `FILL_IN_BEFORE_DISPATCH` in that lane's entry |
 | `worktree_base` | abs path under `$DELIVERY_ROOT` | the human confirms; default proposal `$DELIVERY_ROOT/worktrees` as the recommended answer | `FILL_IN_BEFORE_DISPATCH` |
 | `merge_method` | `squash\|merge\|rebase` | docs (`CONTRIBUTING*`); hosting-service settings are `cannot measure`, ask the human | `FILL_IN_BEFORE_DISPATCH` |
 | `merge_reach` | one-line string | what a merge deploys: triggers of workflows that run on a main-branch push, and whether any deploys or publishes (`grep` the workflows); docs only when no workflow exists | `FILL_IN_BEFORE_DISPATCH` |
@@ -46,10 +51,10 @@ An unmeasured, unanswered value is written as the bare scalar `FILL_IN_BEFORE_DI
 ## Fields outside A.2.2 (part-04 section 5.8)
 Same three-source rule and the same sentinel.
 - `PROJECT_ROOT` (a feature worktree path, never the main checkout), package scope and type, consumer repos, registry config.
-- Exact command strings: install (`--frozen-lockfile --ignore-scripts` form), `install.rebuild_allowlist`, lint, typecheck, test, build, pack, clean, release, publish.
+- Exact command strings (install and pack are A.2.2 keys above): `install.rebuild_allowlist`, lint, typecheck, test, build, clean, release, publish.
 - `HUSKY=0`: do not restate; write a link to INTERFACES part A.7.
 - `pr.author_identity`, `pr.approval_rule`, `version_bump_rule`, `plan_plane_pr`; PR template path, label rules, commit pattern; CI system and status-read skill; merge route.
-- `e2e.harness: nlta|none`, `e2e.context_file`, `e2e.plugin_source`, `e2e.prefix`, `e2e.auth_mode`, `e2e.mock_gate`, `e2e.dist_scan_cmd`, `e2e.remotes_resolution`, `e2e.serve_targets`.
+- `e2e.context_file`, `e2e.plugin_source`, `e2e.prefix`, `e2e.auth_mode`, `e2e.mock_gate`, `e2e.dist_scan_cmd`, `e2e.remotes_resolution`, `e2e.serve_targets`.
 - Lane resource profile (ports are profile fields only, part A.5.2; the port bases are A.2.2 `ports.*`), coverage thresholds, secret retrieval by env-var name only, test-management tool, Jira project key.
 - Pre-dispatch checklist: the list of every sentinel still in the file.
 - Keys that only the skeleton carries (for example `profile_version`, `measured_utc`, `repo.type`, `lane_profile.*`): measure as the skeleton's comment says, else the sentinel.

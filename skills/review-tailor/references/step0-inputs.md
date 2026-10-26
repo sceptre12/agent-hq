@@ -1,4 +1,4 @@
-# Step 0: input validation (INTERFACES 1.3.0 part D1, D2.1, D2.2 row 4; AM-1, AM-3)
+# Step 0: input validation (INTERFACES 1.5.0 part D1, D2.1, D2.2 row 4; AM-1, AM-3)
 
 Inputs are passed as `NAME=value` arguments. `DELIVERY_ROOT` is the environment variable only.
 Check in this order. Print one line per failing field, then stop. Do not ask, do not retry.

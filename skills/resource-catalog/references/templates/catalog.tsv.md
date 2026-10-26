@@ -20,7 +20,7 @@ Purpose: the append-only ledger of every resource a run creates, so cleanup and 
 | 11 | `keep_reason` | text when `state=kept`, else `-` |
 | 12 | `source` | the skill or script that appended |
 
-Note, dropped column: the earlier `verify_cmd` column is dropped (M26). There is no executable column; the per-kind table in A.5.1 supplies the verify and cleanup actions. Rejected on append: a control character; a row over 400 bytes including its newline; a path-kind `handle` whose realpath is outside `RUN_HOME` or the registered `worktree_base`.
+Note, dropped column: the earlier `verify_cmd` column is dropped (M26). There is no executable column; the per-kind table in A.5.1 supplies the verify and cleanup actions. Rejected on append: a control character; a row over 400 bytes including its newline; a path-kind `handle` whose realpath is outside `RUN_HOME` or the registered `worktree_base`; a `handle` that starts with `-`; `-0` or an exponent form in an int field (A.8 A.5, AM-5 PR10-R2).
 
 ## The kinds and their handles (A.5, A.5.1)
 | kind | handle | verify (liveness) |
@@ -43,10 +43,10 @@ Note, dropped column: the earlier `verify_cmd` column is dropped (M26). There is
 | `file` | abs path | `test -e <path>` |
 | `workspace` | name | not verifiable from a lead session; kept and reported |
 
-The kind enum is closed at the 17 values above, exactly as A.5 lists it (INTERFACES 1.3.0 A.5 row 6, AM-3 errata (b): 17 kinds, the count of 18 was a miscount; none is omitted). Cleanup actions are in A.5.1 and are applied by the `delivery-cleanup` executor.
+The kind enum is closed at the 17 values above, exactly as A.5 lists it (INTERFACES 1.5.0 A.5 row 6, AM-3 errata (b): 17 kinds, the count of 18 was a miscount; none is omitted). Cleanup actions are in A.5.1 and are applied by the `delivery-cleanup` executor.
 
 ## Lifecycle (A.5)
-`register` (`planned`) before start; `start` (`live`) after; `release`, `keep <reason>`, `fail`; `list --live`; `audit`. The supersede key is `kind` + `handle`; the latest row for that pair is the resource's state. `audit` classifies `MATCH`, `GHOST`, `SQUATTER` against `kill -0`, `lsof`, `git worktree list`. A `lane-lease` is acquired by compare-and-append and written `live` directly; exit 3 means already held.
+`register` (`planned`) before start; `start` (`live`) after; `release`, `keep <reason>`, `fail`; `list --live` (for every `kind` + `handle` pair whose latest row is `planned` or `live`, that latest row only); `audit` (exit 5 when `lsof` is missing or failing: no verdict for that row, the caller handles it; AM-5 PR10-M4). The supersede key is `kind` + `handle`; the latest row for that pair is the resource's state. `audit` classifies `MATCH`, `GHOST`, `SQUATTER` against `kill -0`, `lsof`, `git worktree list`. A `lane-lease` is acquired by compare-and-append and written `live` directly; exit 3 means already held.
 
 ## Port claim order (AM-1, A.5.2; the single statement is there)
 For every `port` row, before the launch:

@@ -19,9 +19,10 @@ Role statement and execute imperative first; tier line with rationale; done toke
 - Run the profile's exact command string, once per push or batch at unit end, and nothing else. For the `pre-pr-gate` first push run it cold with `--skip-nx-cache`; that run is the `GATE-PASS` for the first push, with no second run (A.7, card 10 step 2).
 - Install as `--frozen-lockfile --ignore-scripts` plus `pnpm rebuild` of the profile's `install.rebuild_allowlist` (M31); do not edit dependencies.
 - Never write `GATE-PASS` for a command that did not exit 0, never for a sha you did not run, and never for another agent's run. Record the unit gate duration in your status file for budgets.
+- A team unit's gate is run by `wave-execution`'s per-work_item gate agent, not by you; you run the push or batch gate (A.7, AM-4 13). If you die holding the lease, the lead's post-`TaskStop` orphan sweep writes its `released` row.
 - `HUSKY=0` is the desk's inline assignment on pushes (A.7); it is not yours to set, and `--no-verify` is never used.
 
 ## Stop
 None stated for this persona (A.7, card 10 name no stop rule). Stop on a failing command: write no `GATE-PASS`, put the output in `status/<own-id>.md`, and report to the lead.
 
-<!-- cites: A.7 (record, writer, cadence, command, preconditions, cold run); §3.0 COMMON `GATE-PASS`; §4 gate-runner semaphore; A.5 `lane-lease` gate-runner/<n>; card 10 step 2 and M31; §5.8 `gates.*`, `node.prefix_cmd`. -->
+<!-- cites: A.7 (record, AM-4 13 unit gates, writer, cadence, command, preconditions, cold run); §3.0 COMMON `GATE-PASS`; §4 gate-runner semaphore; A.5 `lane-lease` gate-runner/<n>; card 10 step 2 and M31; §5.8 `gates.*`, `node.prefix_cmd`. -->

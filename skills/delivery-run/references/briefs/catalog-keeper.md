@@ -18,9 +18,10 @@ Role statement and execute imperative first; tier line with rationale; done toke
 - Rows hold kind plus handle only. The cleanup command comes from the fixed per-kind table, never from a row (M26). A handle's realpath must sit under `RUN_HOME` or the registered worktree base; control characters are rejected; the 400-byte row cap holds; only the script appends.
 - Ports are claimed through `port-claim` and `tools/port-check.sh` first and registered as `port` rows after (A.5.2); never auto-pick a port: the launcher's single retry is at candidate + 10, itself claimed before any bind (A.5.2, AM-3, owner OQ-2).
 - Leases: `catalog.sh register lane-lease <handle> ...` is compare-and-append and exits 3 when the handle is already `planned` or `live`; report that, do not force a row.
-- `audit` classifies `MATCH`, `GHOST`, `SQUATTER` against `kill -0`, `lsof` and `git worktree list`. Report each; never kill by pattern.
+- `audit` classifies `MATCH`, `GHOST`, `SQUATTER` against `kill -0`, `lsof` and `git worktree list`. Report each; never kill by pattern. Exit 5 (`lsof` missing or failing) is no verdict: report it, never read it as a classification (script table, A.8).
+- `list --live` prints, per `kind`+`handle` pair whose latest row is `planned` or `live`, that latest row only (script table). Handles never start with `-`; int fields reject `-0` and exponent forms (A.8).
 
 ## Stop
 Unregistered resource found: register it, flag it, and never kill by pattern (card 8).
 
-<!-- cites: Card 8 (rules, Stop); §3.1 row Catalog keeper; A.5 handle grammar, lifecycle, leases; A.5.2, AM-3 (owner OQ-2); M26; §4 Slot ledger catalog.tsv single-line cap. -->
+<!-- cites: Card 8 (rules, Stop); §3.1 row Catalog keeper; A.5 handle grammar, lifecycle, leases; A.5.2, AM-3 (owner OQ-2); M26; INTERFACES script table (`list --live`, audit exit 5), A.8 (AM-5 PR10); §4 Slot ledger catalog.tsv single-line cap. -->

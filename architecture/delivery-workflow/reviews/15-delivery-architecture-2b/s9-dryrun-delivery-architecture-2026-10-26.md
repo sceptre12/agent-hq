@@ -1,12 +1,12 @@
 # Spec 15 section 9 dry run: delivery-architecture (non-author reader)
-Date: 2026-10-26. Reader: xProfWorker1 subagent a57499e51e255509e; did not author or fix the skill. Output dir: FIXTURE_DIR=/private/tmp/claude-501/-Users-xavier-claude-profiles-xProfWorker1-workspace/c17bda54-44e6-46c6-925f-f84b0491142e/scratchpad/arch15/dry (nothing written under W except this file).
+Date: 2026-10-26. Reader: xProfWorker1 subagent a57499e51e255509e; did not author or fix the skill. Output dir: FIXTURE_DIR=<scratchpad>/arch15/dry (nothing written under W except this file).
 
 ## Result
-- Section 9 block (copied unchanged to `/private/tmp/claude-501/-Users-xavier-claude-profiles-xProfWorker1-workspace/c17bda54-44e6-46c6-925f-f84b0491142e/scratchpad/arch15/dry/s9.sh`, run as `FIXTURE_DIR=/private/tmp/claude-501/-Users-xavier-claude-profiles-xProfWorker1-workspace/c17bda54-44e6-46c6-925f-f84b0491142e/scratchpad/arch15/dry bash s9.sh`): exit code 0.
+- Section 9 block (copied unchanged to `<scratchpad>/arch15/dry/s9.sh`, run as `FIXTURE_DIR=<scratchpad>/arch15/dry bash s9.sh`): exit code 0.
 - Last stdout line: `SKILL-15-OK`.
 - unset.txt: one line, `INPUT-ERROR RUN_HOME missing`.
 - release-plan.md step ids (checked by hand against the Steps table): deploy-staging, poll-staging, hand-test-staging, deploy-prod; 4 ids, unique, all match `^[a-z0-9-]+$`, owners agent|agent|human|human.
-- My K1-K15 script: all pass on the final artifacts (`/private/tmp/claude-501/-Users-xavier-claude-profiles-xProfWorker1-workspace/c17bda54-44e6-46c6-925f-f84b0491142e/scratchpad/arch15/dry/kcheck-final.txt`). The stubbed round 1 is 0/0/1, no fix, no verifier. No gate file, security-audit directory, Jira call or port claim was made.
+- My K1-K15 script: all pass on the final artifacts (`<scratchpad>/arch15/dry/kcheck-final.txt`). The stubbed round 1 is 0/0/1, no fix, no verifier. No gate file, security-audit directory, Jira call or port claim was made.
 
 ## Guess-points (8)
 1. STAKES/CONTENTION/NOVELTY: neither the fixture README nor expected.md gives values. I chose reversible / contested (spike: library or native streaming) / known (orders doc exists, though the export has no precedent); NOVELTY is a coin flip. Reasons are in the record.

@@ -1,5 +1,6 @@
 ---
 name: fix-verifier
+version: 1.1.0
 description: >
   Fast, single-agent gate that verifies a fix (a targeted correction just applied by
   another agent) before routing to the next review rung or merging — runs 5 targeted checks
@@ -47,6 +48,11 @@ skill; that choice belongs to the orchestrator.
    `session_context` were supplied (see Input Contract below for what each enables).
 2. **Canonicalize and compute the project root** before reading anything — see Security
    below for the exact order and marker precedence. Reject traversal attempts per Security.
+2a. **Step 0 for `FILE_SET`** (only when `FILE_SET` is supplied; absent is valid and changes
+   nothing). A malformed value prints one line per failing field, `INPUT-ERROR FILE_SET
+   <reason>` (`missing|enum|path|unset|format`), then stops with no retry and no prompt and
+   no verdict. An empty `FILE_SET=` is `format`; an entry that escapes the project root is
+   `path`. Detail: `references/file-set-check.md`.
 3. **Run the 5 checks sequentially** against `changed_files` (full spec for each below):
    Check 1 Internal Consistency, Check 2 Cross-Reference Symmetry, Check 3 Fix
    Completeness, Check 4 No New Orphan References, Check 5 Line Limit Compliance.
@@ -115,6 +121,7 @@ passes them to fix-verifier before dispatching. Fix-verifier cannot be dispatche
 | `diff` | No | Unified diff of the fix. Strongly recommended — enables Check 3 to detect partial application. Without it, Check 3 degrades to prose-level analysis only. If the fix is identified by a commit or commit range rather than a diff string, the ORCHESTRATOR extracts the diff (`git diff <pre>..<post> -- <files>`) before dispatch and passes it here — never instruct the verifier itself to run git; the verifier executes no shell commands (see Security). |
 | `fix_description` | Yes | Used as context for Check 3. Without it the verifier cannot assess whether all required locations were updated. |
 | `related_files` | No | Files referenced by or depending on changed_files. If omitted, verifier auto-discovers by parsing references in changed files. Auto-discovery is best-effort — orchestrators that know related files should supply them. |
+| `FILE_SET` | No | Comma list of repo-relative paths, UPPER_SNAKE `FILE_SET=a.md,b.md`, per fixer (one fixer per worktree, or disjoint sets per fixer). When set, any `changed_files` entry outside the set is a Check 3 Medium finding. Absent = today's behaviour; empty or traversal = `INPUT-ERROR FILE_SET format|path`. `related_files` are not changes and are never counted. |
 | `session_context` | No | Loop metadata. `iteration` MUST be incremented by the orchestrator each re-run. If absent or `iteration` missing, treated as iteration 1 and an Advisory finding is appended. |
 
 All paths in `changed_files` and `related_files` MUST be canonicalized absolute paths.
@@ -166,6 +173,13 @@ hard block invites the exact gaming split-don't-butcher exists to prevent). Flag
 Advisory, recommending the file be split — or, if it genuinely belongs together, recorded on
 the relevant `.file-length-allowlist` / `.doc-length-allowlist` with a reason — never
 Blocking on this check alone.
+
+**Check 3, file-set scope (only when `FILE_SET` is supplied).** Canonicalize each
+`FILE_SET` entry against the project root, then compare with the canonicalized
+`changed_files` (set comparison, no shell). Every changed file outside `FILE_SET` yields
+one finding: `check: "3"`, severity Medium, `file` naming it, so the verdict is
+`ISSUES_FOUND`. `recommended_fix`: the lead widens `FILE_SET` or the fixer reverts that
+file. Files all inside the set add no finding. Detail: `references/file-set-check.md`.
 
 ### Output Contract
 
@@ -375,6 +389,7 @@ Examples: missing session_context, auto-discovery fallback used, timeout warning
 | "It's iteration 4 of the loop, but the fix is close — just run fix-verifier again." | At iteration ≥ 3, append the Blocking max-iterations finding and return ISSUES_FOUND regardless of other findings; the orchestrator halts, it does not keep re-running. |
 | "A `files_not_checked` entry showed up, but the rest looks clean — call it CLEAN." | A non-empty `files_not_checked` is a partial result; surface it and let the orchestrator decide whether to proceed or re-run with corrected paths. |
 | "The verifier timed out, but the checks that did finish were clean." | A timeout always produces ISSUES_FOUND via a check-0 Advisory finding, regardless of what finished — never let a partial run look like a full CLEAN pass. |
+| "The extra file edit was needed for the fix, treat it as inside the set." | Report it: a change outside `FILE_SET` is a Check 3 Medium finding and `ISSUES_FOUND`. The lead widens `FILE_SET` or the fixer reverts. |
 
 ## Exit criteria
 
@@ -388,7 +403,11 @@ Examples: missing session_context, auto-discovery fallback used, timeout warning
       appended when applicable.
 - [ ] No file was written, no shell command executed, no agent dispatched by fix-verifier
       itself — it reports only.
+- [ ] When `FILE_SET` is supplied: it was validated first (`INPUT-ERROR FILE_SET <reason>` on
+      failure), and every `changed_files` entry outside it has one Check 3 Medium finding.
+      When absent, output equals the unmodified skill.
 
 ## Provenance
 Provenance: Hermes skill learnings/skill-sharing (imported from learnings/skill-sharing.md; the recorded port friction)
 Lineage: X-context-docs skills/fix-verifier@0e9281e
+Extension: v1.1.0 adds the FILE_SET input (M24, D6); the v1 class_sweep proposal is dropped (D54 and D58 are advisory).

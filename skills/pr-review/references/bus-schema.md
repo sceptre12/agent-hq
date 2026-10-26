@@ -84,6 +84,16 @@ each finding_id, and posts CLOSED to `pr-check-N-closed` when all C responses ar
 If quorum is not reached within the timeout, the Workflow marks the thread `TIMED_OUT`.
 The synthesizer includes a note in the findings table for any timed-out thread.
 
+## Reader idiom (C2)
+
+Orchestrator, gate-checker and synthesizer reads use `peek:true`, a fresh `agent_id` per reader and per
+read, `limit` 200, and one topic per call:
+
+`{"name":"read_messages","arguments":{"session_id":"<SESSION_ID>","agent_id":"<fresh-id>","topics":["pr-check-1"],"limit":200,"peek":true}}`
+
+Seats read with their own agent-id (harmless under `peek:true`, which never consumes unread state), also `limit` 200 and one topic per call. Without `peek` a read consumes the
+unread state.
+
 ## Session Isolation
 
 All messages include `session_id`, passed explicitly on every call (never ambient — see

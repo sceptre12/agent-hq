@@ -1,28 +1,38 @@
 ---
 name: wave-execution
+version: 1.1.0
 description: >
   Pure orchestrator that runs a caller-defined spec_root of N sequential waves of
-  work to completion: validates the wave-bundle spec, bootstraps the swarm bus,
-  dispatches each wave's work as sub-agents, rendezvous over the bus, gates each
-  wave against its own exit criteria, and fix-loops on gate failure up to an
-  iteration cap before escalating. Domain-agnostic — the spec_root, not this
-  skill, defines what each wave does; this skill supplies only the generic
-  wave-running machinery (dispatch, rendezvous, gate, fix-loop, escalate). Use
-  when a caller has (or wants to author) a spec_root describing staged,
-  heterogeneous work — e.g. "run my N-wave audit/migration/release spec" — and
-  needs it executed wave by wave with gates between stages and fix-loop recovery
-  on failure. Not for iterating one artifact against a single rubric to
+  work to completion: validates the wave-bundle spec, bootstraps (or attaches to)
+  the swarm bus, dispatches each wave's work as sub-agents, rendezvous over the
+  bus, gates each wave against its own exit criteria, and fix-loops on gate
+  failure up to an iteration cap before escalating. Domain-agnostic — the
+  spec_root, not this skill, defines what each wave does. Optional extensions:
+  a caller-pinned session and topic, a caller-owned bus, a concurrency cap,
+  per-work_item persona/lane/done condition, and DAG-frontier waves. Use when a
+  caller has (or wants to author) a spec_root describing staged, heterogeneous
+  work — e.g. "run my N-wave audit/migration/release spec" — and needs it
+  executed wave by wave with gates between stages and fix-loop recovery on
+  failure. Not for iterating one artifact against a single rubric to
   convergence — that's loop-controller/the loop-system (see Disambiguation below).
 ---
 
 ## Trigger
 
 Use when something needs to run a `spec_root`-defined bundle of N waves to
-completion: dispatching each wave's work agents, gating the wave against its own
+completion: dispatching each wave's work agents, gating against the wave's own
 declared exit criteria, fix-looping on failure, and escalating on cap exhaustion.
-The controller is a pure state machine — it holds no domain knowledge and never
-knows what any wave's work items actually do; that is entirely the spec bundle's
-job (`references/spec-format.md`).
+The controller is a pure state machine — it holds no domain knowledge; what
+any work item does is entirely the spec bundle's job (`references/spec-format.md`).
+
+**Inputs.** `spec_root` (required). Invocation arguments, never spec fields and
+outside the `spec_root` hash: `max_concurrent` (integer >= 1, the caller's free
+slots; absent = unbounded), `invocation` (`^[0-9]+$`), `tier_override`
+(`<work_item>=<tier>`, repeatable: raises that work_item agent's tier for this
+invocation only; recorded as `tier` in its dispatch record line). Optional bundle fields: `session_id`, `output_topic`,
+`bus_endpoint`, `gates_command`; optional per-work_item fields: `persona`, `lane`, `depends_on`,
+`done_condition` (`spec-format.md`). A bundle that declares none of them runs
+exactly as version 1.0.0 did.
 
 ## Operating Mode Gate (determine this FIRST)
 
@@ -34,254 +44,272 @@ Establish this before doing anything else — it decides every dispatch call bel
 
 ## Steps
 
-1. **Resolve `spec_root`.** Take the caller-supplied absolute path (e.g.
-   `/abs/path/to/spec-bundle`); resolve with `realpath` before use. Then check
-   for a resume checkpoint (§ Resume / Checkpoint below): hash `spec_root`'s
-   content and look for
-   `<parent-directory-of-spec_root>/.wave-execution-state/<spec_root-content-hash>.json`.
-   A mismatched or absent hash means no valid checkpoint — proceed to step 2
-   and run from wave 1. If a matching checkpoint exists, note which waves it
-   already records as gate-passed (used in step 6); if it already shows
-   **every** wave gate-passed, report the run already complete and exit now —
-   before bootstrapping the bus or dispatching anything.
+1. **Resolve `spec_root`.** Take the caller-supplied absolute path; resolve with
+   `realpath`. Hash `spec_root`'s content and look for the checkpoint
+   (§ Resume / Checkpoint). Absent or mismatched → run from wave 1. A match →
+   note the waves and work_items it records as gate-passed (step 6); if it
+   records **every** wave gate-passed, report the run already complete and exit
+   now, before touching the bus or dispatching anything.
 
-2. **Preflight-validate the spec bundle** against every rule in
-   `references/spec-format.md` § Preflight validation rules. Any failure is
-   `VALIDATION_FAILED`, naming the specific failing check and wave number; halt
-   before any dispatch.
+2. **Preflight-validate** the bundle against every rule in `spec-format.md`
+   § Preflight validation rules, in order 1-10, 13-15, then rule 11 last; also
+   validate the invocation arguments as passed (`max_concurrent`, `invocation`,
+   `tier_override`). Any failure is `VALIDATION_FAILED`, naming the check and
+   wave; halt before any dispatch. A declared `bus_endpoint` with no bundle
+   `session_id` or `output_topic`, or no `invocation` argument, halts here
+   before any dispatch with the one line `BUNDLE-ERROR <field>` (INTERFACES
+   1.5.0 C1.1).
 
-3. **Derive `SESSION_ID`** before bootstrapping the bus:
+3. **Derive `SESSION_ID`** before the bus step. If the bundle declares
+   `session_id`, use it verbatim — the same value on every invocation, resume
+   included. Otherwise mint a fresh one per invocation:
    `SESSION_ID="wave-exec-$(date +%Y%m%d)-$(uuidgen | tr '[:upper:]' '[:lower:]' | cut -c1-8)"`.
-   Pass it explicitly to every wave agent and every bus call. This is a
-   **brand-new** `SESSION_ID` even on a resumed run (§ Resume / Checkpoint) —
-   resume is never keyed on reusing a prior run's bus session.
+   Also mint `NONCE` (same recipe, `cut -c1-6`) once per invocation for agent
+   ids (step 6.2). Pass `SESSION_ID` explicitly to every agent and bus call.
 
-4. **Bootstrap the bus** — source nvm, resolve `pm2`, set
+4. **Bus.** **If `bus_endpoint` is declared — attach, skip this bootstrap.**
+   Resolve the value against `$DELIVERY_ROOT`, read `data_dir` and `pm2_app`
+   from the file as `DATA_DIR` and `APP_NAME`, and the port only from
+   `$DATA_DIR/port`. Its `session_id=` and `topic=` must equal the bundle
+   `session_id` and `output_topic`; a mismatch or missing key halts before any
+   dispatch. Never start, restart or delete the caller's bus and define no
+   `cleanup()` — the bus lifecycle and its recovery are the caller's.
+   **Otherwise bootstrap** — source nvm, resolve `pm2`, set
    `DATA_DIR=/tmp/${SESSION_ID}` and `APP_NAME=swarm-mcp-${SESSION_ID}`, `cd` to
-   the bus repo, start it (`pm2 start ecosystem.config.cjs`), poll for
-   `${DATA_DIR}/port` (max 30 × 0.3s), read the port **only** from
-   `${DATA_DIR}/port`. Define `cleanup()` as: `end_session({session_id:
-   SESSION_ID})` first, **then** `pm2 delete` the app, then
-   `rm -rf "${DATA_DIR}"` — session close must happen before the bus that
-   backs it is torn down. Register `trap cleanup EXIT SIGINT SIGTERM`
-   immediately after defining it, before any resource is acquired —
-   `SIGKILL` cannot be trapped, and **so is a fresh Bash tool invocation**:
-   in an agent harness, an `EXIT` trap does not carry over from one Bash
-   call to the next, so it is best-effort only, not a guarantee. Treat
-   `cleanup()` as something this skill must also invoke as an explicit final
-   step (§ step 8) rather than relying on the trap firing. See § Bus Rules
-   below before the first dispatch.
+   the bus repo. If `pm2` already lists `APP_NAME` (left by a crashed
+   invocation under a pinned `session_id`), recover it with `pm2 restart` —
+   never a second `pm2 start`, never `reload`; else `pm2 start
+   ecosystem.config.cjs` (a leftover `DATA_DIR` without its app is reused).
+   Poll for `${DATA_DIR}/port` (max 30 × 0.3s) and read the port **only** from
+   it. Define `cleanup()`: `end_session({session_id: SESSION_ID})` first,
+   **then** `pm2 delete` the app, then `rm -rf "${DATA_DIR}"`. Register
+   `trap cleanup EXIT SIGINT SIGTERM` immediately, before acquiring anything.
+   The trap is best-effort only (`SIGKILL` and a fresh Bash tool call both
+   escape it), so step 8 also calls `cleanup()` explicitly. Either path: run
+   the identity preflight (§ Bus Rules) before the first dispatch.
 
-5. **Start the session** — call `start_session({session_id: SESSION_ID})`
-   (idempotent) once the bus readiness/identity preflight (§ Bus Rules) has
-   passed, and before any wave is dispatched. Pass `SESSION_ID` in every
-   wave agent's brief from this point on.
+5. **Start the session** — `start_session({session_id: SESSION_ID})`
+   (idempotent, also on an attached bus) once the identity preflight passed and
+   before any wave is dispatched.
 
-6. **Run the waves in order, 1..W** — skipping any wave step 1 found already
-   recorded as gate-passed in a matching checkpoint, and starting at the first
-   incomplete wave (§ Resume / Checkpoint):
+6. **Run the waves in order, 1..W**, skipping waves the checkpoint records as
+   gate-passed. A wave whose work_items declare no `depends_on` edge is a
+   **barrier wave** (below, as in 1.0.0; `depends_on: []` declares none); a
+   wave with at least one edge is a **frontier wave**, run per `references/frontier-mode.md`. Declared waves are always
+   barriers to each other. For every wave:
    1. Read wave N's spec (goal, inputs, work_items, agents, exit_criteria,
-      outputs) per `references/spec-format.md`. Resolve any `inputs` referencing
-      a prior wave's `outputs` from what that wave actually produced — never
-      invent a value the spec doesn't declare.
-   2. **Dispatch** one sub-agent per work_item (or per the wave's `agents` rule),
-      passing `session_id`, wave number, its `inputs`, and the wave's
-      `exit_criteria` text verbatim — a dispatched agent is judged against the
-      spec's own criteria, not a criterion this skill improvises.
-   3. **Rendezvous:** poll the wave's topic — its declared `output_topic`, else
-      the default `{SESSION_ID}-rendezvous` — for each dispatched agent's
-      completion post. The bus post is the sole completion signal (§ Prohibited
-      Side Channels).
-   4. **Gate:** evaluate the wave's declared `gate_type` (default `exit_criteria`
-      when absent) against the caller's `exit_criteria`, supplied **verbatim as
-      the rubric** in every mode:
-      - `exit_criteria` (default) — current behavior exactly: one gate agent
-        checks the wave's reports against `exit_criteria`.
-      - `adversarial_verify` — dispatch `skeptics` agents briefed to actively
-        falsify the wave's output against the same `exit_criteria` rubric; any
-        sustained falsification the fix loop cannot resolve fails the gate.
-      - `judge_panel` — dispatch `judges` agents, each posting its own pass/fail
-        verdict against the rubric; majority rules.
-      If any work_item declared an `output_schema`, validate its agent's post
-      against that schema as part of this gate step — a non-conforming or
-      malformed post makes that agent's completion **incomplete** (a gate
-      failure for that agent, not a spec defect; a malformed schema in the spec
-      itself was already caught at preflight, rule 10). All pass → capture the
-      wave's declared `outputs`, write/update the checkpoint (§ Resume /
-      Checkpoint) with this wave's `work_items` and their gate verdicts, then
-      proceed to wave N+1. Any failure → enter the Fix Loop (step 7) for this
-      wave before proceeding.
+      outputs). Resolve `inputs` that reference a prior wave's `outputs` from
+      what that wave actually produced — never invent a value.
+   2. **Dispatch** one agent per work_item (or per the wave's `agents` rule).
+      Give each agent its own `from_agent` id matching `^[a-z0-9-]+$` and
+      carrying `NONCE` (shapes in `references/frontier-mode.md`) and record its
+      role (`worker`, `gate` or `fix`), wave and work_item; no id is reissued
+      under one `session_id`, so two agents never share one. When `bus_endpoint` is declared, append the dispatch record
+      line for the agent to `dirname(<resolved bus_endpoint>)/dispatch/<invocation>.jsonl`
+      **before** dispatching it (fields in `references/frontier-mode.md`). The
+      brief carries `session_id`, its `from_agent` id, the wave number, its
+      `inputs`, the topic, the wave's `exit_criteria` verbatim, and the
+      work_item's `persona` verbatim when declared (never interpreted; it does
+      not change the `agents` tier). Admission, for work_item, gate and fix
+      agents alike: never more than `max_concurrent` agents live at once — an
+      agent with no free slot waits for one; at most one live work_item per
+      `lane` within one run (one invocation of the skill) — the others wait. The
+      lane stays busy from dispatch until, in a barrier wave (one wave-level
+      gate), the holder posts its completion (`UNIT-VERDICT`), or, in a
+      frontier wave, the holder's per-item gate passes or escalates
+      (INTERFACES 1.6.0 AM-6 C-4, C1.1; `references/frontier-mode.md`).
+   3. **Rendezvous:** poll the topic — the bundle `output_topic` when declared
+      (it overrides every per-wave value), else the wave's `output_topic`, else
+      `{SESSION_ID}-rendezvous`. The bus post is the sole completion signal.
+      A post counts only when its `from_agent` was assigned in this invocation
+      (with `bus_endpoint`: registered in the dispatch record); the recorded
+      role says whether it is a completion for that work_item or a gate
+      verdict. Posts of other waves, work_items or earlier invocations never
+      match.
+   4. **Gate:** evaluate the wave's `gate_type` (default `exit_criteria`) with
+      the caller's `exit_criteria` **verbatim as the rubric**:
+      - `exit_criteria` (default) — one gate agent checks the wave's reports.
+      - `adversarial_verify` — `skeptics` agents actively try to falsify the
+        output against the same rubric; a sustained falsification the fix loop
+        cannot resolve fails the gate.
+      - `judge_panel` — `judges` agents each post pass/fail; majority rules.
+      - `step_complete` — one gate agent per work_item walks that work_item's
+        `done_condition` plus the wave's `exit_criteria`, both verbatim; this is
+        the only case where the rubric has a second part, and neither is
+        reworded. The agent passes the work_item only when `command` exits 0,
+        its last stdout line equals `token`, and the `exit_criteria` hold for
+        that work_item's output. Which output it reads is the
+        caller's brief. With a bundle `gates_command`, the gate agent that
+        gates a work_item also runs it on that work_item's posted head,
+        holding a lane lease like a worker, and is the single writer of
+        `gate-runs/<head>.md` (INTERFACES 1.8.0 AM-8 V14; `references/frontier-mode.md`). A barrier wave passes only when **every** gate agent
+        passes (no majority).
+      If a work_item declared an `output_schema`, validate its post against it
+      here; a malformed post makes that agent's completion incomplete (a gate
+      failure, not a spec defect). All pass → capture the wave's `outputs`,
+      write the checkpoint with each work_item's gate verdict, go to wave N+1.
+      Any failure → Fix Loop (step 7) before proceeding.
 
-7. **Fix loop (on gate failure):** dispatch fix agent(s) scoped to the specific
-   failing items only, re-run the wave's gate after each fix attempt. Cap
-   iterations at the wave's `fix_loop_cap` (default 3). Fix agents post to
-   `{SESSION_ID}-fix-loop-output`. On cap exhaustion: post
-   `{SESSION_ID}-escalation` with `{ halt_reason: "fix-loop-cap-exhausted", wave: N, iterations: <cap> }`
-   and **stop** — never silently retry past the cap, never proceed to the next
-   wave with a failing gate.
+7. **Fix loop (on gate failure):** dispatch fix agent(s) scoped to the failing
+   items only (they wait for a free slot like any agent), re-run the gate
+   after each attempt, and post to `{SESSION_ID}-fix-loop-output`. Cap: the
+   wave's `fix_loop_cap` (declared once per wave, default 3), counted per wave
+   in a barrier wave and per work_item in a frontier wave. On exhaustion post `{SESSION_ID}-escalation` with
+   `{ halt_reason: "fix-loop-cap-exhausted", wave: N, iterations: <cap> }`
+   (plus `work_item: <id>` in a frontier wave) — never retry past the cap.
+   A barrier wave then stops the run; a frontier wave never releases that
+   work_item's transitive dependents and runs the rest on
+   (`references/frontier-mode.md`).
 
-8. **After the final wave's gate passes (or on any halt/escalation path):**
-   post the final result to `{SESSION_ID}-rendezvous` (or a spec-declared
-   completion topic), then run `cleanup()` explicitly (step 4) as this skill's
-   own last action — do not rely solely on the `EXIT` trap firing. A normal
-   successful run still tears down its per-session bus exactly as before; only
-   the checkpoint file (§ Resume / Checkpoint) is deliberately persistent
-   across invocations.
+8. **After the final wave's gate passes, or on any halt/escalation path:**
+   write the checkpoint, post the final result to the completion topic (the
+   bundle `output_topic` when declared, else `{SESSION_ID}-rendezvous` or a
+   spec-declared completion topic), then — **only when `bus_endpoint` is
+   absent** — run `cleanup()` explicitly as the last action. With
+   `bus_endpoint`, skip `cleanup()` entirely: session close and teardown are
+   the caller's. Only the checkpoint persists across invocations.
 
 ## Bus Rules
 
-Match the idiom of `skills/loop-controller/SKILL.md` — do not re-derive weaker
-versions of these:
+Match the idiom of `skills/loop-controller/SKILL.md`:
 
 - **Identity preflight:** sample `/health` 2-3 times before the first dispatch;
-  every response must show `status: ok` **and** `app_name`/`data_dir` matching
-  this session's own `APP_NAME`/`DATA_DIR`. A single `ok` is not proof the port
-  is yours. `/health` can also report `status: degraded` (and, where present, a
-  `db_ok` field) — treat anything other than `status: ok` **and** `db_ok: true`
-  (when the field is present) as not-ready; do not proceed on a `degraded`
-  response.
-- **Recovery:** `pm2 restart`, **never** `pm2 reload` — reload overlaps old/new
-  workers on the shared bus state file.
-- **Explicit `session_id`:** pass it on every send/broadcast call, never rely on
-  an implicit default.
-- **Port discovery:** read only from `$DATA_DIR/port` — never guess, never reuse
-  a port from a prior session.
-- **Canonical reference:** bus mechanics (tool schemas, health semantics,
-  recovery) are canonically documented in `skills/swarm-communication/SKILL.md`
-  — consult it rather than re-deriving.
+  every response must show `status: ok`, `db_ok: true` when present, **and**
+  `app_name`/`data_dir` matching `APP_NAME`/`DATA_DIR` — this session's own
+  values, or the `bus_endpoint` values under attach. A single `ok` is not proof
+  the port is yours; `degraded` is not-ready.
+- **Recovery:** `pm2 restart`, **never** `pm2 reload` (it overlaps workers on the
+  shared state file) — and only on a bus this skill started. An attached bus is
+  recovered by the caller only.
+- **Explicit `session_id`** on every send/broadcast call.
+- **Port discovery:** only from `$DATA_DIR/port` — never guessed or reused.
+- **No port claim:** this skill adds no claim step; a caller that binds ports
+  claims them and passes `bus_endpoint`.
+- **Canonical reference:** bus mechanics (tool schemas, `from_agent`, health,
+  recovery) are in `skills/swarm-communication/SKILL.md` — do not re-derive.
 
 ## Resume / Checkpoint
 
-Machinery only — no new caller-facing field (ADR 0023 Graft 1 / D3). Turns the
-manual "split at a wave boundary" discipline into an enforced resume
-path instead of always re-running a bundle from wave 1.
-
-- **Checkpoint location:**
-  `<parent-directory-of-spec_root>/.wave-execution-state/<spec_root-content-hash>.json`
-  — a sibling directory to `spec_root`, not nested inside it.
-- **On bootstrap (step 1):** hash `spec_root`'s content and look for a
-  checkpoint at that path. A mismatched or absent content hash means "no
-  valid checkpoint" — start at wave 1. The hash guards against resuming a
-  `spec_root` that changed underneath a prior run.
-- **If a matching checkpoint exists:** skip every wave it already records as
-  gate-passed and start a **brand-new bus session** (a new `SESSION_ID`,
-  derived exactly as in step 3) at the first incomplete wave — resume is
-  never keyed on reusing a prior session's bus state.
-- **If the checkpoint already shows every wave gate-passed:** report the run
-  as already complete and exit — without dispatching anything or
-  bootstrapping a new bus session.
-- **On each wave's gate pass (step 6.iv):** write/update the checkpoint with
-  that wave's `work_items` and their gate verdicts.
-- **Teardown is unchanged:** a normal successful run still tears down its
-  per-session bus exactly as before (step 8's `cleanup()`); only the
-  checkpoint file is deliberately persistent across invocations.
+- **Location:** `<parent-directory-of-spec_root>/.wave-execution-state/<spec_root-content-hash>.json`
+  — a sibling of `spec_root`. Bundle fields (`session_id` included) are in the
+  hash, so two bundles differing only in `session_id` keep two checkpoints;
+  invocation arguments are not, so a changed `max_concurrent` still resumes.
+- **Bootstrap (step 1):** absent or mismatched hash → start at wave 1.
+- **Matching checkpoint:** skip every wave it records as gate-passed and, in a
+  frontier wave, every work_item it records as gate-passed; resume at the
+  unpassed ones. Unpinned run: a **brand-new** `SESSION_ID` (step 3). Pinned
+  run: the same `session_id`, so every `{SESSION_ID}-*` topic is stable.
+- **The checkpoint is the only authority** for what has passed. A completion
+  post for a work_item it does not record is re-gated, never taken as passed;
+  gate verdicts and escalations of an earlier invocation never count.
+- **All passed:** report complete and exit without bus or dispatch.
+- **Writes:** on each wave gate pass (step 6.4), on each work_item gate pass in
+  a frontier wave, and at step 8 — per-work_item entries with their verdicts.
+- **Teardown unchanged:** step 8's `cleanup()` when the bus is the skill's own.
 
 ## Constraints
 
-- One `spec_root` bundle drives one run; concurrent runs against the same
-  `spec_root` are not coordinated by this skill. Sequential *resumed* runs
-  against the same `spec_root` **are** coordinated, via the checkpoint file
-  (§ Resume / Checkpoint above) — only true concurrency remains uncoordinated.
-- The skill never reads a wave's target files itself — all domain-level file
-  access is delegated to the dispatched wave agents. This excludes the
-  skill's own `.wave-execution-state/` checkpoint bookkeeping (§ Resume /
-  Checkpoint above), which is the skill's own state, not domain data.
+- One `spec_root` drives one run; concurrent runs against it are not
+  coordinated. Sequential resumed runs are, via the checkpoint.
+- The skill never reads a wave's target files — domain access belongs to the
+  dispatched agents (the checkpoint is the skill's own state). It never reads a
+  caller's fallback file (`status/<agent-id>.verdict`); the caller posts that
+  record under the agent's id.
+- `persona` and `lane` are names only: the brief carries `persona`; leasing a
+  lane's real resources is the caller's.
+- Depth in a delivery run (INTERFACES 1.8.0 AM-8 V3): the engine (this skill)
+  runs in the lead session; work_item (unit), gate and fix agents are depth 1;
+  a unit may dispatch its reviewer at depth 2; a depth-2 agent dispatches nothing.
+- A dependency on a blocker's integration is an edge to that blocker's Integrator
+  work_item in the same wave; across waves, wave order is the dependency
+  (INTERFACES 1.8.0 AM-8 V13; `references/frontier-mode.md`).
 
 ## Prohibited Side Channels
 
-The controller MUST NOT determine a sub-agent's or wave's outcome from any of:
-stdout/stderr of a `claude -p` process, its exit code (never branch on `$?`),
-environment variables a sub-agent exported, task output files, sibling-agent
-files in `data_dir`, or named pipes. The bus post to the wave's topic is the sole
-valid signal. A dispatch that returns with no new topic message is a gate
-failure for that agent, not a side channel to investigate.
+The controller MUST NOT determine an outcome from: stdout/stderr of a `claude -p`
+process, its exit code (never branch on `$?`), exported env vars, task output
+files, sibling-agent files in `data_dir`, fallback status files, or named pipes.
+The bus post to the topic is the sole valid signal; a dispatch that returns with
+no new topic message is a gate failure for that agent.
 
-**Exception — dispatch stalled/killed with no bus post:** this is still a gate
-failure, but the fix agent's scope may be "verify ground truth for the missing
-item and post the completion/verdict to the topic" rather than redoing the
-work; the controller itself still never reads domain files.
+**Exception — dispatch stalled/killed with no bus post:** still a gate failure,
+but the fix agent's scope may be "verify ground truth for the missing item and
+post the completion/verdict to the topic"; the controller still never reads
+domain files.
 
 ## Topic Naming
 
+`{SESSION_ID}` is the pinned `session_id` when declared.
+
 | Topic | Written by | Purpose |
 |---|---|---|
-| `{SESSION_ID}-wave-{N}-output` | wave N's agents | Dedicated output topic when a wave declares one instead of using the shared rendezvous topic. |
-| `{SESSION_ID}-rendezvous` | any wave's agents (default) | Default multi-agent completion signal, `WAVE_N_DONE`-style per agent. Gate agents (any `gate_type`) post here too — no dedicated gate topic exists; each gate agent's post is a verdict payload `{agent_id, verdict: pass \| fail, rationale}`. |
-| `{SESSION_ID}-fix-loop-output` | fix agents | Fix-loop iteration results, read by the controller between fix attempts. |
-| `{SESSION_ID}-escalation` | controller | Halt signal on fix-loop cap exhaustion. The controller writes here and stops; it is not required to poll this topic. |
+| bundle `output_topic` (literal) | every wave's agents and gate agents; controller final result | When declared, the one topic for the whole spec, overriding per-wave values. |
+| `{SESSION_ID}-wave-{N}-output` | wave N's agents | A wave's own output topic when declared (no bundle topic). |
+| `{SESSION_ID}-rendezvous` | any wave's agents (default) | Default completion topic. Gate agents (any `gate_type`) post here too — verdict payload `{agent_id, verdict: pass \| fail, rationale}`. |
+| `{SESSION_ID}-fix-loop-output` | fix agents | Fix-loop iteration results. |
+| `{SESSION_ID}-escalation` | controller | Halt signal on fix-loop cap exhaustion; written, not polled. |
 
 ## Disambiguation vs the loop system
 
 `wave-execution` is **not** `loop-controller`. The `loop-*` family
-(`architecture/loop-system.md`) runs an iterative grade-fix loop on **one
-artifact** against **one rubric** to convergence or exhaustion — a single
-runner→grader→fixer cycle, same criteria every iteration. `wave-execution` runs
-**staged, heterogeneous waves**, each with its own goal, work items, and exit
-criteria, where one wave's output becomes the next wave's input — there is no
-shared rubric across waves and no expectation the same check repeats. Use
-`loop-controller` to converge one artifact on a score; use `wave-execution` when
-the work itself is staged and different in kind from one stage to the next.
+(`architecture/loop-system.md`) converges **one artifact** on **one rubric** — a
+single runner→grader→fixer cycle with the same criteria every iteration.
+`wave-execution` runs **staged, heterogeneous waves**, each with its own goal,
+work items and exit criteria, one wave's output feeding the next.
 
 ## Red flags
 
 | Rationalization | What to do instead |
 |---|---|
-| "The wave's agents all returned, so the wave is done." | Only a bus post to the wave's topic counts — a returned dispatch with no new message is a gate failure for that agent (Prohibited Side Channels). |
-| "The spec doesn't say what 'exit_criteria' means here, I'll use my own judgment." | Halt at preflight instead (`spec-format.md` rule 8) — vague criteria are a spec defect for the caller to fix, not something this skill infers. |
-| "One fix attempt failed, let me just try a few more times past the cap." | The cap is non-negotiable — escalate at `fix_loop_cap` exhaustion, don't retry past it. |
-| "I'll skip the `/health` identity check, the bus was clearly just started by me." | Sample 2-3x and check `app_name`/`data_dir` anyway — a stale port file from a prior run looks identical to a fresh one. |
-| "This looks like a loop-controller job since it's iterating." | Check whether it's one artifact/one rubric (loop) or staged different-goal stages (wave-execution) before reaching for either skill. |
-| "I'll hardcode this caller's wave count/paths into the skill to save a step." | The skill is domain-agnostic by design — wave count, goals, and paths come from `spec_root` only, never baked into `SKILL.md` or its references. |
+| "The wave's agents all returned, so the wave is done." | Only a bus post to the topic counts — a returned dispatch with no new message is a gate failure (Prohibited Side Channels). |
+| "The spec doesn't say what 'exit_criteria' means here, I'll use my own judgment." | Halt at preflight (`spec-format.md` rule 8) — vague criteria are the caller's defect. |
+| "One fix attempt failed, let me just try a few more times past the cap." | The cap is non-negotiable — escalate at `fix_loop_cap` exhaustion. |
+| "I'll skip the `/health` identity check, the bus was clearly just started by me (or the caller handed it over)." | Sample 2-3x and compare `app_name`/`data_dir` anyway — a stale port file looks identical to a fresh one. |
+| "This looks like a loop-controller job since it's iterating." | One artifact/one rubric is the loop; staged different-goal stages are wave-execution. |
+| "I'll hardcode this caller's wave count/paths into the skill to save a step." | Wave count, goals and paths come from `spec_root` only. |
+| "A blocker passed, so release its dependents before their lane is free." | Release only when every blocker passed, the lane is free and a slot is free (`max_concurrent`, gate and fix agents included). |
+| "There's a completion post for this work_item on the pinned topic, so it passed." | Only the checkpoint says what passed; an unrecorded post is re-gated. |
 
 ## Exit criteria
 
-- [ ] `spec_root` passed every preflight rule in `references/spec-format.md`
-      before any dispatch (or the run stopped at `VALIDATION_FAILED` naming the
-      specific check and wave).
-- [ ] `SESSION_ID` was derived before the bus started and passed explicitly to
-      every wave agent and bus call.
-- [ ] `/health` was sampled 2-3 times with `app_name`/`data_dir` matching this
-      session's own values before the first dispatch, and none of those samples
-      showed `degraded` or `db_ok: false`.
-- [ ] `start_session` ran before the first wave was dispatched, and `end_session`
-      ran as part of `cleanup()` before `pm2 delete` — as an explicit final step,
-      not solely relying on the `EXIT` trap.
-- [ ] Every wave's gate was evaluated only against that wave's own declared
-      `exit_criteria` — never an invented or borrowed criterion.
-- [ ] Every wave's gate ran using that wave's declared `gate_type` (or the
-      `exit_criteria` default when absent) — a `judge_panel` wave was judged by
-      `judges` agents with majority rule, an `adversarial_verify` wave by
-      `skeptics` agents actively trying to falsify the result, never silently
-      downgraded to a single-agent check.
-- [ ] Any work_item declaring an `output_schema` had its agent's post validated
-      against that schema at the gate; a non-conforming or malformed post was
-      treated as an incomplete gate result for that agent, not ignored.
-- [ ] A resumed run against a `spec_root` with a matching checkpoint skipped
-      every wave already recorded gate-passed and started at the first
-      incomplete wave under a brand-new `SESSION_ID`; a hash mismatch or
-      absent checkpoint started fresh at wave 1 instead.
-- [ ] When `dispatch_budget` was declared, preflight rule 11 computed the
-      worst-case dispatch count (after rules 9-10) and halted with
-      `VALIDATION_FAILED` before any dispatch if the projected count exceeded
-      the budget.
-- [ ] No wave's outcome was read from stdout, exit code, env vars, or a file —
-      only from its bus-topic post.
-- [ ] Any fix loop that ran stayed within its wave's `fix_loop_cap` and posted
-      `{SESSION_ID}-escalation` on exhaustion instead of retrying past it.
-- [ ] `cleanup()` ran as this skill's own explicit final step (or, if `SIGKILL`
-      bypassed it, the bus process was recovered manually) — no dangling PM2
-      process or open session left behind.
+- [ ] Preflight passed every rule (1-10, 13-15, 11 last) and the invocation
+      arguments validated before any dispatch, or the run stopped at
+      `VALIDATION_FAILED` naming the check and wave.
+- [ ] `SESSION_ID` was the pinned `session_id` when declared, else minted fresh;
+      passed explicitly to every agent and bus call.
+- [ ] `/health` was sampled 2-3 times with `app_name`/`data_dir` matching (the
+      endpoint values under `bus_endpoint`), none `degraded` or `db_ok: false`.
+- [ ] `start_session` ran before the first dispatch. Without `bus_endpoint`,
+      `cleanup()` ran as the explicit final step with `end_session` before
+      `pm2 delete` (no dangling PM2 process or session); with it, no bootstrap,
+      `cleanup()` or restart touched the caller's bus.
+- [ ] Every gate used only its wave's own `exit_criteria` (plus the work_item's
+      `done_condition` under `step_complete`), under the declared `gate_type`,
+      never downgraded; a barrier `step_complete` wave passed only when every
+      gate agent passed.
+- [ ] Every `output_schema` post was validated at the gate.
+- [ ] Live agents (work_item, gate, fix) never exceeded `max_concurrent`; no
+      lane ever had two live work_items; with `bus_endpoint`, every agent had
+      its dispatch record line before it was dispatched.
+- [ ] Every counted post came from a `from_agent` id assigned in this
+      invocation; no outcome was read from stdout, exit code, env vars or a file.
+- [ ] Frontier waves gated each work_item on its own output, never released a
+      dependent of an unpassed work_item, and reopened no passed gate.
+- [ ] Fix loops stayed within the wave's `fix_loop_cap` (counted per wave, or
+      per work_item in a frontier wave) and posted `{SESSION_ID}-escalation` on exhaustion.
+- [ ] A resumed run skipped exactly what the checkpoint records as passed and
+      re-gated anything else; with `dispatch_budget`, rule 11 held.
 
 ## References
 
-- [references/spec-format.md](references/spec-format.md) — the full `spec_root`
-  contract: layout, required/optional fields, preflight validation rules.
-- [references/example-spec/](references/example-spec/) — a working 3-wave
-  example bundle (audit → fix → verify) proving the format.
-- `architecture/wave-execution.md` — components, spec contract, bus interfaces,
-  constraints, and the settled decisions behind this design.
-- `architecture/loop-system.md` — the loop-controller family this skill is
-  disambiguated against above.
+- [references/spec-format.md](references/spec-format.md) — the `spec_root`
+  contract: layout, fields, preflight validation rules.
+- [references/frontier-mode.md](references/frontier-mode.md) — DAG-frontier
+  release loop, per-work_item gate and fix loop, halt, the dispatch record.
+- [references/example-spec/](references/example-spec/) — a working example
+  bundle with barrier and frontier waves, and its tests.
+- `architecture/wave-execution.md` — components, contract, settled decisions.
+- `architecture/loop-system.md` — the loop family disambiguated above.
 
 ## Provenance
 
@@ -292,3 +320,6 @@ generalized from an employer-specific 7-wave release pipeline to a
 caller-defined N-wave orchestrator per user ruling 2026-07-05; spec_root is
 caller-supplied, this skill ships only the format contract and one illustrative
 example)
+Extended (1.1.0): ADR 0054 (`decisions/0054-adr-0023-amendment-delivery-workflow.md`,
+A0-A9, owner answers Q1-Q11, 2026-10-26), delivery workflow W1 item 9; contracts per
+`architecture/delivery-workflow/INTERFACES.md` part C (C1.1-C1.3).

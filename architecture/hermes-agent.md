@@ -152,7 +152,7 @@ context (first match; §8). The snapshot is not the tool cwd (router-measured 20
 open: making the tool cwd the snapshot (terminal.cwd / hermes-up) is unimplemented; owner decides whether to implement or drop
 An **index skill** `HERMES_HOME/skills/hq-index/SKILL.md` (owner-approved; regenerated
 mechanically at refresh): the hq sha, the order above, one line per file (path + its first `#`
-heading — a pointer, not a summary), and the retrieval rule of STANDARDS §11 lane 1: grep first,
+heading — a pointer, not a summary), and the retrieval rule: grep first,
 read the matched slice, cite `path:line@sha`. `MEMORY.md` is not the store of hq tool/architecture facts; the pointer to
 the index lives in `SOUL.md`. `skills.external_dirs` is **not** pointed at hq `skills/` in phase 1:
 hq SKILL.md files are Claude Code procedures (Agent, SendMessage, hooks) and their format

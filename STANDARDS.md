@@ -14,8 +14,7 @@ earning its keep, delete it.
 ## 3. Naming
 
 - **Learnings:** live in Hermes, recorded and asked through its API door (recipe: `tools/brain/templates/member-CLAUDE.md` (Memory section)).
-  hq keeps tools (`architecture/hermes-agent-memory.md` §1). The existing
-  `learnings/<topic>/YYYY-MM-DD-<kebab-title>.md` files stay in hq until the owner-gated removal.
+  hq keeps tools (`architecture/hermes-agent-memory.md` §1).
 - **Skills:** `skills/<name>/SKILL.md`, authored per `tools/skill-authoring.md`, installed by symlink into `~/.claude/skills/<name>` (ADR 0009).
 
 ## 4. Document format
@@ -69,10 +68,9 @@ At the end of every meaningful work session, spend ~5 minutes asking:
 Then, in order:
 
 1. **Update `CLAUDE.md`** — any corrected preferences, corrected assumptions, or context
-   the AI got wrong that it should carry forward. Keep the file under ~200 lines.
+   the AI got wrong that it should carry forward. Keep the file under ~60 lines.
 2. **Write learnings** — anything surprising, a gotcha, a pattern that worked: tell Hermes
-   through the API door (recipe: `tools/brain/templates/member-CLAUDE.md` (Memory section)), not a new `learnings/` file. The existing
-   `learnings/` and `retros/` files remain in hq until the owner-gated removal.
+   through the API door (recipe: `tools/brain/templates/member-CLAUDE.md` (Memory section)), not a new `learnings/` file.
 5. (Optional) **Check INVARIANTS** — run through `INVARIANTS.md`; fix any failures before committing.
 6. (Optional) **Update Serena notes** — if in a code repo session, check whether `.serena/memories/` notes need updating for architectural changes.
 7. **PUSH** — `git push` to the private GitHub remote. Every commit batch must be published. This is the backup mechanism (no Time Machine; see ADR 0006).
@@ -108,7 +106,7 @@ one end-of-session step. If it starts feeling heavy, cut it further.
 - Over the limit? **Split, don't butcher.** Plans split by task into the §3 directory form;
   narrative docs split into numbered parts per §4. Never compress, delete, or reword content
   just to hit the number.
-- Excludes third-party/generated docs we don't author (e.g. `references/x-context-docs/`).
+- Excludes third-party/generated docs we don't author.
 - **Crossing the cap requires the owner's explicit approval — every file, every time** (ADR 0029,
   amends 0021). Not scoped to newly-authored files. **Precedent, existing allowlist entries,
   and "campaign convention" are not justifications.** Hitting the boundary mid-task → split

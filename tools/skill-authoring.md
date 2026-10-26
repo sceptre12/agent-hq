@@ -5,9 +5,9 @@ Addy Osmani's agent-skills discipline (explicit trigger, red-flags table, non-ne
 exit criteria) folded in. Every hq skill traces to recorded friction; none is invented.
 
 - **Status:** active
-- **Applies to:** all skills authored under hq (plan item P4, plans/addy-alignment-plan.md §3)
+- **Applies to:** all skills authored under hq
 - **Governing ruling:** Q4 — *native* Claude Code skill format; convert to other formats
-  only when a concrete need appears (plans/addy-alignment-plan.md §6).
+  only when a concrete need appears.
 
 ## 1. Native format — verified, not remembered
 

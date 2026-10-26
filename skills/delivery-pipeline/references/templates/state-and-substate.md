@@ -1,6 +1,6 @@
 # Template: `state.md` and `substate.md` (design 5.0; INTERFACES A.2, A.3, A.4)
 
-Fill-in skeletons for the two run-state files and the two single-line records that sit beside them (slot row, machine ledger row). Every field name, enum and regex below is copied from `INTERFACES.md` 1.7.0 (AM-6 and AM-7 applied); if this file and INTERFACES differ, INTERFACES wins and this file is the defect. Regex dialect: POSIX ERE.
+Fill-in skeletons for the two run-state files and the two single-line records that sit beside them (slot row, machine ledger row). Every field name, enum and regex below is copied from `INTERFACES.md` 1.9.0 (AM-6 to AM-9 applied); if this file and INTERFACES differ, INTERFACES wins and this file is the defect. Regex dialect: POSIX ERE.
 
 - **Writer / Reader (`state.md`):** writer the conductor (`delivery-pipeline`) only. Readers: conductor at resume, `delivery-run` Step 0 (`interfaces_version` only), `delivery-desk` (gate pointers, `plans_dir`, `repo_profile` pinned `@<sha>`), the human.
 - **Writer / Reader (`substate.md`):** writer the sub-task lead only, except that the desk clears `stop_reason` when it writes `RESUME.<subtask>.<run-id>.ok` (the S6 carve-out, INTERFACES 1.9.0 AM-9 G1/42). Readers: conductor (never the bus), shepherd tick, lead at resume. Two writers on one `substate.md` is otherwise stop-the-line `S6`.

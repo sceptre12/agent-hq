@@ -16,6 +16,6 @@ Source: `preround-delivery-architecture-r2-2026-10-26.md` (8 FAIL lines). Fixer:
 ## Checks
 - `wc -w SKILL.md` 2731 (<=3500); `wc -l SKILL.md` 68 (<=500); largest reference file 85 lines.
 - `bash tools/check-doc-length.sh .`: 0 blocking files over 500 lines.
-- Forbidden grep (`/Users/xavier|touri|ofw|runfrist|jetblue|notion|\$[0-9]+|cost`, -i, excluding templates/): no hits.
+- Forbidden grep (`$HOME|touri|ofw|runfrist|jetblue|notion|\$[0-9]+|cost`, -i, excluding templates/): no hits.
 - Spec §9 tokens: all present; `plan-check default` present in references/security-sensitive.md.
 - templates/ untouched.

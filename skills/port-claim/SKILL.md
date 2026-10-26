@@ -19,7 +19,7 @@ checked. hq owns `tools/ports.tsv`; this skill never edits any file outside hq
    - Exit `2` → registry and live **disagree** (staleness signal). Stop — this is a hard stop for
      the candidate, never a warning: do not bind it. It is the exact failure class named in
      architecture §5.1. The one retry below applies exactly as for exit `1`.
-   - The one retry, for exit `1` and exit `2` alike (INTERFACES 1.5.0 A.5.2, AM-3, owner OQ-2):
+   - The one retry, for exit `1` and exit `2` alike (INTERFACES 1.9.0 A.5.2, AM-3, owner OQ-2):
      on the first refusal of a candidate, make exactly one retry at candidate + 10, itself
      checked and claimed with `--claim` before any bind (the tool never picks it); a second
      refusal stops the line and is reported. Never a second +10. In a delivery run the

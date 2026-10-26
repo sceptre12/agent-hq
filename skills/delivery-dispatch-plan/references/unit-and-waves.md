@@ -1,6 +1,6 @@
 # Units to `waves/`: what step 10 writes
 
-Authority is INTERFACES `1.7.0` (1.8.0 AM-8 V13 for blocker placement) part C1 (`spec_root` = bundle root, AM-7 touch-up 6), C1.1 (lane release, AM-6 C-4), C1.2, C8 and part A.3, A.6 (AM-6 B-9b, B-9c), A.8. This file points at them and records only how this skill applies them; it does not restate their tables. Field names for the spec come from `skills/wave-execution/references/spec-format.md` (item 9 extends it); read that file before writing, and follow it where it is more exact than this page.
+Authority is INTERFACES `1.9.0` (1.8.0 AM-8 V13 for blocker placement) part C1 (`spec_root` = bundle root, AM-7 touch-up 6), C1.1 (lane release, AM-6 C-4), C1.2, C8 and part A.3, A.6 (AM-6 B-9b, B-9c), A.8. This file points at them and records only how this skill applies them; it does not restate their tables. Field names for the spec come from `skills/wave-execution/references/spec-format.md` (item 9 extends it); read that file before writing, and follow it where it is more exact than this page.
 
 ## Output paths (A.6)
 

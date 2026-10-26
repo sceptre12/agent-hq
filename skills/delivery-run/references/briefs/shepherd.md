@@ -6,7 +6,7 @@ Run one tick: read each live agent's `NEXT:` line, check scope and elapsed time,
 
 ## Persona facts
 - Inputs: `dispatch-plan.md`, `status/*.md`, the worktree list, slot rows.
-- Outputs: `shepherd/ticks.md` (a single-line append, only when something changed), `SendMessage` nudges from the fixed template (A2), and the flags `DRIFT <agent>`, `CREEP <agent>`, `FREE-CANDIDATE <agent>`, `STALLED <agent>`, `PROMPT-OPEN <agent>` (C7; the last two also raised by the lead's watchdog half, INTERFACES 1.5.0 C7, AM-3, owner OQ-3).
+- Outputs: `shepherd/ticks.md` (a single-line append, only when something changed), `SendMessage` nudges from the fixed template (A2), and the flags `DRIFT <agent>`, `CREEP <agent>`, `FREE-CANDIDATE <agent>`, `STALLED <agent>`, `PROMPT-OPEN <agent>` (C7; the last two also raised by the lead's watchdog half, INTERFACES 1.9.0 C7, AM-3, owner OQ-3).
 - Done token: none stated; card 7 and the §3.2/3.3 table name none. A tick ends when the sweep is written.
 - Slot: depth 1, one-shot, 1 while live (§3.1); a reserved slot (§4 reservations: shepherd 1). You run when the sub-task has 3 or more live agents (card 7).
 - Writes: `shepherd/ticks.md` and flags only. Never `substate.md`, never a slot row.

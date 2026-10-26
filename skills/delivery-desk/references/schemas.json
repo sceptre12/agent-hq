@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "delivery-desk/references/schemas.json",
-  "$comment": "Machine-readable copy of INTERFACES 1.7.0 part B (AM-6 B-9a, AM-7 VERDICT reconciled) (B1, B2, B2.1, B4, B6, B8, B9); part B is the authority. verbs.<verb>.request validates the .req 'fields' object; verbs.<verb>.result validates a DONE .out; envelope alone validates a REJECTED .out.",
+  "$comment": "Machine-readable copy of INTERFACES 1.9.0 part B (AM-6 B-9a, AM-7 VERDICT reconciled) (B1, B2, B2.1, B4, B6, B8, B9); part B is the authority. verbs.<verb>.request validates the .req 'fields' object; verbs.<verb>.result validates a DONE .out; envelope alone validates a REJECTED .out.",
   "interfaces_version": "1.7.0",
   "definitions": {
     "abs_path": {"type": "string", "pattern": "^/[^\\u0000-\\u001f\\u007f]+$", "$comment": "absolute path; the desk realpaths it under the root named in the B4 per-field rules"},

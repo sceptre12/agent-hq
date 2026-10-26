@@ -2,7 +2,7 @@
 
 The human types one line in the desk session. These lines are not `SendMessage` verbs and not
 B4 verbs; an agent never sends them and the desk never accepts them over the transport. The desk
-is the only writer under `gates/` (M30). Authority: INTERFACES 1.7.0 part B8 and B9 (AM-6 f `<run-id>` gate names, AM-7 touch-up 7 `VERDICT`)
+is the only writer under `gates/` (M30). Authority: INTERFACES 1.9.0 part B8 and B9 (AM-6 f `<run-id>` gate names, AM-7 touch-up 7 `VERDICT`)
 (`architecture/delivery-workflow/interfaces/part-b-desk.md:152-185`) and part A.2.1
 (`.../interfaces/part-a-state.md:92-108`); M30 resolves in `references/source-keys.md`.
 

@@ -3,7 +3,7 @@
 One section per B4 verb: requester and result reader, request `fields`, what the desk checks
 beyond the common 12 (`checks.md`), how it acts, and the `DONE` result fields (B6). The machine
 form of fields and results is `schemas.json`; part B4-B6 and the B9 additions
-(`architecture/delivery-workflow/interfaces/part-b-desk.md:77-143`, `:175-188`, INTERFACES 1.7.0, AM-6 B-9a and f applied)
+(`architecture/delivery-workflow/interfaces/part-b-desk.md:77-143`, `:175-188`, INTERFACES 1.9.0, AM-6 B-9a and f applied)
 are the authority; bare ids (D3,
 M24, N11, ...) resolve in `references/source-keys.md`. "Act" lines name the
 command family the desk uses under the operator's own auth; where INTERFACES fixes only the

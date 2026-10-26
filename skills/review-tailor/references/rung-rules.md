@@ -30,7 +30,7 @@ doc or plan is `STAKES=one-way` (ladder §4).
 This rubric works from the inputs, not the artifact type; part-02 §2.4 is the delivery
 workflow's per-artifact expectation for the same choice (e.g. epic architecture 2b, dispatch
 plan 2b above 10 units else 1). Step 4's decision lines show which inputs gave the rung.
-Epic floor (INTERFACES 1.5.0 D8, D2.2 row 4, AM-5 15): an epic's review rung is at least 2b;
+Epic floor (INTERFACES 1.9.0 D8, D2.2 row 4, AM-5 15): an epic's review rung is at least 2b;
 design card 3 wins over this generic table. An epic-scale artifact (Step 1 size L) that the
 rubric or the modifier would place below 2b is raised to 2b, and the `mechanism:` line says
 `floor: epic 2b`; Rung 4 stays 4.
@@ -76,7 +76,7 @@ Mandatory seats by rung:
 - Rungs 1, 3 and 4: the counts are fixed (RESOLVED Q1; Rung 3 also D12) and the fixed set
   stays. A mandatory seat already in the fixed set changes nothing. Otherwise the seat set stays
   fixed (D12) and the `mechanism:` line notes the mandatory seat that is not in it
-  (`mandatory-outside-set: <seat-id>`; INTERFACES 1.5.0 D1.1 `RUNG:`, RT-Q1, AM-4 16).
+  (`mandatory-outside-set: <seat-id>`; INTERFACES 1.9.0 D1.1 `RUNG:`, RT-Q1, AM-4 16).
 Blocking rules are copied by id into the `budget:` line.
 
 ## 6. Budget, tiers and dispatch line

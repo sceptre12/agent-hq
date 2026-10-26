@@ -100,4 +100,4 @@ Not a stop: an event on a slug that has a draft but no row ends step 7 at that l
 
 ## Provenance
 
-Provenance: pending pilot (run id not yet assigned). Friction: recorded tracker-clerking facts (parent re-fetch, fields at creation, archive-not-delete, slug-until-id) and the Jira session-staleness learning (`NLTA/shared/learnings.md` 7, outside agent-hq), as named by spec 22 §6. Contracts: INTERFACES 1.7.0 parts A.1, A.6, B1-B4, B2.1, B6, B9, C8 (29-8), D1, D2.1, D2.2 row 14, D3 (AM-4 22: parent, optional-field, draft-defect and report-once rules; AM-6 B-9a/B-9b/B-9c: B4 `jira-create` parent, B9, A.6); design card 14.
+Provenance: pending pilot (run id not yet assigned). Friction: recorded tracker-clerking facts (parent re-fetch, fields at creation, archive-not-delete, slug-until-id) and the Jira session-staleness learning (`NLTA/shared/learnings.md` 7, outside agent-hq), as named by spec 22 §6. Contracts: INTERFACES 1.9.0 parts A.1, A.6, B1-B4, B2.1, B6, B9, C8 (29-8), D1, D2.1, D2.2 row 14, D3 (AM-4 22: parent, optional-field, draft-defect and report-once rules; AM-6 B-9a/B-9b/B-9c: B4 `jira-create` parent, B9, A.6); design card 14.

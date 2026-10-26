@@ -1,9 +1,9 @@
 # READY-TO-MOVE: delivery workflow, item 33 packet
 
 - **Date:** 2026-10-26. **Item:** design §7 item 33 (`part-06-build-plan-and-sources.md:32`). **Integrator:** Worker1.
-- **Branches:** `wt/delivery-w0` (docs, W1 skills, briefs, templates; worktree `~/projects/agent-hq-worktrees/delivery-w0`) and `ext/delivery-extends` (items 9-13; worktree `~/projects/agent-hq-worktrees/delivery-extends`, HEAD `3b59a5e` plus the item 33 fix). Scripts and the port guard are already on `main` (`4ee64a0`).
-- **Contract:** `INTERFACES.md` version **1.7.0** (frozen 1.0.0, seven amendments AM-1..AM-7, all 2026-10-26).
-- **State at writing:** the item 33 edits (AM-7, fixer rounds) are uncommitted in both worktrees; the integrator commits them. Nothing in this packet was pushed.
+- **Branches:** `wt/delivery-w0` (docs, W1 skills, briefs, templates, the `feature-change` EXTEND, `release-track` scripts, vendored `security-audit`; worktree `~/projects/agent-hq-worktrees/delivery-w0`) is agent-hq PR #13. `ext/delivery-extends` (EXTENDs `wave-execution`, `pr-review`, `fix-verifier`, `doc-reviewer`, items 9-12; worktree `~/projects/agent-hq-worktrees/delivery-extends`, HEAD `a217e0d`) is the follow-up PR (§12); these four EXTENDs are not in PR #13. The delivery scripts, the port guard and the code-gate scope change are on `main` (PRs #9-#12, §2).
+- **Contract:** `INTERFACES.md` version **1.9.0** (frozen 1.0.0, nine amendments AM-1..AM-9, all 2026-10-26).
+- **State at writing (PR #13 round 1):** every item 33 and AM-8/AM-9 edit is committed: `wt/delivery-w0` is pushed (PR #13, reviewed head `941ac56`, plus the round-1 fix commit); `ext/delivery-extends` (`a217e0d`) is committed locally, not pushed.
 - **Records:** `SCRATCH/item33/` holds the resolver, viability, fixlog and sweep files named below (`SCRATCH` = the build session's scratchpad; copied nowhere in `agent-hq`).
 
 ## 1. What is built
@@ -14,11 +14,12 @@
 | Design | parts 01-06, changelog, measurements, task specs 05-29 | `architecture/delivery-workflow/` |
 | ADRs | 0054 (ADR 0023 amendment, `wave-execution` caller-owned bus), 0055 (`DESK` verb, permission-tiers-02) | `decisions/` |
 | NEW skills (0.x) | `delivery-pipeline`, `delivery-run`, `delivery-desk`, `delivery-dispatch-plan`, `delivery-architecture`, `delivery-intake`, `review-tailor`, `resource-catalog`, `delivery-cleanup`, `pre-pr-gate`, `post-merge-verify`, `ticket-clerk`, `delivery-shepherd`, `ci-fix-loop`, `release-track` | `skills/` (W) |
-| EXTENDs (1.1.0) | `wave-execution`, `pr-review`, `fix-verifier`, `doc-reviewer`, `feature-change` | `skills/` (W') |
+| EXTENDs (1.1.0) | `feature-change` (in PR #13); `wave-execution`, `pr-review`, `fix-verifier`, `doc-reviewer` (follow-up PR, not in PR #13) | `skills/` (W; W') |
 | Ports (item 8) | `review-7-panel`, `feature-change`, `port-claim` (1.1.1 after item 18), `sim-lease` (skill only, see §6) | `skills/` |
 | Vendored | `security-audit` (unmodified, `PROVENANCE.md`) | `skills/security-audit` |
 | Briefs, templates | 32 persona briefs; 12 templates | `skills/delivery-run/references/briefs/`, `skills/*/references/templates/` |
-| Scripts (main) | `tools/delivery/catalog.sh`, `catalog-audit.sh`, `desk-req.sh`, `desk-req-schema.sh`, `scope-check.sh` + tests (PR #10); `tools/port-check.sh`, `tools/lib/port-check-lib.sh`, `tools/hooks/port-precheck.sh`, `tools/ports.tsv`, `tools/app-ports.tsv` + tests (PR #9) | `main` |
+| Scripts (main) | `tools/delivery/catalog.sh`, `catalog-audit.sh`, `desk-req.sh`, `desk-req-schema.sh`, `scope-check.sh` + tests (PR #10; `catalog-audit.sh` `bus` verify, V17, PR #11); `tools/port-check.sh`, `tools/lib/port-check-lib.sh`, `tools/hooks/port-precheck.sh`, `tools/ports.tsv`, `tools/app-ports.tsv` + tests (PR #9); `scope.conf` vendored `*.test.cjs` exclusion (PR #12) | `main` |
+| Scripts (PR #13) | `skills/release-track/scripts/zephyr-guard.sh`, `check-zephyr-disallowed.sh` + `test_zephyr-guard.sh` (a fail-closed scaffold: its input key set is replaced at P0, §8); gate wrappers `skills/security-audit/tests/test_validate-findings.sh`, `test_validate-coverage-ledger.sh` | W |
 
 ## 2. Per-item review outcomes and verdicts
 
@@ -29,7 +30,11 @@ The full table (item, commits, rung, rounds, open B/M/L, D7 stop, record) is the
 | 2 INTERFACES | 2b, 4 rounds (owner one-off r4) | FROZEN; r4 24 M fixed, verify 0/0/7 |
 | 2b specs, W2 specs | plan-check | PASS, PASS |
 | 3 ADR 0054; 3b ADR 0055 | 1 | 0/0/3; 0/1/1 (D7, OP1-OP10 "Accept all") |
-| PR #9 port guard; PR #10 scripts | 3 | r3 PASS 0/0/5; r2 PASS 0/0/5 (both merged) |
+| PR #9 port guard | 3 | r1 0/6/8, r2 0/4/7, r3 PASS 0/0/5; merged (`42a5198`) |
+| PR #10 delivery scripts | 3 | r1 FAIL, r2 PASS 0/0/5; merged (`4ee64a0`) |
+| PR #11 `catalog-audit.sh` `bus` verify (V17), register handle checks | 3 | r1 FAIL 0/1/2, r2 PASS 0/0/2; merged (`383c43d`) |
+| PR #12 code-gate scope: vendored `security-audit` `*.test.cjs` run via wrappers | 3 | r1 PASS; merged (`1bd844e`) |
+| PR #13 `wt/delivery-w0` -> `main` | 3 | r1 FAIL 0/2/12 (M1 this packet and stale INTERFACES labels, M2 zephyr profile form); round-1 fix committed, re-review pending |
 | 9, 11, 12 EXTENDs | 1 | 0/0/0, 0/0/4, 0/0/3 |
 | 10 `pr-review` | 1 | D7 stop 1B, closed by lead decision 10-B2; post-D7 0/0 |
 | 13 `feature-change` | 1 | 0/0/7 |
@@ -89,9 +94,9 @@ Round 1: W 85 broken (48 wrong line/file/path, 31 stale version pins, 6 AM-6 (a)
 
 ## 7. Final sweep and checks
 
-- **Fix-verify sweep** (installed `fix-verifier`, non-author, 5 batches: W 142 files changed since `322c13f`, the last commit before the item 33 slices, plus uncommitted; W' 18 files since `7137f88`): `ISSUES_FOUND 8`, 0 Blocking. The four item-21 post-D7 edits (E38), E46-E48 and the W' `DIFF_PATH` fix are present and consistent. Record `SCRATCH/item33/sweep.md`.
+- **Fix-verify sweep** (installed `fix-verifier`, non-author, 5 batches: W 142 files changed since `322c13f`, the last commit before the item 33 slices, plus the then-uncommitted edits, since committed; W' 18 files since `7137f88`): `ISSUES_FOUND 8`, 0 Blocking. The four item-21 post-D7 edits (E38), E46-E48 and the W' `DIFF_PATH` fix are present and consistent. Record `SCRATCH/item33/sweep.md`.
 - **Fixed after the sweep by the integrator (mechanical; §9 re-run):** 1 `control-channel.md:23` desk-VERDICT wording; 2 part C C5.1 inbox `type` list and writers gain `verdict` (AM-7); 3 `delivery-intake` fixture counts 17 -> 18 sentinels; 6 the verdict agent also reads an unconsumed desk `VERDICT pm` file; 7 `pre-pr-gate/SKILL.md:210` cites 1.7.0; 8 `changelog.md:239` dollar figures removed (B-4). Not re-run through a second fix-verifier pass.
-- **Open from the sweep (Low):** 4 W' `feature-change/SKILL.md:131` exit criterion needs a verifier a team unit does not dispatch; 5 `post-merge-verify` stop list has no `verdict-timeout` bullet. About 20 stale "INTERFACES 1.5.0" labels remain as advisories (listed in the sweep record).
+- **Open from the sweep (Low):** 4 W' `feature-change/SKILL.md:131` exit criterion needs a verifier a team unit does not dispatch; 5 `post-merge-verify` stop list has no `verdict-timeout` bullet. The stale "INTERFACES 1.x" labels (sweep advisory) were bumped to 1.9.0 in the PR #13 round-1 fix; amendment citations (`1.6.0 AM-6 (a)`, `1.8.0 AM-8 V7`) and dated check stamps keep their version on purpose.
 - **§9 blocks:** all pass: SKILL-14..25 (14, 15, 16 static part only: the dry-run lines need a verifier `FIXTURE_DIR`), 26 DESK-SCHEMAS-OK, 27 (template pack), 27b BRIEFS-OK, 28 SKILL-28-OK + VERBATIM-OK (scope-guard-free copy, item 33 edited briefs/templates on purpose), 29 PIPELINE-29-OK (prints `TEMPLATES-TOUCHED`, expected); W' EXT-09..13 OK (11-13 static part), `wave-execution` tests 17/17.
 - **Lengths:** `check-doc-length.sh` 0 blocking in W and W'; `check-file-length.sh` 0 files over its limit in both.
 - **Sanitization grep** (the build-common pattern: the owner's home path, the personal-project names, the note tool, and `cost` as a word; both worktrees, excluding `delivery-workflow-sources/` and vendored `security-audit`): after the fixes, 0 violations; remaining hits are rule statements ("no cost metric", "note tool removed"), §9 grep patterns and a source file name. Two `$HOME` substitutions were made in `reviews/28-delivery-run-2b/` panel files.
@@ -134,18 +139,18 @@ Round 1: W 85 broken (48 wrong line/file/path, 31 stale version pins, 6 AM-6 (a)
 
 - EXTENDs: `wave-execution`, `pr-review`, `fix-verifier`, `doc-reviewer`, `feature-change` at `1.1.0`.
 - NEW skills at `0.1.0`, except `delivery-dispatch-plan` `0.2.0`, `resource-catalog` `0.1.1`, `delivery-cleanup` `0.1.1` (V5); `port-claim` `1.1.1`.
-- `INTERFACES.md` `1.7.0`; `state.md` `interfaces_version` pins it per run.
+- `INTERFACES.md` `1.9.0`; `state.md` `interfaces_version` pins it per run.
 - One bump per skill at the move, not before.
 
 ## 12. PR plan (both under Rule 10, the hq code gate; `INVARIANTS.md` "Code gate")
 
-1. **`wt/delivery-w0` -> `main` first.** Commit the item 33 edits on `wt/delivery-w0`; rebase or merge `main` (`4ee64a0`) so `tools/delivery/` equals main's (item 32) and `tools/code-gate/test-map.tsv` keeps main's seven rows; `pr-review` on the diff (docs, skills; code-gate scope = release-track scripts + tests); desk posts the full-40-char-sha `CODE-GATE-REVIEW PASS` marker and merges `--no-ff`.
-2. **`ext/delivery-extends` rebased onto the new `main`, then PR.** Expect a `test-map.tsv` conflict (W' lacks main's seven rows) and the stale W' INTERFACES 1.1.0 copy, which main's 1.7.0 supersedes; `pr-review` on the diff vs main; `wave-execution` tests 17/17; EXT-09..13 §9; merge by the desk.
-3. **Follow-up PRs after both:** `desk-req-schema.sh` contract rows (AM-6 scripts); `catalog-audit.sh` `bus` verify per A.5.1 (V17).
+1. **`wt/delivery-w0` -> `main` first (PR #13, open).** Item 33 and AM-8/9 edits committed; `main` (`1bd844e`) merged in, so `tools/delivery/` equals main's. `tools/code-gate/test-map.tsv` = main's rows plus 4: `zephyr-guard.sh` and `check-zephyr-disallowed.sh` -> `test_zephyr-guard.sh`; `skills/security-audit/validate-findings.cjs` and `validate-coverage-ledger.cjs` -> `skills/security-audit/tests/test_validate-findings.sh` and `test_validate-coverage-ledger.sh`. Code-gate scope of the diff: the 3 `release-track` scripts, the 2 `security-audit` validators and their 2 wrappers, `test-map.tsv` (the vendored `*.test.cjs` are excluded by `scope.conf`, PR #12, and run through the wrappers). Not in this PR: the four EXTENDs above (step 2). `pr-review` r1 FAIL (0/2/12); after a PASS the desk posts the full-40-char-sha `CODE-GATE-REVIEW PASS` marker and merges `--no-ff`.
+2. **`ext/delivery-extends` rebased onto the new `main`, then the follow-up PR** (EXTENDs `wave-execution`, `pr-review`, `fix-verifier`, `doc-reviewer`). Expect a `test-map.tsv` conflict (W' lacks main's rows) and the stale W' INTERFACES 1.1.0 copy, which main's 1.9.0 supersedes; `pr-review` on the diff vs main; `wave-execution` tests 17/17; EXT-09..13 §9; merge by the desk.
+3. **Follow-up PRs after both:** `desk-req-schema.sh` contract rows (AM-6 scripts). (`catalog-audit.sh` `bus` verify per A.5.1, V17, merged as PR #11.)
 
 ## 13. Final sweep (AM-8/9)
 
-- **AM-9 consumer edits (INTERFACES 1.9.0 AM-9, uncommitted on both worktrees):** W: `delivery-run` `resume.md`; `delivery-pipeline` `SKILL.md`, `tick-relay.md`, `stops-and-posts.md`, `resume.md`, `stages.md` (also the `READ-BACK: ok <path>` completion line), `provenance.md`, `templates/state-and-substate.md` (`subtasks[].stop_reason`, `e2e_*` fields, S6 carve-out); `delivery-desk` `SKILL.md`, `human-gates.md`, `checks.md` (clear on `RESUME`, CI logs masked); `pre-pr-gate` `SKILL.md`, `steps-detail.md`, checklist template (C3 both conditions, non-clean plan-check to the round-1 fixer, `RUN_HOME` V15b); `delivery-architecture` template `test-plan.md`; briefs `e2e-writer.md`, `lane-runner.md` (COMMON block untouched); `delivery-dispatch-plan` `unit-and-waves.md` (`gates_command` bundle row, AM-8 V14). W': `pr-review` `SKILL.md`, `references/step0-inputs.md` (3-token `Reviewed-By` from `SEAT_ID`, `RUN_HOME` input).
+- **AM-9 consumer edits (INTERFACES 1.9.0 AM-9, committed on both branches):** W: `delivery-run` `resume.md`; `delivery-pipeline` `SKILL.md`, `tick-relay.md`, `stops-and-posts.md`, `resume.md`, `stages.md` (also the `READ-BACK: ok <path>` completion line), `provenance.md`, `templates/state-and-substate.md` (`subtasks[].stop_reason`, `e2e_*` fields, S6 carve-out); `delivery-desk` `SKILL.md`, `human-gates.md`, `checks.md` (clear on `RESUME`, CI logs masked); `pre-pr-gate` `SKILL.md`, `steps-detail.md`, checklist template (C3 both conditions, non-clean plan-check to the round-1 fixer, `RUN_HOME` V15b); `delivery-architecture` template `test-plan.md`; briefs `e2e-writer.md`, `lane-runner.md` (COMMON block untouched); `delivery-dispatch-plan` `unit-and-waves.md` (`gates_command` bundle row, AM-8 V14). W': `pr-review` `SKILL.md`, `references/step0-inputs.md` (3-token `Reviewed-By` from `SEAT_ID`, `RUN_HOME` input).
 - **Fix-verify** (installed `fix-verifier`, Sonnet, non-author; findings list `am8-queue.md` + `am9-queue.md`; W 45 files changed since `bb76ac7` in 2 batches, W' 11 files since `19c8b9a`): W1 `ISSUES_FOUND 3`, W2 `ISSUES_FOUND 3`, W' `CLEAN`. Fixed once: `gates_command` bundle row; `stops-and-posts.md` conductor-recorded stops and the `RESUME` clear of `state.md`; `provenance.md` O-1 carrier. Re-verify (iteration 2): the four fixed, 1 Low (test-plan heal column values `yes|no` -> `reviewed|none`), applied without a third pass. Records `SCRATCH/item33/final-am9/verify-{W1,W2,WP,r2}.md`.
 - **Open, INTERFACES-owned (Low, for the AM-9 author):** part-b:189 says `pr-merge` "check 5" is `repo` (the desk's method check is check 6); part-a:175 A.3 enum list omits `stale-session` (A.8 :375 calls it a new value); E53 writes the 3-token form as `Reviewed-By: <SEAT_ID> head=<sha>` (A.6 and `pr-review` use `<seat-id> <session> <TASK-id>`). W' note: `architecture/wave-execution.md:15,71` ADR 0054 field lists omit `gates_command`.
 - **§9 blocks (final run):** SKILL-14, 15, 16 static part rc=0 (dry-run lines need `FIXTURE_DIR`); SKILL-17..25 OK; DESK-SCHEMAS-OK; 27 template pack rc=0 (12 files, `EXEC-COLUMN` note expected); BRIEFS-OK; VERBATIM-OK + SKILL-28-OK; PIPELINE-29-OK (`TEMPLATES-TOUCHED`, expected; pipeline `SKILL.md` 3799 words, cap 3800); W' EXT-09..13 OK (11-13 static); `wave-execution` tests 18/18.

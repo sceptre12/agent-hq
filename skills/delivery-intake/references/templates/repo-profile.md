@@ -65,7 +65,9 @@ merge_pipeline: {stages: [FILL_IN_BEFORE_DISPATCH]}   # ordered stage names (A.2
 secrets:
   pattern_file: FILL_IN_BEFORE_DISPATCH      # abs path of an ERE file, one pattern per line (M31)
   retrieval_env_vars: [FILL_IN_BEFORE_DISPATCH]   # env-var NAMES only, never values
-zephyr: {read_ops: [FILL_IN_BEFORE_DISPATCH], execute_tool: FILL_IN_BEFORE_DISPATCH}   # B2; execute_tool = the Zephyr MCP execute tool name as Claude Code exposes it (A.2.2)
+zephyr:                                      # B2; block form only: release-track zephyr-guard.sh reads no one-line {..} map
+  read_ops: [FILL_IN_BEFORE_DISPATCH]        # list of read operation ids (A.2.2)
+  execute_tool: FILL_IN_BEFORE_DISPATCH      # the Zephyr MCP execute tool name as Claude Code exposes it (A.2.2)
 test_management_tool: FILL_IN_BEFORE_DISPATCH
 jira:
   project_key: FILL_IN_BEFORE_DISPATCH

@@ -15,5 +15,5 @@ Fixer: Opus fixer of skills/review-7-panel (not the author). Input: panel7-deliv
 ## Checks
 - `wc -w SKILL.md` = 2906 (<=3500); `wc -l SKILL.md` = 68; reference files 15-85 lines (all <500).
 - Spec §9 tokens (ARCH: ready, DRAFTS:, review-tailor, H1, INPUT-ERROR, security-audit, security_sensitive, port, run-doc-, issuetype, parent): all present; `plan-check default` in references/security-sensitive.md: 2 hits (unchanged).
-- Forbidden grep `/Users/xavier|touri|ofw|runfrist|jetblue|notion|\$[0-9]+|cost` (case-insensitive, outside templates/): 0 hits.
+- Forbidden grep `$HOME|touri|ofw|runfrist|jetblue|notion|\$[0-9]+|cost` (case-insensitive, outside templates/): 0 hits.
 - `bash tools/check-doc-length.sh <W>`: 0 blocking files over 500 lines (4 informational over 40000 bytes, all in architecture/delivery-workflow/, not this skill).

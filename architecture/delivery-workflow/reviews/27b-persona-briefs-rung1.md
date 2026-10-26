@@ -60,7 +60,7 @@ Open Lows (no action, recorded):
 ## §9 done condition (non-author dry run by the fix-verifier; block identical to spec §9)
 ```
 BRIEFS-OK
-(grep for personal-project / Notion / /Users/xavier: no output)
+(grep for personal-project / Notion / $HOME: no output)
 check-doc-length.sh: 0 blocking file(s) over 500 lines; 0 allowlisted file(s) over 500 lines (visible debt, not blocking); 3 file(s) over 40000 bytes (second dimension, informational only, not blocking)
 ```
 Exit 0. The orchestrator re-ran the block after the record and got the same result. Integration step (spec §9, serial, by the integrator): not part of this loop; it is left to Worker1.

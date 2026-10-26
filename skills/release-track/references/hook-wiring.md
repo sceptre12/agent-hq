@@ -17,7 +17,7 @@ Contract status: the `ZEPHYR_*` variables and the positional arguments below are
 ## Per-run values (who sets them)
 Wiring is static settings, but the profile, tool name and log are per run, and `RUN_HOME` is a skill input, not an exported variable. The launcher that starts the `pm` lead (item 29) must export into that process, before start (unmeasured, verify at move):
 - `ZEPHYR_PROFILE`: the read-only profile snapshot below (never the working `repo-profile.md`).
-- `ZEPHYR_TOOL`: `zephyr.execute_tool` from that snapshot.
+- `ZEPHYR_TOOL`: `zephyr.execute_tool` from that snapshot. The guard reads `zephyr:` only in block form (a bare `zephyr:` line with indented `read_ops`, as the `delivery-intake` template writes it); a one-line `zephyr: {..}` map gives no `read_ops` and every call is refused.
 - `ZEPHYR_REFUSAL_LOG`: `RUN_HOME/pm/zephyr-refusals.log` (and `RUN_HOME` itself).
 With `ZEPHYR_PROFILE` or `ZEPHYR_TOOL` unset the guard refuses every call. With no `ZEPHYR_REFUSAL_LOG` (or log argument) the guard falls back to `${RUN_HOME}/pm/zephyr-refusals.log` when `RUN_HOME` is exported; with neither it still refuses but writes no line, so the positive control below must assert the line.
 

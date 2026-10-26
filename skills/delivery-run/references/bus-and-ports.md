@@ -8,7 +8,7 @@ Depth for the SKILL.md step "bus claim, start, `bus.endpoint`" and for every lat
 |---|---|---|
 | `session_id` | `<run-id>-<subtask>`, the `bundle.md` value (equals the seed's `session_id`) | C1.1, A.3 |
 | topic | `<run-id>-<subtask>-rendezvous`, the `bundle.md` `output_topic` | C1.1, D4 |
-| `data_dir` | `RUN_HOME/<subtask>/bus/` (absolute; never `/tmp` or `$TMPDIR`) | A.1, D4, R-4 |
+| `data_dir` | `RUN_HOME/<subtask>/bus` (absolute, no trailing slash, the same string as the catalog `bus` handle in step 2; never `/tmp` or `$TMPDIR`) | A.1, D4, R-4 |
 | pm2 app | `swarm-mcp-<session_id>` | R-4 (W' `wave-execution` step 4 name form), A.1 namespacing |
 | candidate port | the P8 port-table `candidate` cell of `<PLANS_DIR>/dispatch-plan.md` for this sub-task's `bus` row, as written (it equals `ports.bus_base + 20·2N` for `st<N>`, AM-4 W2-3) | C1.1 bus port, A.5.2, Q4 |
 | retry port | candidate + 10, one time only | A.5.2 (AM-3 OQ-2) |
@@ -44,7 +44,7 @@ The lead claims the candidate cell exactly as written. It never recomputes the f
    Both range variables carry the claimed port as two assignments (A.5.2, C1.1, AM-4 row 18). Poll for `<data_dir>/port` up to 30 times at 0.3 s (the `swarm-communication` start idiom, `skills/swarm-communication/SKILL.md:88`).
 4. **Port equality.** `<data_dir>/port` must equal the claimed `port` (A.5.2), and `lsof -nP -iTCP:<port> -sTCP:LISTEN` must show the listener. Then run the identity preflight of `swarm-communication` (`/health` 2-3 times: `status: ok`, and `app_name`/`data_dir` equal to the values above).
    - On any failure here the launch failed after a claim: `pm2 delete swarm-mcp-<session_id>`, release the claim at once with a `released` row of the same port and source (`port-claim` Step 4, `resource-catalog` `references/ports.md`), `catalog.sh fail` each of the three rows, write `stop_reason: human` with the observed and claimed ports, and stop. This is the A.8 "A.5.2 launch failure after a claim" rule (CV14), whose `stop_reason` is `human`.
-5. **Mark live** (A.5.2 step 4): `catalog.sh start port <port>`, `catalog.sh start pm2-app swarm-mcp-<session_id>`, `catalog.sh start bus <data_dir>`.
+5. **Mark live** (A.5.2 step 4): `catalog.sh start port <port>`, `catalog.sh start pm2-app swarm-mcp-<session_id>`, `catalog.sh start bus <RUN_HOME>/<subtask>/bus` (the handle registered in step 2; supersede key `kind` + `handle`, A.5).
 6. **Write `bus.endpoint`** atomically: write a temp file in `RUN_HOME/<subtask>/`, then `mv` it to `bus.endpoint` (A.1 atomic writes). It holds exactly these key=value lines (A.3, D5):
    ```
    port=<port>

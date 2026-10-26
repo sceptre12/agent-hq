@@ -1,6 +1,6 @@
 ---
 name: sim-lease
-description: Acquire, release, check, or steal an iOS simulator lease via tools/sim-lease.sh before driving any simulator (Maestro, simctl, dev-client install). Use when about to run `simctl boot`, launch a Maestro flow, install a dev client, or otherwise drive a booted simulator — and at teardown to release. Also use when a lease looks stuck (held-by-other, or a suspected-dead holder) and a `status`/`steal` call is needed.
+description: Acquire, release, check, or steal an iOS simulator lease via tools/sim-lease.sh (in the hq repo's tools/ today; it lands in agent-hq tools/ at the move) before driving any simulator (Maestro, simctl, dev-client install). Use when about to run `simctl boot`, launch a Maestro flow, install a dev client, or otherwise drive a booted simulator — and at teardown to release. Also use when a lease looks stuck (held-by-other, or a suspected-dead holder) and a `status`/`steal` call is needed.
 ---
 
 ## Trigger
@@ -15,6 +15,11 @@ capture data: an interleaved capture set must be discarded and re-captured on an
 held device.
 
 ## Steps
+
+Tool location: `tools/sim-lease.sh` and its test `tools/test_sim-lease.sh` are not in agent-hq yet. They live in the
+`hq` repo's `tools/` today and land at `~/projects/agent-hq/tools/` at the move (part-05 §6: at move the owner copies
+agent-hq into the work environment). Until they land, the commands below fail with "No such file": stop and report it;
+never substitute another path or drive the simulator without a lease.
 
 1. **Before driving a simulator, acquire the lease for its UDID:**
    `~/projects/agent-hq/tools/sim-lease.sh acquire <udid> <ticket>`
@@ -78,5 +83,5 @@ held device.
 Provenance: device serialization (why a lease is needed at all); a capture set discarded, not
 salvaged, after two drivers interleaved on one simulator; a run abandoned after a confirmed
 concurrent-simulator consumer; `tools/sim-lease.sh` (the tool itself, 18/18 tests in
-`tools/test_sim-lease.sh`).
+`tools/test_sim-lease.sh`; both in the `hq` repo until the move, see Steps).
 Ported into agent-hq 2026-10-26 for the delivery workflow (design §7 item 8).

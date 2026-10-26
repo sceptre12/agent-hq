@@ -1,6 +1,6 @@
 # pre-pr-gate: step detail
 
-Depth for `SKILL.md` Steps. Contracts: INTERFACES 1.5.0 (`architecture/delivery-workflow/INTERFACES.md`). Step numbers below are SKILL.md step numbers.
+Depth for `SKILL.md` Steps. Contracts: INTERFACES 1.7.0 (AM-6 B-7, C-5; AM-7 touch-up 5; `architecture/delivery-workflow/INTERFACES.md`). Step numbers below are SKILL.md step numbers.
 
 ## Card 10 to SKILL step map
 Card 10 (part-02 §2.2) step -> SKILL step: 1 -> 1; 2 -> 2 (and 15); 2b -> 3; 2c -> 4; 3 -> 5; 4 -> 6; 5 -> 7; 5b -> 8; 6 -> 9-11; 7 -> 12; 8 -> 13; 9 -> 11-14 (the round loop and its cap); 10 -> 16; 11 -> 17; 12 -> 18; 13 -> 19. SKILL step 20 writes the token. INTERFACES pointers that use card numbers (A.2.2 `sensitive_paths[]` "step 5", B7 "step 4") mean SKILL steps 7 and 6.
@@ -56,7 +56,7 @@ Re-run each evidence command (do not trust earlier output) on the final head. Di
 ## Output files
 `checklist-<subtask>.md`, `pr-body.md`, `fix-*`, `verify-*` all under `RUN_HOME/review/<subtask>/`. Writes are atomic: temp name in the same directory, then `mv`.
 
-## Settled points (INTERFACES 1.5.0 D2.2 row 10, AM-4 20; formerly open points 1-9)
+## Settled points (INTERFACES 1.7.0 D2.2 row 10, AM-4 20, AM-6 B-7, AM-7 touch-up 5; formerly open points 1-9)
 1. Sensitive-path or `CREEP` evidence: a desk `INSTALLED` row or the A.2.1 grant file (Q1).
 2. D55 applies: a plan-check before round 1 of this loop (Q2).
 3. A failing row outside the review loop is `PREPR: STOP <id>`, never handed to the fixer; the lead writes `stop_reason: stop-the-line:S2` (Q3, A.8 A.3).

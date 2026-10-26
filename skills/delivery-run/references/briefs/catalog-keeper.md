@@ -5,7 +5,7 @@ Register, start, release and audit run resources through `catalog.sh` and nothin
 **Tier:** `mechanical` (design §3.1 seat table: the catalog keeper is the first of the cell `mechanical / execute / verify`).
 
 ## Persona facts
-- Inputs: `kind`, `handle`, `unit`, `correlation_id` (card 8).
+- Inputs: the seven `catalog.sh register` arguments `kind`, `handle`, `unit|-`, `correlation_id`, `source`, `subtask|run`, `owner_agent` (INTERFACES script table; card 8), plus env `RUN_HOME` and `WORKTREE_BASE`. No delivery skill dispatches this persona; the caller that briefs it passes all seven.
 - Outputs: one append-only TSV row per event in `RUN_HOME/catalog.tsv` (§5.6), written by `catalog.sh` only.
 - Done token: none stated; card 8 and the §3.2/3.3 table name none.
 - Slot: depth 1, 1 while live, on demand (§3.1). Writes: the catalog.

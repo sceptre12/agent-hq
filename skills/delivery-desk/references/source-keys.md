@@ -12,35 +12,35 @@ Every bare id in this skill (`SKILL.md`, `references/*`) resolves here to an ope
 | D3 (owner) | `OD:4` | a desk skill owns all git/GitHub steps |
 | D23 | `OD:21` | ci-fix-loop never edits pipeline definitions or triggers |
 | D1, D1 (part) | `PD:6-11` | Step 0 input validation (`INPUT-ERROR` lines) |
-| D3 (part), "D3 canonical status" | `PD:105-107` | status vocabulary, canonical ticket statuses |
+| D3 (part), "D3 canonical status" | `PD:106-108` | status vocabulary, canonical ticket statuses |
 | Q1 | `OD:58` | the conductor relays `DESK` lines for `claude -p` leads |
-| Q2 ("RESOLVED Q2") | `architecture/delivery-workflow/tasks/26-delivery-desk.md:124` | registration, gate, answer and rebind lines are not verbs |
+| Q2 ("RESOLVED Q2") | `architecture/delivery-workflow/tasks/26-delivery-desk.md:127` | registration, gate, answer and rebind lines are not verbs |
 | Q3 | `OD:60` | `pr-attach` verb plus `record_path` on `pr-create` and `pr-merge` |
-| OP1 A | `OD:63`; `IF:210` (O-OP1) | no detail on the `REJECTED` line; detail in `.out` |
-| OP5 B | `OD:67`; `IF:214` (O-OP5) | terminal vs curable; curable resent with a fresh id |
-| OP6 A | `OD:68`; `IF:215` (O-OP6) | R2-7 is runtime only; build-time git keeps the existing envelope |
-| OP9 A | `OD:71`; `IF:218` (O-OP9) | traces scanned; images attached unscanned and labelled |
-| OP10 A | `OD:72`; `IF:219` (O-OP10) | tenth code `action-failed`, curable |
+| OP1 A | `OD:63`; `IF:214` (O-OP1) | no detail on the `REJECTED` line; detail in `.out` |
+| OP5 B | `OD:67`; `IF:218` (O-OP5) | terminal vs curable; curable resent with a fresh id |
+| OP6 A | `OD:68`; `IF:219` (O-OP6) | R2-7 is runtime only; build-time git keeps the existing envelope |
+| OP9 A | `OD:71`; `IF:222` (O-OP9) | traces scanned; images attached unscanned and labelled |
+| OP10 A | `OD:72`; `IF:223` (O-OP10) | tenth code `action-failed`, curable |
 | R2-4 | `OD:38` | operator's own locally configured GitHub auth; no bot account |
-| N10 | `OD:80`; `IF:47` | "ALWAYS HUSKY=0 on desk pushes" |
-| N11 | `OD:81-84`; `IF:49` | tag-push set per repo in repo-profile; no entry, refused |
+| N10 | `OD:80`; `IF:51` | "ALWAYS HUSKY=0 on desk pushes" |
+| N11 | `OD:81-84`; `IF:53` | tag-push set per repo in repo-profile; no entry, refused |
 | M24 | `CL:206` | Tier 1 location; §6.3 `ci-status-main` |
 | M27 | `CL:40` | no approve or trigger-prod verbs |
 | M29 | `CL:211` | forgeable request channel: sha256, desk-owned copy |
 | M30 | `CL:212` | agent-writable gates: the desk writes gate files |
-| R4-J9 | `IF:256` | applied-result scan on resume |
-| R4-J20 | `IF:267` | `pr-create` and `push` CI bounds |
+| R4-J9 | `IF:260` | applied-result scan on resume |
+| R4-J20 | `IF:271` | `pr-create` and `push` CI bounds |
 | C5.1 | `PC:111-130` | lead outbox and inbox layout (`.desk`, `.desk.relayed`, `.desk.refused`, `CONDUCTOR-REQUEST`) |
 | C5.3 | `PC:142-151` | lead resume and hand-over |
-| AM-2 | `IF:24`; `IF:36` | amendment 1.1.0 -> 1.2.0 (row 12, PC-6: `release-track` owns test reporting) |
-| AM-4 | `IF:26`; `IF:38` | amendment 1.3.0 -> 1.4.0 (24-Q2 push, W2-4 `fetch` and `.desk.refused`, 22 `jira-create`, 20 Q1 grant file, 20 Q6 `default_branch`) |
-| AM-5 | `IF:27`; `IF:39` | amendment 1.4.0 -> 1.5.0 (26 and PR #10: gate names with `<run-id>`, B2.1 triggers, B4 defaults, checklist plus `substate.md` `PREPR` read; 21 and row 29 `H-destructive`/`RESUME` gate lines; 29-n conductor send rules; 19-F6 no remote) |
-| B9 | `PB:174-185` | AM-5 desk additions (26, PR #10, 29-4, 29-7, 29-16, 29-27, 29-33, 29-10, R2-15) |
+| AM-2 | `IF:24`; `IF:38` | amendment 1.1.0 -> 1.2.0 (row 12, PC-6: `release-track` owns test reporting) |
+| AM-4 | `IF:26`; `IF:40` | amendment 1.3.0 -> 1.4.0 (24-Q2 push, W2-4 `fetch` and `.desk.refused`, 22 `jira-create`, 20 Q1 grant file, 20 Q6 `default_branch`) |
+| AM-5 | `IF:27`; `IF:41` | amendment 1.4.0 -> 1.5.0 (26 and PR #10: gate names with `<run-id>`, B2.1 triggers, B4 defaults, checklist plus `substate.md` `PREPR` read; 21 and row 29 `H-destructive`/`RESUME` gate lines; 29-n conductor send rules; 19-F6 no remote) |
+| B9 | `PB:175-188` | AM-5 desk additions (26, PR #10, 29-4, 29-7, 29-16, 29-27, 29-33, 29-10, R2-15) |
 | A.8 | `PA:356-378` | AM-5 conventions with their home sections (A.2 `RESUME` exit, `stale-session` stop, A.5 contract guards, A.5.1 19-F6) |
-| O-1..O-4 | `IF:71-79` | owner items from the item 29 panel (O-4: `RESUME.<subtask>.<run-id>.ok`) |
+| O-1..O-4 | `IF:75-82` | owner items from the item 29 panel (O-4: `RESUME.<subtask>.<run-id>.ok`) |
 | OQ-3 (release-track) | `OD:92` | the desk runs publish/tag-push only after the H-prod grant (frozen B4 stands) |
 | R1-6 | `architecture/delivery-workflow/reviews/26-delivery-desk-2b/panel7-delivery-desk-r1-2026-10-26.md:12` | review finding: the redaction scan fails closed |
 | R1-7 | same file `:13` | review finding: images classified by content, not by name |
-| INTERFACES §Script interfaces | `IF:51-59` | `desk-req.sh` and other script contracts |
-| Part B sections | `PB:7-24` B1; `:25-51` B2; `:52-68` B2.1; `:69-76` B3; `:77-107` B4; `:108-111` B5; `:112-143` B6; `:144-151` B7; `:152-172` B8; `:174-185` B9 | desk contract |
+| INTERFACES §Script interfaces | `IF:55-63` | `desk-req.sh` and other script contracts |
+| Part B sections | `PB:7-24` B1; `:25-51` B2; `:52-68` B2.1; `:69-76` B3; `:77-107` B4; `:108-111` B5; `:112-143` B6; `:144-151` B7; `:152-173` B8; `:175-188` B9 | desk contract |
 | Part A sections | `PA:7-53` A.1; `:92-108` A.2.1; `:109-161` A.2.2; `:162-209` A.3; `:293-334` A.6; `:335-354` A.7; `:356-378` A.8 | state, gates, profile keys, names, `HUSKY=0` |

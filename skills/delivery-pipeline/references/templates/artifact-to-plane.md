@@ -34,12 +34,12 @@ The single reference for where each artifact of the delivery workflow lives. A s
 
 Guidance mode (`state.md` `security_audit: guidance`) writes no file; the RUN row exists only under `full`.
 
-**AM-5 rows (INTERFACES 1.5.0 A.1, A.8, C8, D5).**
+**AM-5 rows (INTERFACES 1.5.0 A.1, A.8, C8, D5; as amended to 1.7.0 by AM-6 C-3, (a), (b), (d), (f) and AM-7).**
 
 | Artifact | Plane and path | Writer |
 |---|---|---|
 | in-run `pr-review` bus: `bus.endpoint` and `data_dir` `bus/` | RUN `review/<subtask>/<review-id>/`; one fresh session `pr-review-<uuid8>` per review (the M12 namespacing exception for review buses, E42) | `pr-review` Step 1 |
-| `pm/inbox/<seq>-<yyyymmddThhmmssZ>-verdict.md` (inbox type `verdict`) | RUN `pm/inbox/` | `post-merge-verify` verdict agent (C5.1, C8) |
+| `pm/inbox/<seq>-<yyyymmddThhmmssZ>-verdict.md` (inbox type `verdict`) | RUN `pm/inbox/` | `post-merge-verify` verdict agent (C5.1, C8); the desk for a human-decision `VERDICT pm <row-id> <text>` (B8, C8, AM-7 touch-up 7) |
 | `capture/read-back.md` (line 1 `READ-BACK: pass` or `READ-BACK: <n> differences`) | RUN `capture/` | read-back agent (C8, 29-24) |
 | `launcher/disallowed-tools.txt` (one tool name per line; absent or empty is `INPUT-ERROR launcher.disallowed_tools missing`) | ROOT `launcher/`, written at the move | the move operator (A.8, 29-21) |
 | `homes/<session>/pid`, `homes/<session>/prompt` (0600) | ROOT `homes/<session>/` | the launch subshell (A.8, 29-39) |

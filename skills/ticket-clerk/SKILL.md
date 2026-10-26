@@ -10,7 +10,7 @@ Use when the conductor (the only host of this skill) reaches a loop hand-back, o
 
 ## Inputs
 
-`RUN_HOME` (path), `PLANS_DIR` (path; holds `drafts/<slug>.md` and `drafts/index.md`), `DELIVERY_ROOT` (environment variable) (part D2.2 row 14, D1). Derived: `RUN_ID`, the last path segment of `RUN_HOME` (part A.1: `RUN_HOME` is `$DELIVERY_ROOT/<run-id>`), which is the first argument of `desk-req.sh`; `RUN_HOME/ticket-events.log`, `RUN_HOME/ticket-events.cursor`, `RUN_HOME/tickets.tsv`, `RUN_HOME/gates/H1.ok`, `RUN_HOME/desk/`.
+`RUN_HOME` (path), `PLANS_DIR` (path; holds `drafts/<slug>.md` and `drafts/index.md`), `DELIVERY_ROOT` (environment variable) (part D2.2 row 14, D1). Derived: `RUN_ID`, the last path segment of `RUN_HOME` (part A.1: `RUN_HOME` is `$DELIVERY_ROOT/<run-id>`), which is the first argument of `desk-req.sh`; `RUN_HOME/ticket-events.log`, `RUN_HOME/ticket-events.cursor`, `RUN_HOME/tickets.tsv`, `RUN_HOME/gates/H1.<RUN_ID>.ok` (the desk-written gate file carries the run id, part A.2.1 AM-5 26), `RUN_HOME/desk/`.
 
 ## Steps
 
@@ -32,7 +32,7 @@ Use when the conductor (the only host of this skill) reaches a loop hand-back, o
    - a non-`-` `parent` names another draft's slug, and following `parent` from any draft reaches the epic without revisiting a slug (no cycle).
 
    Any failure (count mismatch, extra or missing key, bad slug, issuetype or parent) is a draft defect and a stop (parent unresolved): no request is sent in this flush; report one line naming the slug.
-5. **Create gate.** Before any `jira-create`, check that `RUN_HOME/gates/H1.ok` exists (part A.2.1, B4). If absent, send no create in this flush; the drafts wait for a later flush (spec 22 §8 "wait for `H1.ok`"). Update and transition requests for tickets already created are not gated by H1.
+5. **Create gate.** Before any `jira-create`, check that `RUN_HOME/gates/H1.<RUN_ID>.ok` exists (part A.2.1 AM-5 26, B4). If absent, send no create in this flush; the drafts wait for a later flush (spec 22 §8 "wait for `H1.ok`"). Update and transition requests for tickets already created are not gated by H1.
 6. **Create in waves.** A wave is every draft whose slug has no row in `tickets.tsv`, is not held by a standing stop (step 1), and whose parent has a row (or which is the `Epic`). Wave 1 is the epic alone; each later wave is formed only after the previous wave's requests have all been read back (step 9) and recorded (step 10), so a child's parent key is always read from a row. For each draft of a wave:
    1. Resolve the parent: for an `Epic`, there is none. Otherwise read the parent's latest row in `tickets.tsv` and take its `key` column, a Jira key (part B4 types `parent` as `JIRA-KEY`); never put the slug in the request.
    2. Compose the description per `references/ticket-body.md`, score it with `jira-ticket-quality`, repair until it passes (cap in that file).
@@ -60,7 +60,7 @@ A `REJECTED <id> | <reason>` is data. The class is quoted from INTERFACES part B
 | `order` | curable | Not expected for `jira-*`; report, resend with a fresh id when the cause clears. |
 | `policy` | terminal | Stop; report. Never resend; a corrected request is a new request (B2.1), composed only from a corrected draft. |
 | `stale-session` | curable | Report that the Atlassian session needs a refresh by the human; resend with a fresh id once it is refreshed. No probe by the clerk. |
-| `gate-missing` | curable | `H1.ok` absent; send no create until it exists, then resend with a fresh id. |
+| `gate-missing` | curable | `H1.<RUN_ID>.ok` absent; send no create until it exists, then resend with a fresh id. |
 | `action-failed` | curable | Report the `.out` `detail`; resend with a fresh id once the cause clears. No pre-check is needed: the desk reconciles a fresh-id resend by its `<verb> <target>` read-back (part B2 duplicate-action guard), so a create is not repeated. |
 
 ## Stop conditions
@@ -74,7 +74,7 @@ Not a stop: an event on a slug that has a draft but no row ends step 7 at that l
 | Rationalization | Do instead |
 |---|---|
 | "One ticket changed, send it now." | Hold it for the next flush (hand-back or 30 minutes). D62 forbids a per-step loop. |
-| "H1 is obviously accepted, create now." | Create only when `RUN_HOME/gates/H1.ok` exists. |
+| "H1 is obviously accepted, create now." | Create only when `RUN_HOME/gates/H1.<RUN_ID>.ok` exists. |
 | "The body is fine, skip the score." | Score with `jira-ticket-quality` every time; an unscored body is never sent. |
 | "Put the parent slug in the request; the desk will resolve it." | `parent` is the parent's KEY from `tickets.tsv`; a slug is `schema`, terminal. |
 | "Set `fields.status` to move it." | Status moves only as `jira-transition` with `to`. |
@@ -91,7 +91,7 @@ Not a stop: an event on a slug that has a draft but no row ends step 7 at that l
 
 - [ ] Step 0 passed or its `INPUT-ERROR` lines (each matching the D1 line regex) were printed and the run stopped.
 - [ ] Every draft passed the step 4 checks before any send.
-- [ ] No `jira-create` was sent before `gates/H1.ok` existed; each non-Epic create carried its parent's KEY, parents before children.
+- [ ] No `jira-create` was sent before `gates/H1.<RUN_ID>.ok` existed; each non-Epic create carried its parent's KEY, parents before children.
 - [ ] Every body was scored with `jira-ticket-quality` before sending.
 - [ ] Each request's `.out` was read and one row per `DONE` result is in `tickets.tsv`; the cursor was advanced after the row, atomically.
 - [ ] Every `REJECTED` was handled per the table; no terminal code was resent, including at a later flush (stored `.out` or `.req.noreply`).
@@ -100,4 +100,4 @@ Not a stop: an event on a slug that has a draft but no row ends step 7 at that l
 
 ## Provenance
 
-Provenance: pending pilot (run id not yet assigned). Friction: recorded tracker-clerking facts (parent re-fetch, fields at creation, archive-not-delete, slug-until-id) and the Jira session-staleness learning (`NLTA/shared/learnings.md` 7, outside agent-hq), as named by spec 22 §6. Contracts: INTERFACES 1.5.0 parts A.1, A.6, B1-B4, B2.1, B6, B9, C8 (29-8), D1, D2.1, D2.2 row 14, D3 (AM-4 22: parent, optional-field, draft-defect and report-once rules); design card 14.
+Provenance: pending pilot (run id not yet assigned). Friction: recorded tracker-clerking facts (parent re-fetch, fields at creation, archive-not-delete, slug-until-id) and the Jira session-staleness learning (`NLTA/shared/learnings.md` 7, outside agent-hq), as named by spec 22 §6. Contracts: INTERFACES 1.7.0 parts A.1, A.6, B1-B4, B2.1, B6, B9, C8 (29-8), D1, D2.1, D2.2 row 14, D3 (AM-4 22: parent, optional-field, draft-defect and report-once rules; AM-6 B-9a/B-9b/B-9c: B4 `jira-create` parent, B9, A.6); design card 14.

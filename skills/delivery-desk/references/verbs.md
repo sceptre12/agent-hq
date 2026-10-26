@@ -3,7 +3,7 @@
 One section per B4 verb: requester and result reader, request `fields`, what the desk checks
 beyond the common 12 (`checks.md`), how it acts, and the `DONE` result fields (B6). The machine
 form of fields and results is `schemas.json`; part B4-B6 and the B9 additions
-(`architecture/delivery-workflow/interfaces/part-b-desk.md:77-143`, `:174-185`, INTERFACES 1.5.0)
+(`architecture/delivery-workflow/interfaces/part-b-desk.md:77-143`, `:175-188`, INTERFACES 1.7.0, AM-6 B-9a and f applied)
 are the authority; bare ids (D3,
 M24, N11, ...) resolve in `references/source-keys.md`. "Act" lines name the
 command family the desk uses under the operator's own auth; where INTERFACES fixes only the
@@ -20,7 +20,7 @@ transport commands, `gh`) or `--end-of-options` (git revision commands), passed 
 qualified `refs/...` name, or attached to its option as `--opt=<value>`. `repo` is an absolute
 path, shas are 40-hex and `pr`/`ci_run_id` are integers, so none of them can start with `-`.
 
-Repository binding (desk defaults ratified in B9 (26), `part-b-desk.md:177`: remote `origin`,
+Repository binding (desk defaults ratified in B9 (26), `part-b-desk.md:178`: remote `origin`,
 `--repo` from the origin URL; part B makes `repo` the only target check, `part-b-desk.md:14`): every act and read is bound to the request `repo` after check 6 has
 realpath'd it under a registered clone. `<remote>` is `origin` of that clone (the profile
 `clones[]` entry is a path only, `part-a-state.md:119`). Git acts use `git -C <repo>`. Every

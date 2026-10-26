@@ -10,7 +10,7 @@ Sources: card 3 and card 4 (part-02 §2.2); part-02 §2.4 (rung per artifact); p
 | `SLUG` | `run-doc-<n>`, `n` = 1 + the number of existing `RUN_HOME/review-tailor-run-doc-*.md` (spec 15 RESOLVED Q4; the same counter rule binds `delivery-dispatch-plan` with `run-plan-<n>`) |
 | `ARTIFACTS` | comma-separated absolute paths: `architecture.md` and its parts, every `contracts/*` file, `test-plan.md`, `release-plan.md`, every `drafts/*.md`, every existing repo doc step 1 updated |
 | `KIND` | `doc` |
-| `STAKES` | `one-way` when `architecture.md` item 4 holds an irreversible choice (data deletion or migration without rollback, a public API or published package shape, an external publication, a money flow; this example list is a default of this skill, the axis values are part D `interfaces/part-d-enums-topics.md:46`); else `reversible` |
+| `STAKES` | `one-way` when `architecture.md` item 4 holds an irreversible choice (data deletion or migration without rollback, a public API or published package shape, an external publication, a money flow; this example list is a default of this skill, the axis values are part D `interfaces/part-d-enums-topics.md:47`); else `reversible` |
 | `CONTENTION` | `contested` when item 4 lists an open decision with two or more live options, or the brief or `H1.notes.md` records a disagreement; else `none` |
 | `NOVELTY` | `novel` when step 1 found no existing architecture doc or pattern for the surface; else `known` |
 | `SECURITY_AUDIT` | `RUN_HOME/state.md` `security_audit`, unchanged (`guidance` when the key is absent, the A.2 default; part A.2, `interfaces/part-a-state.md:72`). The conductor sets that key; this skill never derives the value from its own `security_sensitive` line |

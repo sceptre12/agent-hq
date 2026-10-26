@@ -1,6 +1,6 @@
 # Step 0: input validation (delivery-architecture)
 
-Contract: INTERFACES 1.5.0 (`architecture/delivery-workflow/INTERFACES.md:3`): part D1 (`interfaces/part-d-enums-topics.md:6-11`; line regex `^INPUT-ERROR [A-Za-z_][][A-Za-z0-9_.]* (missing|enum|path|unset|format|sha)$`; reason `sha` added by AM-4 20), part D2.2 row 3 (named inputs, `part-d-enums-topics.md:77`), part A.1 (`DELIVERY_ROOT`, `RUN_HOME`, `<epic>`; `interfaces/part-a-state.md:7-53`), part A.2 (`state.md` keys `orchestrator_tier` `:60` and `security_audit` `:72`), part A.2.2 (profile keys, `part-a-state.md:109-161`; a missing key is `INPUT-ERROR <key> missing`, except `release_tags.*`, `:142`).
+Contract: INTERFACES 1.5.0 (`architecture/delivery-workflow/INTERFACES.md:3`): part D1 (`interfaces/part-d-enums-topics.md:6-11`; line regex `^INPUT-ERROR [A-Za-z_][][A-Za-z0-9_.]* (missing|enum|path|unset|format|sha)$`; reason `sha` added by AM-4 20), part D2.2 row 3 (named inputs, `part-d-enums-topics.md:78`), part A.1 (`DELIVERY_ROOT`, `RUN_HOME`, `<epic>`; `interfaces/part-a-state.md:7-53`), part A.2 (`state.md` keys `orchestrator_tier` `:60` and `security_audit` `:72`), part A.2.2 (profile keys, `part-a-state.md:109-161`; a missing key is `INPUT-ERROR <key> missing`, except `release_tags.*`, `:142`).
 
 Rule: check every field in the order below, print one line per failing field, then stop. An `INPUT-ERROR` reply carries no verdict: it is neither a D7 review round nor a `fix-verifier` iteration; the caller fixes the input and re-invokes (part D1, AM-4 11-Q11-R1). No retry, no prompt, no file written, no agent dispatched. Inputs arrive as `NAME=value` in the skill arguments; `DELIVERY_ROOT` is the environment variable only (part D2.2 transport).
 
@@ -22,7 +22,7 @@ Rule: check every field in the order below, print one line per failing field, th
 | 7 | `release_tags.used`, `.pattern`, `.approval` | optional (A.2.2 `:132-136`: absent is allowed, and then no tag step is planned, because the desk refuses it); read for step 7 and K12 | none |
 | 8 | `review_profile.*` | read if present and passed on through `review-tailor`'s own profile read; absent means none, never an error (spec 16 RESOLVED Q3, AM-2 row 5) | none |
 
-`RUN_HOME/state.md` (one YAML document, part A.2), read only when `RUN_HOME` passed its checks, so a missing `RUN_HOME` prints its one line and nothing about `state.md`. These are reads under `RUN_HOME`, not new inputs (D2.2 row 3 is unchanged); they feed `review-tailor`'s `ORCHESTRATOR_TIER` and `SECURITY_AUDIT` (D2.2 row 4, `part-d-enums-topics.md:78`):
+`RUN_HOME/state.md` (one YAML document, part A.2), read only when `RUN_HOME` passed its checks, so a missing `RUN_HOME` prints its one line and nothing about `state.md`. These are reads under `RUN_HOME`, not new inputs (D2.2 row 3 is unchanged); they feed `review-tailor`'s `ORCHESTRATOR_TIER` and `SECURITY_AUDIT` (D2.2 row 4, `part-d-enums-topics.md:79`):
 
 | # | Key | Check | Line on failure |
 |---|---|---|---|

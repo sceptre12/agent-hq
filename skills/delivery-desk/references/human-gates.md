@@ -2,7 +2,7 @@
 
 The human types one line in the desk session. These lines are not `SendMessage` verbs and not
 B4 verbs; an agent never sends them and the desk never accepts them over the transport. The desk
-is the only writer under `gates/` (M30). Authority: INTERFACES 1.5.0 part B8 and B9
+is the only writer under `gates/` (M30). Authority: INTERFACES 1.7.0 part B8 and B9 (AM-6 f `<run-id>` gate names, AM-7 touch-up 7 `VERDICT`)
 (`architecture/delivery-workflow/interfaces/part-b-desk.md:152-185`) and part A.2.1
 (`.../interfaces/part-a-state.md:92-108`); M30 resolves in `references/source-keys.md`.
 
@@ -12,9 +12,10 @@ is the only writer under `gates/` (M30). Authority: INTERFACES 1.5.0 part B8 and
 GATE   <run-id> <gate> <verdict> <text>     ^GATE ([a-z0-9-]+) (H0|H1|H-e2e\.(st[0-9]+|pm)|H-pr|H-prod\.[a-z0-9-]+|grant\.(st[0-9]+|pm)\.[0-9]+|H-destructive\.[A-Za-z0-9.-]+|RESUME\.(st[0-9]+|pm)) (ok|changes|reject)( .+)?$
 ANSWER <run-id> <subtask> <unit> <text>     ^ANSWER ([a-z0-9-]+) (st[0-9]+|pm) ([ui][0-9]+) (.+)$
 REBIND <run-id> <sender-id>                 ^REBIND ([a-z0-9-]+) ([^ ]+)$
+VERDICT <run-id> pm <row-id> <text>         ^VERDICT ([a-z0-9-]+) pm ([A-Za-z0-9.-]+) (.+)$
 ```
 
-B9 (AM-5 26, 21, queue row 29; `part-b-desk.md:179`, `:184`) adds three gates to B8:
+B9 (AM-5 26, 21, queue row 29; `part-b-desk.md:180`, `:185`) adds three gates to B8:
 `grant.<subtask>.<n>` (A.2.1 grant row, AM-4 20 Q1), `H-destructive.<row-id>` (a human grant for
 a destructive post-merge test row; `<row-id>` as D2.2 row 12, `[A-Za-z0-9.-]+`) and
 `RESUME.<subtask>` (the only exit from `stopped`, A.8 O-4). B9 GATE lines carry
@@ -77,6 +78,15 @@ human answer, M30): name `RUN_HOME/<subtask>/inbox/<seq>-<yyyymmddThhmmssZ>-answ
 `inbox/.seq/<seq>` for the next free number (a failed create tries the next number; the
 conductor shares the counter). Line 1 is the typed `ANSWER` line verbatim. Write to a temp name
 and `mv` into place, mode 0600. The lead processes it and renames it `<name>.consumed`.
+
+## VERDICT
+
+The owner's answer to a `post-merge-verify` row that needs a human decision (stop
+`product-decision`; INTERFACES 1.7.0 AM-7 touch-up 7, E47; part B8, C8 "C5.1 inbox"). Write one
+inbox file as for `ANSWER`, in `RUN_HOME/pm/inbox/`, named `<seq>-<yyyymmddThhmmssZ>-verdict.md`,
+line 1 `VERDICT pm <row-id> <text>` (the typed line without `<run-id>`). This is the owner's
+answer relayed, not a desk verdict: the desk judges nothing (AM-6 (a)). The `pm` lead re-runs
+`post-merge-verify`, which takes the line as the row's decision.
 
 ## REBIND
 

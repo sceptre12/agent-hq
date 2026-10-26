@@ -1,7 +1,7 @@
 # delivery-desk: the 12 checks, the registry, inflight and markers
 
-Depth for `SKILL.md` Steps 1 and 3-14. Authority: INTERFACES 1.5.0 part B (B1, B2, B3, B5, B6,
-B7, B9: `architecture/delivery-workflow/interfaces/part-b-desk.md:7-76`, `:108-151`, `:174-185`)
+Depth for `SKILL.md` Steps 1 and 3-14. Authority: INTERFACES 1.7.0 (AM-6, AM-7 applied) part B (B1, B2, B3, B5, B6,
+B7, B9: `architecture/delivery-workflow/interfaces/part-b-desk.md:7-76`, `:108-151`, `:175-188`)
 and part A (A.1, A.2.2, A.6, A.7, A.8: `.../interfaces/part-a-state.md:7-53`, `:109-161`,
 `:293-354`, `:356-378`). Bare ids
 (M29, R4-J20, ...) resolve in `references/source-keys.md`. This file restates them for the desk operator; where it
@@ -134,7 +134,7 @@ every other line waits in the queue, §Inflight item 0) (author default slice; t
 
 ## Inflight and the duplicate-action guard (B2 idempotency, check 9)
 
-0. One request at a time (ratified in B9 26, `part-b-desk.md:177`; part B's guard, `part-b-desk.md:47`, assumes the
+0. One request at a time (ratified in B9 26, `part-b-desk.md:178`; part B's guard, `part-b-desk.md:47`, assumes the
    earlier attempt has stopped). While a request is in checks 1-12, including a wait or a slow
    act, the desk answers only `STATUS` (step 15); every other `DESK`, `REGISTER-SENDER` or human
    line is queued in arrival order and handled after the current id has its `.out` (or its
@@ -209,7 +209,7 @@ is a lead stop, not a desk reply.
 
 Sender side, for reference only (the desk never calls it): `tools/delivery/desk-req.sh <run-id>
 <subtask|run> <verb> <fields-json-file>` writes `RUN_HOME/desk/<id>.req` (0600) and prints the
-`DESK` line; exit 0 ok, 2 usage, 4 lock timeout (INTERFACES §Script interfaces, `INTERFACES.md:51-59`). (moved from `SKILL.md`)
+`DESK` line; exit 0 ok, 2 usage, 4 lock timeout (INTERFACES §Script interfaces, `INTERFACES.md:55-63`). (moved from `SKILL.md`)
 
 - A `claude -p` lead polls `.out` (authoritative) up to 5 minutes, re-sends the same `<id>` once,
   then renames `<id>.req` to `<id>.req.noreply` and escalates (default; source

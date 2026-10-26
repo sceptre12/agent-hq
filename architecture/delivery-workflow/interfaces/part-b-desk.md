@@ -1,7 +1,7 @@
 # INTERFACES.md part B: desk interfaces
 
 - **Status:** draft, pending 2b review (design §7 item 2). Integrated 2026-10-26; every former `OPEN` is resolved with a one-line rationale; `DEFAULT (integrator)` marks a choice the design does not imply (logged in `INTERFACES.md`). Consistent with ADR 0055 (`decisions/0055-desk-verb-permission-tiers-02.md`); where this part fixes something the ADR leaves to `INTERFACES.md`, it says so.
-- **Sources:** design §6.3 (`architecture/delivery-workflow/part-05-execution-constraints.md:36-44`), §2.2 cards 15, 14, 10 (`part-02-skill-inventory.md:78`, `:76`, `:68`), §5.0 (`part-04-templates.md:5-7`), §5.8 (`part-04-templates.md:32-34`), §1 stages 5-6 (`part-01-summary-and-process-map.md:71-75`), §3.6 step 6 (`part-03-personas-and-concurrency.md:53-64`), §4 rule 8d (`part-03-personas-and-concurrency.md:82`); owner rulings D3, T1, R2-4, R2-5, R2-7 (`architecture/delivery-workflow-sources/owner-decisions.md:4`, `:31`, `:38`, `:39`, `:41`) and Q1, Q3 (`owner-decisions.md:57-60`); the ADR 0055 open-point answers OP1-OP10 (`owner-decisions.md:62-72`, owner 2026-10-26, "Accept all"), applied in `decisions/0055-desk-verb-permission-tiers-02.md:43-148`.
+- **Sources:** design §6.3 (`architecture/delivery-workflow/part-05-execution-constraints.md:36-44`), §2.2 cards 15, 14, 10 (`part-02-skill-inventory.md:78`, `:76`, `:68`), §5.0 (`part-04-templates.md:5-7`), §5.8 (`part-04-templates.md:32-34`), §1 stages 5-6 (`part-01-summary-and-process-map.md:71-75`), §3.6 step 6 (`part-03-personas-and-concurrency.md:53-64`), §4 rule 8d (`part-03-personas-and-concurrency.md:84`); owner rulings D3, T1, R2-4, R2-5, R2-7 (`architecture/delivery-workflow-sources/owner-decisions.md:4`, `:31`, `:38`, `:39`, `:41`) and Q1, Q3 (`owner-decisions.md:57-60`); the ADR 0055 open-point answers OP1-OP10 (`owner-decisions.md:62-72`, owner 2026-10-26, "Accept all"), applied in `decisions/0055-desk-verb-permission-tiers-02.md:43-148`.
 - **Scope:** runtime after the move. Build-time git (W0-W3) uses the existing desk under the `RESEARCH`/`INSTALL`/`STATUS` envelope (§6.3, R2-7; settled by the owner 2026-10-26, OP6 A: runtime only, build-time git keeps the existing envelope, `owner-decisions.md:68`).
 
 ## B1. Transport identity and sessions
@@ -157,9 +157,10 @@ The human types one line in the desk session (`DEFAULT (integrator)`: a typed li
 GATE   <run-id> <gate> <verdict> <text>     ^GATE ([a-z0-9-]+) (H0|H1|H-e2e\.(st[0-9]+|pm)|H-pr|H-prod\.[a-z0-9-]+) (ok|changes|reject)( .+)?$
 ANSWER <run-id> <subtask> <unit> <text>     ^ANSWER ([a-z0-9-]+) (st[0-9]+|pm) ([ui][0-9]+) (.+)$
 REBIND <run-id> <sender-id>                 ^REBIND ([a-z0-9-]+) ([^ ]+)$
+VERDICT <run-id> pm <row-id> <text>         ^VERDICT ([a-z0-9-]+) pm ([A-Za-z0-9.-]+) (.+)$
 ```
 
-Gate x verdict matrix (`DEFAULT (integrator)`: any other pair is refused in the desk session, nothing written): `H0` ok; `H1` ok, changes, reject; `H-e2e.<subtask>` ok; `H-prod.<step_id>` ok; `H-pr` none (external evidence only, B5). The `<run-id>` resolves `RUN_HOME`. The desk writes the file named in part A.2.1 with `utc=`, `by=` (OS login of the desk session), `ref=` (computed per A.2.1; a leading `ref=<value>` token in `<text>` overrides it, used for `jira:<KEY>@<comment-id>`), `text=`; for `H1 changes` and `H1 reject` it also writes `<text>` to `RUN_HOME/gates/H1.notes.md`, after renaming any earlier H1 files (part A.2.1). `ANSWER` is written into `RUN_HOME/<subtask>/inbox/` (part C5.1).
+Gate x verdict matrix (`DEFAULT (integrator)`: any other pair is refused in the desk session, nothing written): `H0` ok; `H1` ok, changes, reject; `H-e2e.<subtask>` ok; `H-prod.<step_id>` ok; `H-pr` none (external evidence only, B5). The `<run-id>` resolves `RUN_HOME`. The desk writes the file named in part A.2.1 with `utc=`, `by=` (OS login of the desk session), `ref=` (computed per A.2.1; a leading `ref=<value>` token in `<text>` overrides it, used for `jira:<KEY>@<comment-id>`), `text=`; for `H1 changes` and `H1 reject` it also writes `<text>` to `RUN_HOME/gates/H1.notes.md`, after renaming any earlier H1 files (part A.2.1). `VERDICT` (AM-7 touch-up 7, E47) answers a `post-merge-verify` row that needs a human decision: the desk writes `RUN_HOME/pm/inbox/<seq>-<yyyymmddThhmmssZ>-verdict.md` with line 1 `VERDICT pm <row-id> <text>` (part C8 "C5.1 inbox"). `ANSWER` is written into `RUN_HOME/<subtask>/inbox/` (part C5.1).
 
 | Gate | Evidence | Desk enforcement |
 |---|---|---|
@@ -169,7 +170,7 @@ Gate x verdict matrix (`DEFAULT (integrator)`: any other pair is refused in the 
 | H-pr | external: the approving review (B5) | `pr-merge` refuses without it |
 | H-prod | `RUN_HOME/gates/H-prod.<step_id>.ok` (FROZEN (integrator, ADR 0055 [freeze], `decisions/0055-desk-verb-permission-tiers-02.md:201-202`)) | `publish` refuses without the step's file; so does a `tag-push` under `release_tags.approval: human` (B4; `DEFAULT (integrator)`) |
 
-`RUN_HOME/gates/` holds run-level gates; `RUN_HOME/<subtask>/gates/` holds the sub-task's H-e2e file; `state.md` points at both.
+`RUN_HOME/gates/` holds run-level gates; `RUN_HOME/<subtask>/gates/` holds the sub-task's H-e2e file; `state.md` points at both. Every gate-file name in B2.1, B3, B4 and this table reads with the run-id suffix of A.2.1 (AM-5 26): `<gate>.<run-id>.<verdict>`, e.g. `H0.<run-id>.ok`, `H1.<run-id>.ok`, `H-e2e.<subtask>.<run-id>.ok`, `H-prod.<step_id>.<run-id>.ok`.
 
 ## B9. AM-5 additions (desk loop 26 and PR #10, decided; conductor conventions 29-4, 29-7, 29-10)
 

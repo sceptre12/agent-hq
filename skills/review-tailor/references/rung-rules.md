@@ -39,7 +39,7 @@ rubric or the modifier would place below 2b is raised to 2b, and the `mechanism:
 Ladder §3, as written: "When the executing/orchestrating models are mid-tier only ... shift
 **+1 rung** for the same artifact ... When a top-tier orchestrator is present, the ladder
 applies as written." `ORCHESTRATOR_TIER` is the caller's copy of the `state.md` key
-`orchestrator_tier` (key: `interfaces/part-a-state.md:59`), enum as D2.1 `tier`. When it is not `design`, move one step
+`orchestrator_tier` (key: `interfaces/part-a-state.md:60`), enum as D2.1 `tier`. When it is not `design`, move one step
 up the doc order (0 to 1, 1 to 2, 2 to 2b, 2b to 4). Rung 4 is the top rung and does not move;
 Rung 3 (`KIND=diff`) is fixed by task spec 16 §7.1 and does not move. `design`: no shift.
 Write the case in the `mechanism:` line as `modifier: none` or `modifier: +1`. A Rung 0
@@ -65,8 +65,8 @@ new facts; never keep last time's rung.
 ## 5. Per-repo review profile (task spec 16 RESOLVED Q3, §8.7)
 `RUN_HOME/state.md` `repo_profile` is `<abs path>@<sha>`; read that profile file's
 `review_profile.mandatory_seats[]` and `review_profile.blocking_rules[]` (listed in
-`interfaces/part-a-state.md:113`, AM-2 row 5, reader `review-tailor`). For an artifact in a linked clone the profile is the
-one INTERFACES row R4-J2 resolves (`interfaces/part-a-state.md:136`): the primary profile when
+`interfaces/part-a-state.md:117`, AM-2 row 5, reader `review-tailor`). For an artifact in a linked clone the profile is the
+one INTERFACES row R4-J2 resolves (`interfaces/part-a-state.md:144`): the primary profile when
 the path is under one of its `clones[]`, else the `linked_profiles[]` entry whose `clone`
 contains it. Absent state, file or keys: no mandatory seats, never an `INPUT-ERROR`.
 Mandatory seats by rung:

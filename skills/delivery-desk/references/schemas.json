@@ -1,8 +1,8 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "delivery-desk/references/schemas.json",
-  "$comment": "Machine-readable copy of INTERFACES 1.5.0 part B (B1, B2, B2.1, B4, B6, B8, B9); part B is the authority. verbs.<verb>.request validates the .req 'fields' object; verbs.<verb>.result validates a DONE .out; envelope alone validates a REJECTED .out.",
-  "interfaces_version": "1.5.0",
+  "$comment": "Machine-readable copy of INTERFACES 1.7.0 part B (AM-6 B-9a, AM-7 VERDICT reconciled) (B1, B2, B2.1, B4, B6, B8, B9); part B is the authority. verbs.<verb>.request validates the .req 'fields' object; verbs.<verb>.result validates a DONE .out; envelope alone validates a REJECTED .out.",
+  "interfaces_version": "1.7.0",
   "definitions": {
     "abs_path": {"type": "string", "pattern": "^/[^\\u0000-\\u001f\\u007f]+$", "$comment": "absolute path; the desk realpaths it under the root named in the B4 per-field rules"},
     "repo": {"type": "string", "pattern": "^/[^\\u0000-\\u001f\\u007f]+$", "$comment": "abs path; realpath under a registered clone (B3 step 6, else repo)"},
@@ -805,6 +805,7 @@
     "GATE": "^GATE ([a-z0-9-]+) (H0|H1|H-e2e\\.(st[0-9]+|pm)|H-pr|H-prod\\.[a-z0-9-]+|grant\\.(st[0-9]+|pm)\\.[0-9]+|H-destructive\\.[A-Za-z0-9.-]+|RESUME\\.(st[0-9]+|pm)) (ok|changes|reject)( .+)?$",
     "ANSWER": "^ANSWER ([a-z0-9-]+) (st[0-9]+|pm) ([ui][0-9]+) (.+)$",
     "REBIND": "^REBIND ([a-z0-9-]+) ([^ ]+)$",
+    "VERDICT": "^VERDICT ([a-z0-9-]+) pm ([A-Za-z0-9.-]+) (.+)$",
     "STATUS": "^STATUS +([a-z0-9-]+-(st[0-9]+|pm|run)-[0-9]{8}T[0-9]{6}Z-[0-9]+)$",
     "BUSY": "^BUSY ([a-z0-9-]+-(st[0-9]+|pm|run)-[0-9]{8}T[0-9]{6}Z-[0-9]+) \\| ([^|[:cntrl:]]+) \\| ([^|[:cntrl:]]+)$",
     "status_busy_source": "STATUS and BUSY are the permission-tiers-02 section 2 envelope lines (architecture/permission-tiers-02.md:92 grammar, :100-101 2-minute rule), not part B; the id group reuses the B2 id; the regex form is an author default",

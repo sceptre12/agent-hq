@@ -21,7 +21,7 @@ A transition event other than `published` and `archive` whose `to` equals the st
 
 1. An event subject matching the key shape `^[A-Z][A-Z0-9]+-[0-9]+$` is a key; take the latest row with that `key`. No such row: skip with one report line and pass the cursor.
 2. Otherwise it is a slug. A row for the slug: take the latest one and its `key`.
-3. A slug with a draft but no row is not yet created (creates run before events in a flush, so this means the create is held, rejected or still gated by `H1.ok`): the event cannot be applied yet. Stop applying events at that line, leave the cursor before it, report one line; it is retried at the next flush.
+3. A slug with a draft but no row is not yet created (creates run before events in a flush, so this means the create is held, rejected or still gated by `H1.<RUN_ID>.ok`): the event cannot be applied yet. Stop applying events at that line, leave the cursor before it, report one line; it is retried at the next flush.
 4. A slug with no row and no draft: skip with one report line and pass the cursor.
 
 Every row this skill writes comes from a read-back that carries a key, so it writes no row whose `key` is `-`. Part A.6 keeps `-` as the absence token for `key`; a `-` key row, if one is met, is read as no row (rule 3).

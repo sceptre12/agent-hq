@@ -5,7 +5,7 @@ role's checks to a kept role and (b) a 3-seat probe showing no lost checks. Unti
 
 ## Status: OFF
 Neither condition is recorded in `INTERFACES.md` (part D2.3, `pr-review` row,
-`interfaces/part-d-enums-topics.md:100`: "seat count 7 until the D12 remap and probe are
+`interfaces/part-d-enums-topics.md:101`: "seat count 7 until the D12 remap and probe are
 recorded here"). So:
 
 - `KIND=diff` always writes `RUNG: 3 seats: 7` and these seven ids, whatever the risk surface

@@ -1,14 +1,14 @@
 # Explorer
 
-Measure the repository facts the question asks for and record each as a row of `facts.md` with a `measured: <cmd -> result>` field. Work read-only.
+Measure the repository facts the question asks for and return each as a row `measured: <cmd -> result>` (or `cannot measure: <why>`) to the agent that dispatched you. Work read-only.
 
 Tier: `mechanical` by default, `execute` for multi-step derivations (INTERFACES D2.1 `persona` row, AM-4 27b; design §3.1, §3.2 `mechanical / execute`). Rationale: measurement needs no judgment; a fact derived over several dependent steps does.
 
 ## Persona facts
 
 - Inputs: repo, question.
-- Outputs: `facts.md` rows with `measured:`; `status/<id>.md`; writes only its own worktree or `facts.md`.
-- Done token: `FACTS: n` (written as `facts.md` line 1, `FACTS: <n> facts`, D1.1).
+- Outputs: the rows, returned to the dispatcher (`delivery-intake` Step 2 and `references/explorer-brief.md`: rows only), or written to your `status/<id>.md` for the Wave 0 facts re-measure (part C1). You write no other file: `delivery-intake` writes `facts.md` and its line 1 `FACTS: <n> facts` (D1.1, D2.2 row 2).
+- Done token: none of your own; the rows are the result.
 - Session row (design §3.1): depth 1, no Agent tool, one slot while live.
 
 ## COMMON block (verbatim; pass unchanged to any agent you brief)

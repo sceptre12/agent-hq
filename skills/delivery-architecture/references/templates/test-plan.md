@@ -2,7 +2,7 @@
 
 Purpose: how the epic is proven, before merge and after. Path `plans/<epic>/test-plan.md` (v0, written at stage 2). `post-merge-verify` runs the post-merge rows and records results in `RUN_HOME/postmerge-<sha>.md`.
 
-**Writer / Reader:** writer `delivery-architecture` (INTERFACES A.6); readers `delivery-dispatch-plan` (e2e per unit), `pre-pr-gate`, `post-merge-verify`, `release-track`, the human at H-e2e.
+**Writer / Reader:** writer `delivery-architecture` (v0, INTERFACES A.6), except §A3: its e2e rows and the batched `.feature` list are written by `delivery-dispatch-plan` at stage 3 from v0 (INTERFACES 1.8.0 AM-8 V12); readers `delivery-dispatch-plan` (e2e per unit), `pre-pr-gate`, `post-merge-verify`, `release-track`, the human at H-e2e.
 
 ## Rules
 - Strategy line and phase order come from the repo profile (`repo-profile.md`, INTERFACES A.2.2); link it as `@<40-hex sha>`, never copy it.
@@ -29,13 +29,13 @@ Phase order: <from the profile, e.g. unit, integration, e2e, post-merge>
 | ci-parity | local gate equals CI | <profile command> | same result as CI |
 | standardization-precheck | repo conventions satisfied | <profile command> | clean |
 
-### A3. e2e rows (omit when every unit is `none`)
+### A3. e2e rows (omit when every unit is `none`; writer `delivery-dispatch-plan`, stage 3, AM-8 V12)
 | sub-task | unit slug | .feature path | Gherkin checkpoint date | generated spec path | nl-run-e2e result | auto-healed diffs reviewed (yes|no) |
 |---|---|---|---|---|---|---|
-Gherkin checkpoint date is `YYYY-MM-DD`; the human signs H-e2e per sub-task (INTERFACES A.2.1).
+At stage 3 the writer fills sub-task, unit slug and `.feature` path; the later columns stay `-` until their run. Gherkin checkpoint date is `YYYY-MM-DD`; the human signs H-e2e per sub-task (INTERFACES A.2.1).
 
 #### Batched `.feature` list per sub-task (H-e2e)
-One block per sub-task with e2e rows; the desk's H-e2e `ref=` is the sha256 of this list for that sub-task (INTERFACES A.2.1), so change it only before H-e2e.
+One block per sub-task with e2e rows, written by `delivery-dispatch-plan` at stage 3 (AM-8 V12); the desk's H-e2e `ref=` is the sha256 of this list for that sub-task (INTERFACES A.2.1), so change it only before H-e2e.
 ```
 st<N>:
 <.feature path>

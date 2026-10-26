@@ -23,7 +23,7 @@ impl-u07 implementer u07 execute 2026-11-02T10:31:00Z 45 /abs/delivery/wt/found-
 | Lead-own agents: Wave 0 gate runner, Wave 0 Explorer, constitution agent, Integrator for `st0`, `delivery-cleanup` executor and validator | yes, before the Agent call | `persona` per D2.1. `budget_min` from `durations.*`. `unit` `-` unless the agent serves one. |
 | Agents of hosted skills: `pre-pr-gate`'s gate runner, G48 checker, fixer, fix-verifier, validator, Verified-By seat and security auditors; `ci-fix-loop`'s gate runner | yes, before each dispatch (PC-W2-6) | `budget_min` `durations.pr_review_min` for `pre-pr-gate` agents and `durations.ci_round_min` for `ci-fix-loop` agents |
 | `security-audit` hunters and verifiers (full mode, inside `pre-pr-gate`) | yes, before each starts (A.4 AM-1) | `persona` `security-auditor`, `unit` `-`, `tier` `verify`. Their total `budget` is the free-slot count at launch, and none starts without a free slot. |
-| Reserved seats: the shepherd, `pre-pr-gate` review seats (`review: 10`), `ci-fix-loop`'s diagnoser, fixer, G48 checker and fix-verifier (one at a time under `ci: 1`) | **no row**; counted through `reserved` (A.3, A.4, PC-W2-6) | none. `clerk: 1` stays reserved but unused: the clerk runs only in the conductor (A.6). |
+| Reserved seats: the shepherd, `pre-pr-gate` review seats (`review: 10`), `ci-fix-loop`'s diagnoser, fixer, G48 checker and fix-verifier (one at a time under `ci: 1`) | **no row**; counted through `reserved` (A.3, A.4, PC-W2-6) | none. No clerk seat: the clerk runs only in the conductor session (INTERFACES 1.8.0 AM-8 V8; D2.2 row 14, D3). |
 
 A slot is never reserved ahead: there are no reservation rows (A.4). Gate and fix agents count toward `max_concurrent`, and one with no free slot waits (C1.1).
 
@@ -37,7 +37,7 @@ The controller appends the line before it dispatches the agent, and the lead wri
 max_concurrent = 30 - live_rows - sum(reserved)
 ```
 
-- `live_rows` counts `slots/*.row`. `reserved` is the seed map (`shepherd: 1, clerk: 1, ci: 1, review: 10`), copied into `substate.md` and never edited by the lead (A.3). In `plan-pr` and `post-merge`, which have no seed, the lead writes the same map at SKILL.md step 2 (proposed CV29), so the formula and the machine row count `pre-pr-gate`'s `review: 10` seats.
+- `live_rows` counts `slots/*.row`. `reserved` is the seed map (`shepherd: 1, ci: 1, review: 10`; no clerk seat, AM-8 V8), copied into `substate.md` and never edited by the lead (A.3). In `plan-pr` and `post-merge`, which have no seed, the lead writes the same map at SKILL.md step 2 (proposed CV29), so the formula and the machine row count `pre-pr-gate`'s `review: 10` seats.
 - Compute it **after** the controller row exists, so the controller's own slot is already subtracted (Q1).
 - `max_concurrent` is a caller argument passed on each invocation (C1.1). It is never a spec field and never a constant 30. Before the controller row is written, the lead requires `30 - live_rows - sum(reserved) - 1 >= 1`; otherwise it bumps nothing, writes no row, releases the leases it took in this pass, and waits. The tick's pending-dispatch step re-enters the loop at 10.1 (`tick.md` step 9a, proposed CV21); the wait has a row and a bound in `tick.md` "Wait states" (proposed CV41).
 - A controller return of `VALIDATION_FAILED` or `BUNDLE-ERROR <field>` (C1.1, AM-4 9) dispatched nothing: free the `wave-controller` row, write `stop_reason: human` and stop.

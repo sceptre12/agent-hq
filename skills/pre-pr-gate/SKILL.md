@@ -96,7 +96,8 @@ except reserved-seat agents (review seats, counted by `substate.md` `reserved`, 
    precedes (1 before round 1), disjoint by `agent-id` (A.6); `fix-verifier` verifies each G48 fix as in step 13 (AM-4 20
    Q4). Before round 1 also dispatch a `plan-checker` (verify tier, slot row; brief
    `skills/delivery-run/references/briefs/plan-checker.md`) on the round's inputs (D55, AM-4 20
-   Q2); it writes its verdict to `RUN_HOME/<subtask>/gate/plan-check.md` (A.6 row; INTERFACES 1.6.0 AM-6 B-9b). Repeat the G48 check after every fix and after step 19 drafts `pr-body.md`.
+   Q2); it writes its verdict to `RUN_HOME/<subtask>/gate/plan-check.md` (A.6 row; INTERFACES 1.6.0 AM-6 B-9b). Its reader is the
+   completeness validator (step 16): checklist row C3 needs line 1 `PLAN-CHECK: clean` (INTERFACES 1.8.0 AM-8 V9). Repeat the G48 check after every fix and after step 19 drafts `pr-body.md`.
 9. **Security seat.** Pass `SECURITY_AUDIT` to `pr-review`; under `guidance` (default) its
    security seat loads `skills/security-audit` diff-scoped, writes no file, launches no agent.
    Under `full` (only on an explicit operator request or a `security_sensitive: yes` epic, set
@@ -112,7 +113,9 @@ except reserved-seat agents (review seats, counted by `substate.md` `reserved`, 
 11. **Round r (r = 1..3): run `pr-review` local-diff.** Inputs `PR_REVIEW_MODE=local-diff`,
     `ROLES`, `RECORD_PATH=RUN_HOME/review/<subtask>/record-<HEAD>.md` (absolute, D2.2 `(path)`),
     `STACK_BASE` = the PR base sha the branch was rebased onto, `STACK_HEAD` = `HEAD`,
-    `SECURITY_AUDIT`, `RUN_ID`, `SUBTASK` (the review bus lives under
+    `SECURITY_AUDIT`, `RUN_HOME` (in-run mode; D2.3 should list it, erratum pending), `REPO_DIR` (the sub-task worktree), `SEAT_ID` (the orchestrator's own seat id),
+    `MEMBER_SESSION_NAME` (the lead's session token), `TASK_ID` (this skill is their D2.3 producer,
+    INTERFACES 1.8.0 AM-8 V15), `RUN_ID`, `SUBTASK` (the review bus lives under
     `RUN_HOME/review/<subtask>/<review-id>/bus/`, A.1, D5, AM-5 10-B2), `BUS_PORT` (required
     in a run) = the `review-bus` row candidate for this sub-task in the P8
     port table of `<plans_dir>/dispatch-plan.md` (A.5.2: `ports.bus_base + 20·(2N+1)`, AM-4 W2-3; template
@@ -147,7 +150,8 @@ except reserved-seat agents (review seats, counted by `substate.md` `reserved`, 
 16. **Completeness validator.** Dispatch a verify-tier agent to walk every checklist row except
     C13, C21 and C22, re-run each evidence command itself on the final head (so steps 3-7 are
     re-checked there) and diff the plan's unit list (`<plans_dir>/dispatch-plan.md`) against
-    `substate.md` `integrated`. It walks C13, C21 and C22 after step 19, when their evidence
+    `substate.md` `integrated`, and reads `RUN_HOME/<subtask>/gate/plan-check.md` for row C3 (plan-check
+    verdict PASS = line 1 `PLAN-CHECK: clean`; AM-8 V9). It walks C13, C21 and C22 after step 19, when their evidence
     exists. Fail on any single failing Blocking row; never a weighted score.
 17. **Verified-By.** Dispatch a seat whose id differs from line 2's `Reviewed-By`; it re-derives
     the head sha and 0 Blocking / 0 Medium from line 1

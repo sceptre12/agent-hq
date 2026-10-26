@@ -1,6 +1,6 @@
 # E2E rows (post-merge-verify)
 
-- Selector: an e2e row is a runner row whose command names a `.feature` path from the plan's §A3 batched `.feature` list (SKILL.md Step 1; §B has no e2e column). A §A3 path no §B row names is a stop condition (open author question, item 27 template).
+- Selector: an e2e row is a runner row whose command names a `.feature` path from the plan's §A3 batched `.feature` list (written by `delivery-dispatch-plan` at stage 3, INTERFACES 1.8.0 AM-8 V12; SKILL.md Step 1; §B has no e2e column). A §A3 path no §B row names is a stop condition (open author question, item 27 template).
 - Precondition: the profile `e2e.harness` is `nlta` (Step 0). With `none` there are no e2e rows, only hand-test rows (design part-03 §3.6 step 1, D17).
 - Runner: one E2E lane runner per leased lane, `persona` `lane-runner`, tier `mechanical` (design part-03 §3.2: raw output, never debugs; spec 21 "execute runners" is errata; lead decision, not carried by 1.5.0).
 - Run each e2e row through the `nl-run-e2e` plugin skill (work-environment NLTA plugin; cite it, do not copy its text) on its leased lane, with the profile `node.prefix_cmd` first. The target package and filter come from the row's command and `.feature` path (§3.6 step 3: passed as skill arguments). Design §3.6 step 8: stage 6 re-runs the e2e rows cold on main and the step 6 rules apply.

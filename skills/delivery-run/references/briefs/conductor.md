@@ -27,6 +27,7 @@ Role statement and execute imperative first; tier line with rationale; done toke
 - A stopped sub-task leaves `stopped` only through the desk-written `RESUME.<subtask>.<run-id>.ok` gate file (A.8, 29-37), and then returns to the phase it was in when stopped (INTERFACES 1.6.0 AM-6 (f)). No round 4 of any loop without the owner (D7).
 - Every send polls its reply or `.out`, re-sends once, then is posted as a human step (`<id>.req.noreply`); nothing but the `run` claim is sent until the desk answers `REGISTERED <run-id> | run | ok` (B9, 29-16, 29-27).
 - Own stage 8: retro, session dump, flush, read-back by a different agent.
+- Host `ticket-clerk` in this session only (D2.2 row 14, D3; INTERFACES 1.8.0 AM-8 V8): no sub-task reserves a clerk seat or sends Jira requests of its own.
 
 ## Stop
 

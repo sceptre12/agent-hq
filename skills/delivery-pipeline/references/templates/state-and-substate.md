@@ -88,7 +88,7 @@ machine_ledger_row: <abs path>        # $DELIVERY_ROOT/machine/<session>.row of 
 | `phase: building` read in the lead's `substate.md` | `building` | `substate.md` |
 | `pr-create` `.out` | `pr-open` (`pr` set) | desk result |
 | `pr-merge` `.out` | `merged` (`merge_sha` set) | desk result |
-| `stop_reason` in `stop-the-line:*\|d7-round3\|human\|port-refused` (`stale-session` keeps the state and is posted as a human step, A.2; `spawn-cap` keeps the state and triggers a C5.3 relaunch; `invalidate` keeps it until the fresh `RELEASE`) | `stopped` | `substate.md` |
+| `stop_reason` in `stop-the-line:*\|d7-round3\|human\|port-refused\|stale-session` (`stale-session` is written by the conductor from a `STOP stale-session` post and is also a human step, INTERFACES 1.8.0 AM-8 V1; `spawn-cap` keeps the state and triggers a C5.3 relaunch; `invalidate` keeps it until the fresh `RELEASE`) | `stopped` | `substate.md` |
 | `RUN_HOME/gates/RESUME.<subtask>.<run-id>.ok` (desk-written, owner action) | leaves `stopped`: the only exit | A.8, B9 |
 | `CLEANUP DONE <subtask>` | `cleaned` (for `pm` only once `release_record` line 1 is terminal and `cleanup-<run-id>-pm.md` is newer than the current `pm` `launched_utc`) | cleanup record |
 | back-edge: sub-task re-enters stage 4 | `pr-open` or `merged` to `building`; `merge_sha` cleared in the same write when `INVALIDATE ... predecessor-reentered` goes to successors | part C6 |
@@ -142,7 +142,7 @@ Path: `RUN_HOME/<subtask>/substate.md`. Created by the lead from `substate.seed.
 subtask_id: <subtask>
 session_id: <run-id>-<subtask>        # bus session_id, pinned, stable across resume
 live: <n>/30 (derived)                # derived from the count of slots/*.row; never hand-set
-reserved: {shepherd: 1, clerk: 1, ci: 1, review: 10}   # review: 10 per concurrent pr-review
+reserved: {shepherd: 1, ci: 1, review: 10}   # review: 10 per concurrent pr-review; no clerk seat (AM-8 V8)
 spawns: <n>/<cap>                     # cap measured at P0 (unmeasured: verify at move); lead stops at cap - 5
 frontier: []                          # current DAG frontier, unit ids
 interfaces_version: <version>@<sha256> # kept from the seed unchanged (A.3; same value as state.md, A.2)
@@ -169,7 +169,7 @@ release_record:                       # pm lead only: abs path of release-<sha>.
 | Field | Rule |
 |---|---|
 | `live` | always `<n>/30` and always derived; the literal `(derived)` marks that nobody types the number |
-| `stop_reason` | `stop-the-line:<row>` (regex `^stop-the-line:[A-Z]+[0-9]+[a-z]?$`) \| `d7-round3` \| `invalidate` \| `spawn-cap` \| `human` \| `port-refused` \| `stale-session`. `port-refused`: a lead-owned port claim refused after its one +10 retry, or `port-check.sh` exit 3 (AM-4). `stale-session`: a second `pm` lead finds a fresh `substate.lock` (AM-5, lead decision pending owner O-1). `ci-fix-loop`'s `CI: HUMAN d7-round3` maps to `d7-round3`; an unnamed stop is `human` (A.8, 28-CV2) |
+| `stop_reason` | `stop-the-line:<row>` (regex `^stop-the-line:[A-Z]+[0-9]+[a-z]?$`) \| `d7-round3` \| `invalidate` \| `spawn-cap` \| `human` \| `port-refused` \| `stale-session`. `port-refused`: a lead-owned port claim refused after its one +10 retry, or `port-check.sh` exit 3 (AM-4). `stale-session`: a second `pm` lead finds a fresh `substate.lock` and posts `STOP stale-session`; the conductor writes this value and maps `pm` to `stopped` (INTERFACES 1.8.0 AM-8 V1). Writer: the lead (the conductor for `stale-session`); the desk clears it when it writes `RESUME.<subtask>.<run-id>.ok` (AM-8 V2). `ci-fix-loop`'s `CI: HUMAN d7-round3` maps to `d7-round3`; an unnamed stop is `human` (A.8, 28-CV2) |
 | `tick_utc` | rewritten on every tick; no move within 12 minutes of a `claude -p` lead's first invocation reads as "the cron does not fire" (C1.1 fallback) |
 | stop-the-line row ids | closed: `S1` classifier or harness block; `S2` failed gate; `S3` authoring on main; `S4` spawn without a free slot; `S5` verifier authored the code; `S6` two writers on one `substate.md`; `S7` unrecorded production write; `G1` build or publish from the main checkout; `G3` release step before its simulation; `G4` hooks skipped without a recorded pass; `G5` fix commits left unpushed; `D23` pipeline-definition edit by an agent; `S8` sub-task bus down after two failed restarts |
 | `phase` | the conductor maps it to `subtasks[].state` (Part 1.2); the lead sets `building` before its first `wave-execution` invocation (A.8, 28-CV18) |
@@ -195,7 +195,7 @@ Completion signal: the single topic `<run-id>-<subtask>-rendezvous` on the sub-t
 
 ## Part 3. Slot row (A.4)
 
-Path: `RUN_HOME/<subtask>/slots/<agent-id>.row`. One line, 9 space-separated fields in this order. Written by the lead before the dispatch for every agent it dispatches, except reserved-seat agents (shepherd, clerk, ci, review seats), which are counted by `reserved`.
+Path: `RUN_HOME/<subtask>/slots/<agent-id>.row`. One line, 9 space-separated fields in this order. Written by the lead before the dispatch for every agent it dispatches, except reserved-seat agents (shepherd, ci, review seats; the clerk has no sub-task row, it runs only in the conductor session, AM-8 V8), which are counted by `reserved`.
 
 | # | Field | Constraint |
 |---|---|---|

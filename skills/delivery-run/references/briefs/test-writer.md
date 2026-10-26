@@ -20,7 +20,7 @@ Role statement and execute imperative first; tier line with rationale; done toke
 
 - Start only on a frozen interface; tests and implementer run concurrently only then. [par.rule 4]
 - Write the criterion-to-file map as a per-unit map file; shared append-only files stay serial. [Must stay serial]
-- Never request the gate runner yourself: post `UNIT-VERDICT` with your head; `wave-execution`'s per-work_item gate agent runs the profile gate command and writes the `GATE-PASS` record for that head. `HUSKY=0` applies to your commits as an inline per-command assignment (A.7, AM-4 13).
+- Never request the gate runner yourself: post `UNIT-VERDICT` with your head; `wave-execution`'s per-work_item gate agent runs the profile gate command and writes the `GATE-PASS` record for that head. Every commit you make runs with an inline `HUSKY=0` (`HUSKY=0 git commit ...`, never exported; the profile's interactive `prepare-commit-msg` hook, AM-4 13); the per-push `GATE-PASS` replaces pre-commit hooks (A.7, INTERFACES 1.8.0 AM-8 V11).
 
 ## Stop
 

@@ -80,8 +80,9 @@ Fallback).
    differs from the id is caught here); `fields` passes `verbs.<verb>.request` (closed, every
    field required, `jira-create` top-level `parent` exactly when `fields.issuetype` is not
    `Epic` and never `fields.parent`,
-   arrays never strings, no raw flag, no force, no unknown key); `pr-merge` `method` equals the
-   profile `merge_method` and `fields.subtask` equals the `record_path` segment. Else `schema`.
+   arrays never strings, no raw flag, no force, no unknown key); `pr-merge` `fields.subtask` equals
+   the `record_path` segment. Else `schema`. The `pr-merge` `method` is compared with the profile
+   `merge_method` at step 9, once the profile is resolved (`repo`; INTERFACES 1.8.0 AM-8 V7).
    A `<verb>` outside the 20 (approve, trigger-prod, pipeline-edit included) is `schema` here,
    never `policy`. A `ref`, `base`, `merged_into`, `tag` or `package` starting with `-` is a raw
    flag and is `schema` here, as is an int written `-0` or in exponent form (B9, A.8 A.5). The branch regex is not checked here (`repo`, step 9; checks.md row 5).
@@ -89,7 +90,7 @@ Fallback).
    `branch` regex, `body_path`/`payload_path` realpath under `RUN_HOME/review/` or
    `RUN_HOME/bodies/` (`test-report-push`: `bodies/`), `record_path` under
    `RUN_HOME/review/<subtask>/` (`pr-merge`: segment = `fields.subtask`) and named `record-<expect_head>.md`, `pr-attach` `paths[]` under
-   `RUN_HOME/<subtask>/lanes/`; else `repo` (a `-`-led branch fails the regex).
+   `RUN_HOME/<subtask>/lanes/`, and the `pr-merge` `method` equal to the profile `merge_method`; else `repo` (a `-`-led branch fails the regex; AM-8 V7).
    Redaction (B7): scan every string field and every file a path names with
    `grep -E -q -f <secrets.pattern_file>`; a hit is `policy`, never masked. The scan fails
    closed: a pattern file that is absent, unreadable or empty, or a grep exit other than 0 (hit)
@@ -121,13 +122,13 @@ Fallback).
     (`git -C <repo>`, `gh --repo=<gh-repo>` from the origin URL, `<remote>` = `origin`, ratified in B9; verbs.md §Repository binding), with
     every request-derived value after `--` or `--end-of-options`, as a `refs/...` name, or
     attached as `--opt=<value>`, so none can be read as a flag. Any
-    remote, `git` or `gh` error is `action-failed` with the redacted error line as `detail`;
+    remote, `git` or `gh` error is `action-failed` with the error line as `detail`, masked (`[REDACTED]`, B7, AM-8 V7);
     `.inflight` stays.
 13. **B3 (10-11) record.** Write `RUN_HOME/desk/<id>.out` to a temp file in `desk/`, `chmod 0600`,
     `mv` into place: one JSON object, envelope `{id, verb, status, reason, detail,
     request_sha256, sender, utc}` plus, on `DONE` only, the verb's result fields with no other key.
     Write it **also for `REJECTED`** (envelope only, `detail` non-null), except reason `sender` (step 4). Append one
-    redacted JSON line for the request and one for the result to
+    JSON line for the request and one for the result, masked (`[REDACTED]`, AM-8 V7), to
     `$DELIVERY_ROOT/desk-log/<run-id>.jsonl`.
 14. **B3 (12) reply** by `SendMessage` to the transport sender, one line, single spaces:
     `DONE <id> | <verb> | result=<abs RUN_HOME/desk/<id>.out> | <one-line verdict, no imperatives>`
@@ -214,7 +215,7 @@ with a fresh id, OP5 B): `references/checks.md` §Reason codes; machine form `sc
       `--no-verify`, and a `push` or
       `pr-create` only after the desk read its `gate-runs/<expect_head>.md`.
 - [ ] No PR approval, production trigger, pipeline edit or raw flag was executed.
-- [ ] Each request and result has one redacted line in `desk-log/<run-id>.jsonl`.
+- [ ] Each request and result has one masked (`[REDACTED]`) line in `desk-log/<run-id>.jsonl`.
 - [ ] Every registry change is mirrored in `desk-inbox/<run-id>.registry`; every gate file written
       came from a typed `GATE` line inside the B8 and B9 matrix, named `<gate>.<run-id>.<verdict>`.
 

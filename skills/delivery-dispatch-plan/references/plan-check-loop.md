@@ -13,7 +13,7 @@ Authority: INTERFACES C1.3 (invocation), D1.1 (`PLAN-CHECK:` token), owner D7 (r
 2. It runs spec-format rules 1-11 and 13-15 on every `waves/`, and writes `RUN_HOME/plan-check.md`. Line 1 is `PLAN-CHECK: clean` or `PLAN-CHECK: <n> findings`; the rest lists findings.
 3. Read line 1 from the file (the file is the carrier; do not take the checker's chat reply as the token).
 4. `clean`: stop the loop.
-5. `<n> findings`: fix the plan files in one pass (exact edit per finding, protected values listed, no new scope). Run the G48 check again on the fixed files, re-run the checklist, then start the next round with a new checker. A finding that arrives mid-round waits for the next round start.
+5. `<n> findings`: fix the plan files in one pass (exact edit per finding, protected values listed, no new scope). Run the G48 check again on the plan files, re-run the checklist, then start the next round with a new checker. A finding that arrives mid-round waits for the next round start.
 
 ## Stop rules
 
@@ -25,4 +25,4 @@ Authority: INTERFACES C1.3 (invocation), D1.1 (`PLAN-CHECK:` token), owner D7 (r
 
 ## After clean
 
-Call `review-tailor` (inputs in SKILL.md step 12), run the `RUNG:` it returns (its plan rule is card 5: 2b above 10 units, else 1; `review-tailor` rung-rules; naming the rung, never inlining the mechanism), and loop to 0 blocking and 0 medium or round 3. After every review fix, run the G48 check on the fixed files (`part-03` G48: after every fix) and re-run the checklist; a review fix that changes `waves/` or the unit table also gets a fresh Plan-checker in that same review round. That checker belongs to that review round and does not open a new Plan-check round; the review loop's cap is owner D7; the final line 1 of `plan-check.md` must be `clean` at exit unless the owner was told otherwise.
+Call `review-tailor` (inputs in SKILL.md step 12), run the `RUNG:` it returns (its plan rule is card 5: 2b above 10 units, else 1; `review-tailor` rung-rules; naming the rung, never inlining the mechanism), and loop to 0 blocking and 0 medium or round 3. After every review fix, run the G48 check on the plan files (`part-03` G48: after every fix) and re-run the checklist; a review fix that changes `waves/` or the unit table also gets a fresh Plan-checker in that same review round. That checker belongs to that review round and does not open a new Plan-check round. When it returns findings, that review round's fixer fixes them in the same round (G48 and the checklist again after the fix); what is still open is carried into the next review round, and the review loop's owner D7 cap ends it; the final line 1 of `plan-check.md` must be `clean` at exit unless the owner was told otherwise.

@@ -74,3 +74,11 @@
   - Q2 yes. Q3: gate and fix agents COUNT toward max_concurrent. Q4-Q11 yes, per the loop record.
   - RATIFY 0054 once the fix-verifier confirms the answers are written in.
 - ADR 0055: RATIFY once the fix-verifier confirms the OP1-10 answers are written in.
+- Cloudflare security-audit-skill: owner YES (2026-10-26) to a desk INSTALL into agent-hq (W skills/); wired into the security review seat in pre-PR gate and panels.
+- INTERFACES 2b (owner, 2026-10-26):
+  - Allow ONE more 7-seat round (round 4) before the freeze. This is a one-off owner extension of D7 for this item.
+  - N10: ALWAYS HUSKY=0 on desk pushes. The recorded affected lint/test/typecheck pass before each push (D21/R2-3) still applies.
+  - N11: the owner said "We aren't using release tags for certain repos so the convention for pushing will need to assessed on a case by case basis". tag-push behaviour is set per repo in repo-profile.md:
+    - whether the repo uses release tags at all;
+    - if it does, its push and approval rule.
+    With no profile entry, tag-push is refused.

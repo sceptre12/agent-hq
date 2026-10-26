@@ -1,15 +1,15 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "delivery-desk/references/schemas.json",
-  "$comment": "Machine-readable copy of INTERFACES 1.4.0 part B (B1, B2, B2.1, B4, B6, B8); part B is the authority. verbs.<verb>.request validates the .req 'fields' object; verbs.<verb>.result validates a DONE .out; envelope alone validates a REJECTED .out.",
-  "interfaces_version": "1.4.0",
+  "$comment": "Machine-readable copy of INTERFACES 1.5.0 part B (B1, B2, B2.1, B4, B6, B8, B9); part B is the authority. verbs.<verb>.request validates the .req 'fields' object; verbs.<verb>.result validates a DONE .out; envelope alone validates a REJECTED .out.",
+  "interfaces_version": "1.5.0",
   "definitions": {
     "abs_path": {"type": "string", "pattern": "^/[^\\u0000-\\u001f\\u007f]+$", "$comment": "absolute path; the desk realpaths it under the root named in the B4 per-field rules"},
     "repo": {"type": "string", "pattern": "^/[^\\u0000-\\u001f\\u007f]+$", "$comment": "abs path; realpath under a registered clone (B3 step 6, else repo)"},
     "branch": {"type": "string", "$comment": "deliberately no pattern here: the branch regex ^[A-Z][A-Z0-9]+-[0-9]+(-[a-z0-9-]+)?$ is applied at B3 check 6 and fails as repo (part B2.1 repo row; B3 step 6), not schema at check 5. The regex cannot start with -, so a branch never reaches argv as a flag; the desk also passes it only as refs/heads/<branch> or after -- / --end-of-options"},
     "git_ref": {"type": "string", "pattern": "^[A-Za-z0-9._/][A-Za-z0-9._/-]*$", "$comment": "part B4 git ref charset with no leading - (no raw flag, ADR 0055 section 4; same rule as tools/delivery/desk-req-schema.sh ref); a leading - is schema at check 5"},
-    "pr": {"type": "integer", "minimum": 0, "$comment": "part B4 int; minimum 0 matches desk-req-schema.sh int (>= 0); part B sets no other bound"},
-    "ci_run_id": {"type": "integer", "minimum": 0, "$comment": "part B4 int; minimum 0 matches desk-req-schema.sh int (>= 0)"},
+    "pr": {"type": "integer", "minimum": 0, "$comment": "part B4 int; minimum 0 matches desk-req-schema.sh int (>= 0); part B sets no other bound. Lexical rule (A.8 A.5 contract rule, PR10-R2; AM-5 numeric guards): an int is written as plain decimal digits, so -0 and exponent forms (1e3, 1E+3) are schema at check 5; JSON Schema cannot see the lexical form, so the desk applies it to the raw .req text"},
+    "ci_run_id": {"type": "integer", "minimum": 0, "$comment": "part B4 int; minimum 0 matches desk-req-schema.sh int (>= 0); -0 and exponent forms are schema (see pr)"},
     "sha40": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
     "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
     "fields_subtask": {"type": "string", "pattern": "^(st[0-9]+|pm)$"},
@@ -17,8 +17,8 @@
     "label": {"type": "string", "pattern": "^[A-Za-z0-9._:-]+$", "$comment": "part B4 and desk-req-schema.sh labels; a label is only ever passed as the attached value --label=<label>, never as a separate argv word, so a leading - cannot act as a flag"},
     "job": {"type": "string", "pattern": "^[^\\u0000-\\u001f\\u007f]{1,200}$"},
     "tag": {"type": "string", "pattern": "^[A-Za-z0-9._/][A-Za-z0-9._/-]*$", "$comment": "part B4 tag charset with no leading - (no raw flag; same rule as desk-req-schema.sh tag); a leading - is schema at check 5"},
-    "package": {"type": "string", "pattern": "^(@[a-z0-9-]+/)?[a-z0-9._][a-z0-9._-]*$", "$comment": "part B4 npm name with no leading - in the scope-less part (no raw flag, ADR 0055 section 4; stricter than desk-req-schema.sh package, which has no such guard); a leading - is schema at check 5"},
-    "semver": {"type": "string", "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?(\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$"},
+    "package": {"type": "string", "pattern": "^(@[a-z0-9-]+/)?[a-z0-9._][a-z0-9._-]*$", "$comment": "part B4 npm name with no leading - in the scope-less part (no raw flag, ADR 0055 section 4; same first-character rule as desk-req-schema.sh package); a leading - is schema at check 5 (leading-- guard on package is a contract rule, B9 26, PR10-R2)"},
+    "semver": {"type": "string", "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(\\.(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?(\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$", "$comment": "SemVer 2.0; a numeric prerelease id has no leading zero (1.0.0-01 is schema; B9 26)"},
     "step_id": {"type": "string", "pattern": "^[a-z0-9-]+$"},
     "jira_key": {"type": "string", "pattern": "^[A-Z][A-Z0-9]+-[0-9]+$"},
     "method": {"enum": ["squash", "merge", "rebase"], "$comment": "must also equal the profile merge_method (B4)"},
@@ -528,7 +528,7 @@
       "result_reader": "release-track",
       "markers": [],
       "inflight_target": "repo#tag@sha",
-      "gate": "H-prod.<step_id>.ok only under release_tags.approval: human",
+      "gate": "H-prod.<step_id>.<run-id>.ok only under release_tags.approval: human",
       "request": {
         "type": "object",
         "additionalProperties": false,
@@ -566,7 +566,7 @@
       "result_reader": "release-track",
       "markers": [],
       "inflight_target": "package@version",
-      "gate": "H-prod.<step_id>.ok",
+      "gate": "H-prod.<step_id>.<run-id>.ok",
       "request": {
         "type": "object",
         "additionalProperties": false,
@@ -676,7 +676,7 @@
       "result_reader": "ticket-clerk (writes tickets.tsv)",
       "markers": [],
       "inflight_target": "parent key + summary",
-      "gate": "H1.ok",
+      "gate": "H1.<run-id>.ok",
       "request": {
         "type": "object",
         "additionalProperties": false,
@@ -685,7 +685,7 @@
           "parent": {"$ref": "#/definitions/jira_key"},
           "fields": {"$ref": "#/definitions/jira_fields_write"}
         },
-        "$comment": "parent is present exactly when fields.issuetype is not Epic (B4); an Epic with parent, or a non-Epic without it, is schema. The top-level parent is the only parent carrier: a fields.parent is schema at check 5; fields needs summary and issuetype, every other allowlisted field is optional (AM-4 22, part-b-desk.md:100)",
+        "$comment": "parent is present exactly when fields.issuetype is not Epic (B4); an Epic with parent, or a non-Epic without it, is schema. The top-level parent is the only parent carrier: a fields.parent is schema at check 5; fields needs summary and issuetype, every other allowlisted field is optional (AM-4 22, part-b-desk.md:100); a non-Epic with no parent is schema (B9 26)",
         "if": {"properties": {"fields": {"required": ["issuetype"], "properties": {"issuetype": {"const": "Epic"}}}}},
         "then": {"not": {"required": ["parent"]}},
         "else": {"required": ["parent"]},
@@ -783,14 +783,14 @@
   },
   "reason_codes": {
     "sender": {"class": "terminal", "b3_step": 1, "trigger": "transport sender not in the desk-held registry for the run; a conductor-only verb whose sender is not the registered conductor or whose <id> subtask is not run; any <id> with <subtask> run whose transport sender is not the registry's run id. No .out is written."},
-    "schema": {"class": "terminal", "b3_step": 5, "trigger": "the copy fails the closed per-verb schema: unknown verb, unknown or missing field, raw flag, force, string where an array is required, id/verb/subtask in the JSON differing from the line (including a relayed claude -p request whose subtask does not match the id); also a DESK path not equal to RUN_HOME/desk/<id>.req, a <verb> outside the 20 B4 verbs (approve, trigger-prod, pipeline-edit included: they are not verbs, so check 5 refuses them before check 6), and a ref, base, merged_into, tag or package starting with - (raw flag)"},
+    "schema": {"class": "terminal", "b3_step": 5, "trigger": "the copy fails the closed per-verb schema: unknown verb, unknown or missing field, raw flag, force, string where an array is required, id/verb/subtask in the JSON differing from the line (including a relayed claude -p request whose subtask does not match the id); also a DESK path not equal to RUN_HOME/desk/<id>.req, a <verb> outside the 20 B4 verbs (approve, trigger-prod, pipeline-edit included: they are not verbs, so check 5 refuses them before check 6), and a ref, base, merged_into, tag or package starting with - (raw flag); a jira-create with no parent for a non-Epic, and an int written as -0 or in exponent form (B9 26, PR10-R2)"},
     "hash": {"class": "terminal", "b3_step": 4, "trigger": "the copy's sha256 differs from sha256=<hex>"},
     "repo": {"class": "terminal", "b3_step": 6, "trigger": "repo not under a registered clone (resolves to no profile); branch fails <JIRA-KEY>(-[a-z0-9-]+)?; body_path, payload_path, record_path or an attachment path outside its allowed root"},
     "marker": {"class": "curable", "b3_step": 8, "trigger": "a re-derived marker fails: head sha, CODE-GATE-REVIEW/Verified-By, H-pr approval, CI not green at pr-merge, GATE-PASS record missing for a push or pr-create, branch-delete content not merged into merged_into; also push-spacing and pipeline-bound (detail)"},
     "order": {"class": "curable", "b3_step": 8, "trigger": "a pr-merge predecessor is not merged"},
-    "policy": {"class": "terminal", "b3_step": 6, "$comment": "approve, trigger-prod and pipeline edit are quoted from part B2.1; as DESK verbs they never reach check 6 (a non-B4 verb is schema at check 5, part B2 and B3 step 5), so in practice policy is for in-schema requests: ci-rerun on a non-pull-request run, a tag-push the profile refuses, a redaction hit or an unusable pattern file", "trigger": "an in-schema request the desk never grants (ci-rerun on a non-pull-request run; non-B4 verbs such as approve, trigger-prod or pipeline edit are schema at check 5, not policy); a tag-push the repo profile does not allow (no release_tags entry, used \"no\", tag not matching pattern, malformed entry); a redaction hit in a body, payload, attachment or string field"},
-    "stale-session": {"class": "curable", "b3_step": 7, "trigger": "the GitHub or Atlassian session is not fresh"},
-    "gate-missing": {"class": "curable", "b3_step": 8, "trigger": "H1.ok absent before jira-create; H-prod.<step_id>.ok absent before publish, or before a tag-push under release_tags.approval human; merge_reach row absent before pr-merge"},
+    "policy": {"class": "terminal", "b3_step": 6, "$comment": "approve, trigger-prod and pipeline edit are quoted from part B2.1; as DESK verbs they never reach check 6 (a non-B4 verb is schema at check 5, part B2 and B3 step 5), so in practice policy is for in-schema requests: ci-rerun on a non-pull-request run, a tag-push the profile refuses, a redaction hit or an unusable pattern file, a test-report-push first call with dry_run false", "trigger": "an in-schema request the desk never grants (ci-rerun on a non-pull-request run; non-B4 verbs such as approve, trigger-prod or pipeline edit are schema at check 5, not policy); a tag-push the repo profile does not allow (no release_tags entry, used \"no\", tag not matching pattern, malformed entry); a redaction hit in a body, payload, attachment or string field; a test-report-push whose first call for a payload_path carries dry_run false (B9 26)"},
+    "stale-session": {"class": "curable", "b3_step": 7, "trigger": "the GitHub or Atlassian session is not fresh", "$comment": "curable: resent with a fresh id on the owner's word (B9 29-33); unrelated to the A.3 stop_reason stale-session of a second pm lead (A.8)"},
+    "gate-missing": {"class": "curable", "b3_step": 8, "trigger": "H1.<run-id>.ok absent before jira-create; H-prod.<step_id>.<run-id>.ok absent before publish, or before a tag-push under release_tags.approval human; merge_reach row absent before pr-merge"},
     "action-failed": {"class": "curable", "b3_step": 9, "trigger": "a valid request whose action then fails (non-fast-forward, branch protection, remote or gh error); .inflight stays"}
   },
   "regexes": {
@@ -802,7 +802,7 @@
     "REJECTED": "^REJECTED +([a-z0-9-]+-(st[0-9]+|pm|run)-[0-9]{8}T[0-9]{6}Z-[0-9]+) \\| (sender|schema|hash|repo|marker|order|policy|stale-session|gate-missing|action-failed)$",
     "REGISTER-SENDER": "^REGISTER-SENDER ([a-z0-9-]+) \\| (st[0-9]+|pm|run) \\| ([^ ]+)$",
     "REGISTERED": "^REGISTERED ([a-z0-9-]+) \\| (st[0-9]+|pm|run) \\| (ok|refused)$",
-    "GATE": "^GATE ([a-z0-9-]+) (H0|H1|H-e2e\\.(st[0-9]+|pm)|H-pr|H-prod\\.[a-z0-9-]+|grant\\.(st[0-9]+|pm)\\.[0-9]+) (ok|changes|reject)( .+)?$",
+    "GATE": "^GATE ([a-z0-9-]+) (H0|H1|H-e2e\\.(st[0-9]+|pm)|H-pr|H-prod\\.[a-z0-9-]+|grant\\.(st[0-9]+|pm)\\.[0-9]+|H-destructive\\.[A-Za-z0-9.-]+|RESUME\\.(st[0-9]+|pm)) (ok|changes|reject)( .+)?$",
     "ANSWER": "^ANSWER ([a-z0-9-]+) (st[0-9]+|pm) ([ui][0-9]+) (.+)$",
     "REBIND": "^REBIND ([a-z0-9-]+) ([^ ]+)$",
     "STATUS": "^STATUS +([a-z0-9-]+-(st[0-9]+|pm|run)-[0-9]{8}T[0-9]{6}Z-[0-9]+)$",
@@ -810,7 +810,9 @@
     "status_busy_source": "STATUS and BUSY are the permission-tiers-02 section 2 envelope lines (architecture/permission-tiers-02.md:92 grammar, :100-101 2-minute rule), not part B; the id group reuses the B2 id; the regex form is an author default",
     "desk_address": "^desk$",
     "conductor_only_verbs": "^(pr-merge|publish|tag-push|test-report-push)$",
-    "gate_verdicts": {"H0": ["ok"], "H1": ["ok", "changes", "reject"], "H-e2e.<subtask>": ["ok"], "H-prod.<step_id>": ["ok"], "H-pr": [], "grant.<subtask>.<n>": ["ok"]},
-    "grant_source": "grant.<subtask>.<n> is DEFAULT (author), pending an INTERFACES erratum: part A.2.1 (AM-4 20 Q1) adds the grant file with the line GATE grant.<subtask>.<n> ok <text> (no <run-id>); B8 (part-b-desk.md:157) does not list grant.*; the desk accepts the B8 form with <run-id>; the typed text must start with ref=<sensitive path>"
+    "gate_verdicts": {"H0": ["ok"], "H1": ["ok", "changes", "reject"], "H-e2e.<subtask>": ["ok"], "H-prod.<step_id>": ["ok"], "H-pr": [], "grant.<subtask>.<n>": ["ok"], "H-destructive.<row-id>": ["ok"], "RESUME.<subtask>": ["ok"]},
+    "gate_source": "B8 plus the B9 gate lines (AM-5 26, 21, queue row 29): grant.<subtask>.<n>, H-destructive.<row-id> (row id as D2.2 row 12, [A-Za-z0-9.-]+), RESUME.<subtask>; B9 writes them without <run-id>, the desk takes the B8 form GATE <run-id> <gate> ... so the run resolves; a grant line's text must start with ref=<sensitive path> (DEFAULT (author))",
+    "gate_file": "^(H0|H1|H-e2e\\.(st[0-9]+|pm)|H-prod\\.[a-z0-9-]+|grant\\.(st[0-9]+|pm)\\.[0-9]+|H-destructive\\.[A-Za-z0-9.-]+|RESUME\\.(st[0-9]+|pm))\\.([a-z0-9-]+)\\.(ok|changes|reject)$",
+    "gate_file_source": "A.2.1 AM-5 26: every gate-file name is <gate>.<run-id>.<verdict>; H-e2e under RUN_HOME/<subtask>/gates/, the rest under RUN_HOME/gates/; only .ok satisfies a gate; changes and reject exist for H1 only"
   }
 }

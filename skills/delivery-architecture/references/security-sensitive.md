@@ -1,6 +1,6 @@
 # `security_sensitive`: the criterion (item 7 of the spec)
 
-Status: **owner ruling OQ-1** (`architecture/delivery-workflow-sources/owner-decisions.md:88-89`; INTERFACES 1.4.0 amendment AM-3, `interfaces/part-a-state.md:71`). History: the criterion was the plan-check default (spec 15 RESOLVED Q2, `architecture/delivery-workflow/tasks/15-delivery-architecture.md:96`; `architecture/delivery-workflow/reviews/plan-check-w1-specs.md` §5 OQ-1) until the owner answered OQ-1; it is now that owner ruling.
+Status: **owner ruling OQ-1** (`architecture/delivery-workflow-sources/owner-decisions.md:88-89`; INTERFACES 1.5.0 amendment AM-3, `interfaces/part-a-state.md:72`). History: the criterion was the plan-check default (spec 15 RESOLVED Q2, `architecture/delivery-workflow/tasks/15-delivery-architecture.md:96`; `architecture/delivery-workflow/reviews/plan-check-w1-specs.md` §5 OQ-1) until the owner answered OQ-1; it is now that owner ruling.
 
 ## The header line
 
@@ -12,7 +12,7 @@ or
 ```
 security_sensitive: no
 ```
-The Architect sets it. The conductor reads it (INTERFACES 1.4.0 (`architecture/delivery-workflow/INTERFACES.md:3`) part A.2 `security_audit`, `interfaces/part-a-state.md:71`; D2.1 `security_audit`, `interfaces/part-d-enums-topics.md:34-68`; amendments AM-1 and AM-3) and sets `state.md` `security_audit: full` on `yes`; this skill never sets `SECURITY_AUDIT` in `state.md`.
+The Architect sets it. The conductor reads it (INTERFACES 1.5.0 (`architecture/delivery-workflow/INTERFACES.md:3`) part A.2 `security_audit`, `interfaces/part-a-state.md:72`; D2.1 `security_audit`, `interfaces/part-d-enums-topics.md:34-68`; amendments AM-1 and AM-3) and sets `state.md` `security_audit: full` on `yes`; this skill never sets `SECURITY_AUDIT` in `state.md`.
 
 ## Criterion (owner ruling OQ-1; was the plan-check default)
 

@@ -1,6 +1,6 @@
 # Resume, reconcile, lock and hand-over
 
-Depth for the SKILL.md steps "lifetime `substate.lock` and seed copy" and "reconcile (also on a first start)", and for every restart. Authority (INTERFACES 1.4.0): part C C5.3 (brief, triggers, steps 1-6 with 3a and 3b, hand-over, order after `TaskStop`, bus paging); part A A.3 (lock and break, seed, `stop_reason`, `interfaces_version`), A.4 (resume encoding by rename), A.5 (`catalog.sh audit`); part B B1 (re-attach, applied-result scan); spec 28 RESOLVED Q2, PC-W2-8; AM-4 row W2-5.
+Depth for the SKILL.md steps "lifetime `substate.lock` and seed copy" and "reconcile (also on a first start)", and for every restart. Authority (INTERFACES 1.5.0): part C C5.3 (brief, triggers, steps 1-6 with 3a and 3b, hand-over, order after `TaskStop`, bus paging); part A A.3 (lock and break, seed, `stop_reason`, `interfaces_version`), A.4 (resume encoding by rename), A.5 (`catalog.sh audit`, exit 5 per the I script table), A.8 (`RESUME` gate, `stale-session`); part B B1 (re-attach, applied-result scan); spec 28 RESOLVED Q2, PC-W2-8; AM-4 row W2-5.
 
 ## Brief and triggers (C5.3)
 
@@ -16,15 +16,15 @@ Triggers:
 - a reboot (M15);
 - the spawn cap (`cap - 5`, the hand-over below);
 - dead lead state found by the conductor at its own resume;
-- a dead lead found on the conductor's 1-minute tick: the `owner` pid in `substate.lock` fails `kill -0` while `subtasks[].state` is `released|building|pr-open`.
+- a dead lead found on the conductor's 1-minute tick: the `owner` pid in `substate.lock` fails `kill -0` while `subtasks[].state` is `released|building|pr-open`, or `merged` and not yet `cleaned` (owner item O-2's lead default: that relaunch runs only `delivery-cleanup` `MODE=subtask`; `INTERFACES.md` "Owner items from the item 29 panel"). A `claude -p` lead's clean exit in a wait is not a dead lead (C8 CV47).
 
 The checkpoint of `wave-execution` is the sole resume authority for what has passed. `session_id` is unchanged, so the controller resumes from it (ADR 0054 Q6). The lead never marks a work_item passed from its own memory, and a completion post that the checkpoint does not record is re-gated.
 
 ## Lifetime lock (A.3)
 
 1. `mkdir RUN_HOME/<subtask>/substate.lock`. On success, write `owner` (`<pid> <ISO UTC>`, `^[0-9]+ [0-9TZ:-]+$`) to a temp file inside the lock directory and `mv` it to `owner`. The lead holds the lock for its whole life, so header writes need no second lock.
-2. **The lock exists.** It is stale when the `owner` pid fails `kill -0`, or when `owner` is missing or unparsable and the directory is older than 120 s (A.3 lock rule, `interfaces/part-a-state.md:186`, also for the 1 s / 60 s waiter below).
-   - **Not stale:** another lead is live. Refuse to start: print `substate.lock held by <owner>` and stop, without touching `substate.md`. Two leads on one `substate.md` is stop-the-line S6, so this refusal is what keeps it from happening.
+2. **The lock exists.** It is stale when the `owner` pid fails `kill -0`, or when `owner` is missing or unparsable and the directory is older than 120 s (A.3 lock rule, `interfaces/part-a-state.md:192`, also for the 1 s / 60 s waiter below).
+   - **Not stale:** another lead is live. Refuse to start: print `substate.lock held by <owner>` and stop, without touching `substate.md`. Two leads on one `substate.md` is stop-the-line S6, so this refusal is what keeps it from happening. A second `pm` lead (a post-merge re-entry) that finds a fresh lock refuses the same way with `stop_reason: stale-session` (A.8 "A.2 state mapping and exits"; owner item O-1's lead default); since the lock holder owns `substate.md`, the refusing lead prints `stop_reason: stale-session` with the `owner` line and leaves the file to the holder.
    - **Stale:** break it. `mv substate.lock substate.lock.broken-<own pid>-<yyyymmddThhmmssZ>` (only one breaker's `mv` succeeds), then read `owner` inside the renamed directory. If it is not the `<pid> <utc>` that was tested stale (another breaker's fresh lock was moved), rename the directory back to `substate.lock` with a plain rename and start over. Otherwise `mkdir substate.lock`. If the `mv` or `mkdir` fails, start over from the stale test; a waiter retries every 1 s and gives up after 60 s. Remove the renamed directory once the new lock is held, and append the break time to `substate.md` `lock_breaks`.
 3. **Seed copy (mode `build`, first start only):** copy `<PLANS_DIR>/subtasks/<subtask>/substate.seed.md` verbatim to `RUN_HOME/<subtask>/substate.seed.md`, never edit the copy, and create `substate.md` from it, adding every other A.3 field empty or derived. In `plan-pr` and `post-merge`, `substate.md` is initialized from `subtask_id`, `session_id` and `phase: seeded` only (A.2 Modes). On a resume, `substate.md` exists and is re-read, not re-created.
 
@@ -33,11 +33,12 @@ The checkpoint of `wave-execution` is the sole resume authority for what has pas
 - **Old lead:** once `ledger.md`'s spawn check fails and no invocation is live, it writes `stop_reason: spawn-cap`, removes its lifetime lock (`rm` of `owner`, then `rmdir substate.lock`), and exits.
 - **New lead:** it finds no lock, or only a stale one, and starts. It clears `stop_reason: spawn-cap` at resume (PC-W2-8, AM-4 W2-5). Its spawn count starts at 0 because it is a new session (A.3).
 - `stop_reason: invalidate` is not cleared at resume. It is cleared only when a `RELEASE` with a higher `<seq>` than the `INVALIDATE` is consumed (`control-channel.md`, proposed CV30).
-- Every other `stop_reason` (`stop-the-line:*`, `d7-round3`, `human`, `port-refused`) maps the sub-task to `stopped` (A.2 W2-5). A lead started on such a `substate.md` prints the reason and stops. Only the human's decision, delivered through the conductor, clears it.
+- Every other `stop_reason` (`stop-the-line:*`, `d7-round3`, `human`, `port-refused`, `stale-session`) maps the sub-task to `stopped` (A.2 W2-5). A lead started on such a `substate.md` prints the reason and stops. A stopped sub-task leaves `stopped` only via the desk-written `RUN_HOME/gates/RESUME.<subtask>.<run-id>.ok` gate file (owner action: the desk writes it on `GATE RESUME.<subtask> ok <text>`, B9; A.8 "A.2 state mapping and exits"). The lead never writes or infers that gate.
 
 ## Reconcile: C5.3 steps, in order (also on a first start)
 
 1. **Mark stale.** Rename every `slots/*.row` to `.stale`. Run `catalog.sh audit` (with `RUN_HOME`, and `WORKTREE_BASE` when set). No catalog row is marked stale, because `state` has no such value (A.5).
+   - **Audit exit 5** (`lsof` missing or failing; I script table, A.8 "A.5 lead rows", AM-5 PR10-M4): the audit gave no verdict. Exit 5 is not a `GHOST` or `SQUATTER` verdict: write no `catalog.sh release` or `fail` from that run's output, report the exit and its stderr lines in `escalations/` as for a `SQUATTER`, and re-verify the rows by the other step 2 means only. Exits 3 and 4 keep their meaning.
 2. **Re-verify** each `.stale` row and each audit line by `kill -0` (pids; `claude-p` rows), `lsof` (ports, the bus), `git worktree list` (worktrees), git refs (branches, unit heads), and the audit `MATCH`/`GHOST`/`SQUATTER` lines. Every `agent-tool` row is dead on a lead restart (A3), because its agents lived in the old session.
 3. **Free the dead, restore the live.** A dead row is renamed `.freed`, a live one back to `.row` (A.4). For each `GHOST` audit line write `catalog.sh release` or `catalog.sh fail`, and nothing else. A `SQUATTER` is reported in `escalations/` and never touched.
    - **3a. Lease reclaim.** For every `live` `lane-lease` row of this sub-task (`lane/<name>` and `gate-runner/<n>`) whose `owner_agent` has no live `.row` after step 3, or is the old lead's `SESSION`, write `catalog.sh release lane-lease <handle>`. Re-lease per C1.1 before the next dispatch (`ledger.md`).

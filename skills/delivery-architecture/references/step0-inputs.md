@@ -1,6 +1,6 @@
 # Step 0: input validation (delivery-architecture)
 
-Contract: INTERFACES 1.4.0 (`architecture/delivery-workflow/INTERFACES.md:3`): part D1 (`interfaces/part-d-enums-topics.md:6-11`; line regex `^INPUT-ERROR [A-Za-z_][][A-Za-z0-9_.]* (missing|enum|path|unset|format|sha)$`; reason `sha` added by AM-4 20), part D2.2 row 3 (named inputs, `part-d-enums-topics.md:77`), part A.1 (`DELIVERY_ROOT`, `RUN_HOME`, `<epic>`; `interfaces/part-a-state.md:7-52`), part A.2 (`state.md` keys `orchestrator_tier` `:59` and `security_audit` `:71`), part A.2.2 (profile keys, `part-a-state.md:106-155`; a missing key is `INPUT-ERROR <key> missing`, except `release_tags.*`, `:136`).
+Contract: INTERFACES 1.5.0 (`architecture/delivery-workflow/INTERFACES.md:3`): part D1 (`interfaces/part-d-enums-topics.md:6-11`; line regex `^INPUT-ERROR [A-Za-z_][][A-Za-z0-9_.]* (missing|enum|path|unset|format|sha)$`; reason `sha` added by AM-4 20), part D2.2 row 3 (named inputs, `part-d-enums-topics.md:77`), part A.1 (`DELIVERY_ROOT`, `RUN_HOME`, `<epic>`; `interfaces/part-a-state.md:7-53`), part A.2 (`state.md` keys `orchestrator_tier` `:60` and `security_audit` `:72`), part A.2.2 (profile keys, `part-a-state.md:109-161`; a missing key is `INPUT-ERROR <key> missing`, except `release_tags.*`, `:142`).
 
 Rule: check every field in the order below, print one line per failing field, then stop. An `INPUT-ERROR` reply carries no verdict: it is neither a D7 review round nor a `fix-verifier` iteration; the caller fixes the input and re-invokes (part D1, AM-4 11-Q11-R1). No retry, no prompt, no file written, no agent dispatched. Inputs arrive as `NAME=value` in the skill arguments; `DELIVERY_ROOT` is the environment variable only (part D2.2 transport).
 
@@ -16,8 +16,8 @@ Rule: check every field in the order below, print one line per failing field, th
 | 3 | `facts.md` | line 1 matches `^FACTS: [0-9]+ facts$` (part D1.1) | `INPUT-ERROR facts.md format` |
 | 4 | `REPO_PROFILE` | present | `INPUT-ERROR REPO_PROFILE missing` |
 | 4 | `REPO_PROFILE` | matches `^(/[^[:space:]]+)@([0-9a-f]{40})$` | `INPUT-ERROR REPO_PROFILE format` |
-| 4 | `REPO_PROFILE` | `git hash-object <path>` equals the sha; on a mismatch, `git -C <repo root> cat-file blob <sha>` reads the pinned content and that content is used (part A.2 `repo_profile` reader rule, `interfaces/part-a-state.md:64`) | `INPUT-ERROR REPO_PROFILE path` (the path does not exist and the blob is unreadable) / `INPUT-ERROR REPO_PROFILE sha` (the file exists, its blob id differs from the sha, and the pinned blob is unreadable; part D1, AM-4 20) |
-| 5 | `e2e.harness` | present in the profile, value `nlta` or `none` (D2.1); a `FILL_IN_BEFORE_DISPATCH` sentinel is not a value | `INPUT-ERROR e2e.harness missing` / `INPUT-ERROR e2e.harness enum` |
+| 4 | `REPO_PROFILE` | `git hash-object <path>` equals the sha; on a mismatch, `git -C <repo root> cat-file blob <sha>` reads the pinned content and that content is used (part A.2 `repo_profile` reader rule, `interfaces/part-a-state.md:65`) | `INPUT-ERROR REPO_PROFILE path` (the path does not exist and the blob is unreadable) / `INPUT-ERROR REPO_PROFILE sha` (the file exists, its blob id differs from the sha, and the pinned blob is unreadable; part D1, AM-4 20) |
+| 5 | `e2e.harness` | present in the profile, value `nlta` or `none` (D2.1; an A.2.2 key since AM-5 17); a `FILL_IN_BEFORE_DISPATCH` sentinel is not a value | `INPUT-ERROR e2e.harness missing` / `INPUT-ERROR e2e.harness enum` |
 | 6 | `durations.unit_median_min` | present (A.2.2); an int, or the sentinel `FILL_IN_BEFORE_DISPATCH`, which is carried into each draft's budget unchanged for the dispatch plan to resolve | `INPUT-ERROR durations.unit_median_min missing` / `INPUT-ERROR durations.unit_median_min format` |
 | 7 | `release_tags.used`, `.pattern`, `.approval` | optional (A.2.2 `:132-136`: absent is allowed, and then no tag step is planned, because the desk refuses it); read for step 7 and K12 | none |
 | 8 | `review_profile.*` | read if present and passed on through `review-tailor`'s own profile read; absent means none, never an error (spec 16 RESOLVED Q3, AM-2 row 5) | none |
@@ -40,7 +40,7 @@ The repo root is the parent of the `plans/` directory that holds `PLANS_DIR`; `c
 
 ## Re-entry after `H1.changes`
 
-If `RUN_HOME/gates/H1.changes` exists (the live H1 file, part A.2.1, `part-a-state.md:98`), before step 1:
+If `RUN_HOME/gates/H1.<run-id>.changes` exists (the live H1 file, part A.2.1, `part-a-state.md:101`), before step 1:
 1. Rename `PLANS_DIR/review-architecture.md` and `PLANS_DIR/h1-packet.md` to `<name>.<yyyymmddThhmmssZ>` (the A.2.1 history convention, applied here as a default of this skill), so no stale `ARCH: ready` stays live while the new pass runs.
 2. Read `RUN_HOME/gates/H1.notes.md`; number the notes `1..k` in file order. Each note is a binding change.
 3. Update the existing artifacts (do not start over); keep every existing slug and `step_id`, mint only for new nodes and steps. Delete the draft of every node the notes remove (a default of this skill; the notes are binding, step 2) before `drafts/index.md` is rewritten (nothing is published before `H1.ok`).

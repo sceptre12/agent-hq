@@ -1,6 +1,6 @@
 # Template: `state.md` and `substate.md` (design 5.0; INTERFACES A.2, A.3, A.4)
 
-Fill-in skeletons for the two run-state files and the two single-line records that sit beside them (slot row, machine ledger row). Every field name, enum and regex below is copied from `INTERFACES.md` 1.3.0; if this file and INTERFACES differ, INTERFACES wins and this file is the defect. Regex dialect: POSIX ERE.
+Fill-in skeletons for the two run-state files and the two single-line records that sit beside them (slot row, machine ledger row). Every field name, enum and regex below is copied from `INTERFACES.md` 1.5.0; if this file and INTERFACES differ, INTERFACES wins and this file is the defect. Regex dialect: POSIX ERE.
 
 - **Writer / Reader (`state.md`):** writer the conductor (`delivery-pipeline`) only. Readers: conductor at resume, `delivery-run` Step 0 (`interfaces_version` only), `delivery-desk` (gate pointers, `plans_dir`, `repo_profile` pinned `@<sha>`), the human.
 - **Writer / Reader (`substate.md`):** writer the sub-task lead only. Readers: conductor (never the bus), shepherd tick, lead at resume. Two writers on one `substate.md` is stop-the-line `S6`.
@@ -19,7 +19,7 @@ Fill-in skeletons for the two run-state files and the two single-line records th
 | sha | 40-hex `^[0-9a-f]{40}$`, never abbreviated |
 | unit id | `^u[0-9]+$`; Integrator work_item `^i[0-9]+$`; where either may appear `^[ui][0-9]+$` |
 | `agent_id` | `^[a-z0-9-]+$` |
-| `session` (launcher name) | `^[a-z0-9-]+$`, distinct from the bus `session_id` |
+| `session` (launcher name) | `^[a-z0-9-]+$`, distinct from the bus `session_id`; a lead's is `<run-id>-<subtask>-l<n>` (`n` the launch count for that sub-task, from 1), the conductor's `<run-id>-c<n>` (A.8, 29-1) |
 
 ## Part 1. `state.md` (conductor; A.2)
 
@@ -42,17 +42,23 @@ gates:
   H-prod: []                          # list of RUN_HOME/gates/H-prod.<step_id>.ok paths
 subtasks:
   - id: st0                           # <subtask>
-    session: <session>                # lead's launcher session; names its machine/<session>.row
+    session: <session>                # <run-id>-<subtask>-l<n>; names its machine/<session>.row; never launched again under this token
     lead_id: <identity or ->          # from the lead's REGISTER line; - for claude-p
     backend: agent-tool               # agent-tool|claude-p
     state: planned                    # planned|released|building|pr-open|merged|stopped|cleaned
     pr:                               # int once the pr-create .out exists, else empty
     merge_sha:                        # 40-hex from the pr-merge .out; empty until merged
     released_utc:                     # ISO UTC when RELEASE was written, else empty
+    launched_utc:                     # ISO UTC, set in the one launch-intent write (A.8, 29-13)
+    relaunch_phase:                   # substate.md phase at a relaunch; empty at first launch
+    reentered: false                  # true|false; set with reentered_utc at a back-edge, kept
+    reentered_utc:                    # ISO UTC of the back-edge, else empty
+    pm_sha:                           # post-merge re-entry st<N> only: the pm_sha it was added for, in the same write (A.8, 29-36)
+h1_handled:                           # <H1 file name> <utc>: the H1.* file already handled (A.8, 29-17)
 skill_versions:
   delivery-pipeline: <version>@<sha256 of installed SKILL.md>
   # one entry per skill the run uses: name: <version>@<sha256>
-interfaces_version: <version>@<sha256 of INTERFACES.md>   # e.g. 1.3.0@<64-hex>
+interfaces_version: <version>@<sha256 of INTERFACES.md>   # e.g. 1.5.0@<64-hex>
 security_audit: guidance              # guidance|full (AM-1); default guidance
 machine_ledger_row: <abs path>        # $DELIVERY_ROOT/machine/<session>.row of the conductor session
 ```
@@ -68,6 +74,9 @@ machine_ledger_row: <abs path>        # $DELIVERY_ROOT/machine/<session>.row of 
 | `skill_versions` | value encodes version plus hash: `<version>@<sha256 of SKILL.md>` (`ls -L`, `shasum -a 256`) |
 | `interfaces_version` | consumers re-check after an amendment; `delivery-run` Step 0 compares it with the dispatch-plan header |
 | `security_audit` | the conductor sets `full` only on an explicit operator request or when `architecture.md` carries the header line `security_sensitive: yes`; it is passed on as the input `SECURITY_AUDIT` (D2.2, D2.3). Guidance mode writes no file and launches no agent. AM-1 |
+| `subtasks[].launched_utc`, `relaunch_phase` | written with `session` (and `state: released` when released at launch) in one `state.md` write, after every fail-closed check and the worktree add, before the exec (A.8, 29-13); a lead with no `substate.lock` newer than `launched_utc` and no `register.consumed` 10 minutes after it, and no live `homes/<session>/pid`, is a startup failure (one-relaunch rule) |
+| `subtasks[].reentered`, `reentered_utc` | set together at a back-edge, which also clears `merge_sha` in the same write, before any `INVALIDATE` file (C8) |
+| `h1_handled` | an `H1.*` file is handled once, keyed on its `utc=` (A.8, 29-17) |
 | `primary_repo` | recorded before `plans_dir` is created; in a multi-repo epic the primary profile governs and links the others (`linked_profiles[]`, A.2.2) |
 
 ### 1.2 `subtasks[].state` transitions (conductor writes)
@@ -79,13 +88,18 @@ machine_ledger_row: <abs path>        # $DELIVERY_ROOT/machine/<session>.row of 
 | `phase: building` read in the lead's `substate.md` | `building` | `substate.md` |
 | `pr-create` `.out` | `pr-open` (`pr` set) | desk result |
 | `pr-merge` `.out` | `merged` (`merge_sha` set) | desk result |
-| `stop_reason` non-empty | `stopped` | `substate.md` |
-| `CLEANUP DONE <subtask>` | `cleaned` | cleanup record |
+| `stop_reason` in `stop-the-line:*\|d7-round3\|human\|port-refused\|stale-session` (`spawn-cap` keeps the state and triggers a C5.3 relaunch; `invalidate` keeps it until the fresh `RELEASE`) | `stopped` | `substate.md` |
+| `RUN_HOME/gates/RESUME.<subtask>.<run-id>.ok` (desk-written, owner action) | leaves `stopped`: the only exit | A.8, B9 |
+| `CLEANUP DONE <subtask>` | `cleaned` (for `pm` only once `release_record` line 1 is terminal and `cleanup-<run-id>-pm.md` is newer than the current `pm` `launched_utc`) | cleanup record |
 | back-edge: sub-task re-enters stage 4 | `pr-open` or `merged` to `building`; `merge_sha` cleared in the same write when `INVALIDATE ... predecessor-reentered` goes to successors | part C6 |
 | `POSTMERGE: FAIL` | new entry `st<N>` (next free integer), state `planned`, then stage 4 for it | A.2 post-merge re-entry |
 | after the last sub-task merges | add entry `id: pm`, start its lead with inbox `RELEASE pm` | A.2 stages 6-7 host |
 
+The mapping is forward only along `planned -> released -> building -> pr-open -> merged -> cleaned` (`stopped` from any state); the back-edge is the one backward write (A.8, 29-37).
+
 ### 1.3 Gate files the pointers name (A.2.1; the desk is the only writer)
+
+Every gate-file name carries the run id, `<gate>.<run-id>.ok` (AM-5 26): read each file name below with that suffix, e.g. `H0.<run-id>.ok`, `H-e2e.<subtask>.<run-id>.ok`.
 
 | Gate | File or pointer | Content |
 |---|---|---|
@@ -94,6 +108,9 @@ machine_ledger_row: <abs path>        # $DELIVERY_ROOT/machine/<session>.row of 
 | H-e2e | `RUN_HOME/<subtask>/gates/H-e2e.<subtask>.ok` | same form; `ref=` sha256 of the batched `.feature` list in `test-plan.md` |
 | H-pr | pointer only `gh:<owner>/<repo>#<pr>@<commit_id>` | no file |
 | H-prod | `RUN_HOME/gates/H-prod.<step_id>.ok`, one per human release step | same form; `ref=` the release-plan `step_id` |
+| grant | `RUN_HOME/gates/grant.<subtask>.<n>.ok` | same form; `ref=` names the sensitive path (`pre-pr-gate`, AM-4 20) |
+| H-destructive | `RUN_HOME/gates/H-destructive.<row-id>.ok` | same form; `post-merge-verify` refuses a destructive row without it (AM-5 21) |
+| RESUME | `RUN_HOME/gates/RESUME.<subtask>.ok` | written on `GATE <run-id> RESUME.<subtask> ok <text>` (B9); the only exit from `stopped` (A.8) |
 
 `state.md` holds no separate Jira pointer; a Jira-side H1 approval lives in the `ref=` of `H1.ok`.
 
@@ -108,12 +125,13 @@ primary_repo: /abs/repo
 repo_profile: /abs/repo/plans/repo-profile.md@<40-hex sha>
 delivery_root: /abs/delivery
 stage: 4
-gates: {H0: /abs/delivery/found-1234-20261102/gates/H0.ok, H1: /abs/delivery/found-1234-20261102/gates/H1.ok, H-e2e: [], H-pr: [], H-prod: []}
-subtasks: [{id: st0, session: lead-st0-a1, lead_id: lead-st0, backend: agent-tool, state: merged, pr: 812, merge_sha: <40-hex sha>, released_utc: 2026-11-02T10:14:00Z}]
+gates: {H0: /abs/delivery/found-1234-20261102/gates/H0.found-1234-20261102.ok, H1: /abs/delivery/found-1234-20261102/gates/H1.found-1234-20261102.ok, H-e2e: [], H-pr: [], H-prod: []}
+subtasks: [{id: st0, session: found-1234-20261102-st0-l1, lead_id: lead-st0, backend: agent-tool, state: merged, pr: 812, merge_sha: <40-hex sha>, released_utc: 2026-11-02T10:14:00Z, launched_utc: 2026-11-02T10:13:30Z, relaunch_phase: , reentered: false, reentered_utc: }]
+h1_handled: H1.found-1234-20261102.changes 2026-11-02T09:40:00Z
 skill_versions: {delivery-pipeline: 0.1.0@<sha256>}
-interfaces_version: 1.3.0@<sha256>
+interfaces_version: 1.5.0@<sha256>
 security_audit: guidance
-machine_ledger_row: /abs/delivery/machine/conductor-a0.row
+machine_ledger_row: /abs/delivery/machine/found-1234-20261102-c1.row
 ```
 
 ## Part 2. `substate.md` (lead; A.3)
@@ -128,6 +146,7 @@ reserved: {shepherd: 1, clerk: 1, ci: 1, review: 10}   # review: 10 per concurre
 spawns: <n>/<cap>                     # cap measured at P0 (unmeasured: verify at move); lead stops at cap - 5
 frontier: []                          # current DAG frontier, unit ids
 interfaces_version: <version>@<sha256> # kept from the seed unchanged (A.3; same value as state.md, A.2)
+tick_utc:                             # ISO UTC, rewritten by the lead on every tick (A.8, 28-CV8)
 waves_done: 0                         # completed lane-waves (count)
 stop_reason:                          # empty, or one value below
 invocation: 0                         # wave-execution counter: incremented and written BEFORE each call
@@ -150,9 +169,10 @@ release_record:                       # pm lead only: abs path of release-<sha>.
 | Field | Rule |
 |---|---|
 | `live` | always `<n>/30` and always derived; the literal `(derived)` marks that nobody types the number |
-| `stop_reason` | `stop-the-line:<row>` (regex `^stop-the-line:[A-Z]+[0-9]+[a-z]?$`) \| `d7-round3` \| `invalidate` \| `spawn-cap` \| `human` |
+| `stop_reason` | `stop-the-line:<row>` (regex `^stop-the-line:[A-Z]+[0-9]+[a-z]?$`) \| `d7-round3` \| `invalidate` \| `spawn-cap` \| `human` \| `port-refused` \| `stale-session`. `port-refused`: a lead-owned port claim refused after its one +10 retry, or `port-check.sh` exit 3 (AM-4). `stale-session`: a second `pm` lead finds a fresh `substate.lock` (AM-5, lead decision pending owner O-1). `ci-fix-loop`'s `CI: HUMAN d7-round3` maps to `d7-round3`; an unnamed stop is `human` (A.8, 28-CV2) |
+| `tick_utc` | rewritten on every tick; no move within 12 minutes of a `claude -p` lead's first invocation reads as "the cron does not fire" (C1.1 fallback) |
 | stop-the-line row ids | closed: `S1` classifier or harness block; `S2` failed gate; `S3` authoring on main; `S4` spawn without a free slot; `S5` verifier authored the code; `S6` two writers on one `substate.md`; `S7` unrecorded production write; `G1` build or publish from the main checkout; `G3` release step before its simulation; `G4` hooks skipped without a recorded pass; `G5` fix commits left unpushed; `D23` pipeline-definition edit by an agent; `S8` sub-task bus down after two failed restarts |
-| `phase` | the conductor maps it to `subtasks[].state` (Part 1.2) |
+| `phase` | the conductor maps it to `subtasks[].state` (Part 1.2); the lead sets `building` before its first `wave-execution` invocation (A.8, 28-CV18) |
 | `prepr`, `integrated`, `ci`, `postmerge` | lead-to-conductor transport of the `PREPR`, `INTEGRATED`, `CI`, `POSTMERGE` tokens (D1); `pr-create` only after `prepr: PASS` for `head`; the conductor sends `pr-merge` only after it reads `pr` set and `ci: GREEN <head>` |
 | `integrated` | one entry per accepted Integrator C2 record: `u<N> <head>` where the record `unit` is `i<N>` |
 | `invocation` | passed as the caller input `invocation` of `wave-execution` (C1.1) |
@@ -202,7 +222,11 @@ sec-hunter-1 security-auditor - verify 2026-11-02T11:02:00Z 30 /abs/delivery/wt/
 
 **Free slots:** `max_concurrent = 30 - live_rows - sum(reserved)`; `live_rows` counts `.row` files; the value is the caller argument of part C1.1.
 
-**Resume:** step 1 rename every `.row` to `.stale`; step 2 re-verify by `kill -0`; a live row goes back to `.row`, a dead one to `.freed`, before any dispatch. After an accepted result (the `UNIT-VERDICT` `head` verified in the worktree) or a `TaskStop`, the lead renames the row `.freed`.
+**Controller and gate rows (A.4, A.8):** the `wave-execution` controller task gets a row (`persona` `wave-controller`, `unit` `-`, `budget_min` the sum of the invocation's work_item `budget_min`) before its Agent call; one live invocation per sub-task. A wave-level gate agent whose dispatch record carries `unit` `wave-<N>` gets `unit` `-` and `worktree` = the sub-task worktree.
+
+**Resume:** step 1 rename every `.row` to `.stale`; step 2 re-verify by `kill -0`; a live row goes back to `.row`, a dead one to `.freed`, before any dispatch.
+
+**`.freed` (A.8, 28-CV3, CV12):** a worker row after a verified `PASS` or a handled `ROLLED`/`ESCALATE` record from its registered `from_agent`; a gate or fix agent after its terminal post is logged or its invocation returns; a lead-own or hosted agent when its call returns and its result is read; any row after a `TaskStop` only in the C5.3 order; never on an unverified post.
 
 ## Part 4. Machine ledger row (A.4)
 
@@ -212,7 +236,7 @@ Path: `$DELIVERY_ROOT/machine/<session>.row`; each session writes its own row. O
 session=<session> pid=<pid> live_count=<n> build=<0|1> utc=<ISO UTC>
 ```
 
-Summed under `mkdir machine/.lock` before every launch against 200 per machine and rule 8 (at most 3 rows with `build=1`). Reaper: while holding the lock, a row whose `pid` fails `kill -0` is renamed `.dead` and not counted.
+Summed under `mkdir machine/.lock` before every launch against 200 per machine and rule 8 (at most 3 rows with `build=1`: a `MODE=build` launch is allowed only when at most 2 rows carry `build=1`; `plan-pr` and `post-merge` leads write `build=0`). A new lead counts 31 (`sum(live_count) + 31 <= 200`; the 31 is a default, owner to decide, 29-2); a lead row counts max(31, its `live_count`) until its pid is dead or its `CLEANUP DONE <subtask>` (A.8). `machine/.lock` carries an `owner` file as `substate.lock` does. Reaper: while holding the lock, a row whose `pid` fails `kill -0` is renamed `.dead` and not counted.
 
 ## Part 5. Sentinels and open values
 

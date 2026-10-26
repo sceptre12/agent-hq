@@ -1,14 +1,14 @@
 # H1 packet: one-page layout
 
-Sources: card 3 ("H1 packet (one page: decisions needed, risks, open findings if round 3 was reached, what you are accepting)"); INTERFACES 1.4.0 (`architecture/delivery-workflow/INTERFACES.md:3`) part A.2.1 (H1 files, `ref=` is the sha256 of `h1-packet.md`; `interfaces/part-a-state.md:91-105`), part B8 (`GATE` line grammar; `interfaces/part-b-desk.md:152-172`), part A.6 (`h1-packet.md` in `PLANS_DIR`; `part-a-state.md:287-328`).
+Sources: card 3 ("H1 packet (one page: decisions needed, risks, open findings if round 3 was reached, what you are accepting)"); INTERFACES 1.5.0 (`architecture/delivery-workflow/INTERFACES.md:3`) part A.2.1 (H1 files, `ref=` is the sha256 of `h1-packet.md`; `interfaces/part-a-state.md:92-108`), part B8 (`GATE` line grammar; `interfaces/part-b-desk.md:152-172`), part A.6 (`h1-packet.md` in `PLANS_DIR`; `part-a-state.md:293-334`).
 
 ## Rules
 
 - One page: at most 60 lines, not counting the rows of the "What you are accepting" table (a default of this skill), no section longer than its content needs.
 - Link artifacts; never paste their content.
 - The packet is the H1 reference: the desk computes `ref=` as its sha256, so any later change to the packet is a new H1 question.
-- You write no verdict and no gate file. The human answers in the desk session; the desk writes `RUN_HOME/gates/H1.ok`, `H1.changes` or `H1.reject` (with `H1.notes.md`).
-- `H1.ok` unlocks `jira-create` (through `ticket-clerk` and the desk); `H1.changes` re-enters stage 2 with the notes binding; `H1.reject` stops the run (part A.2.1, `interfaces/part-a-state.md:98`).
+- You write no verdict and no gate file. The human answers in the desk session; the desk writes `RUN_HOME/gates/H1.<run-id>.ok`, `H1.<run-id>.changes` or `H1.<run-id>.reject` (with `H1.notes.md`).
+- `H1.ok` unlocks `jira-create` (through `ticket-clerk` and the desk); `H1.changes` re-enters stage 2 with the notes binding; `H1.reject` stops the run (part A.2.1, `interfaces/part-a-state.md:101`).
 - Answer channel: only the B8 `GATE` line's `<text>` and, for `changes` and `reject`, `RUN_HOME/gates/H1.notes.md`, which the desk writes from that text (part B8, A.2.1). No other verb or file carries an answer. Because `ok` writes no notes, `ok` means every recommended option and every listed open finding is accepted as written; any other choice is a `changes` note (a default of this skill).
 
 ## Layout

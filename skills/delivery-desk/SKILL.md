@@ -11,7 +11,7 @@ deletion, or a Jira read or write. Concretely: a `DESK` or `REGISTER-SENDER` lin
 in this session. This session is the only one that pushes, merges, writes Jira or writes
 `gates/` in a run (design §6.3, D3; bare ids such as D/M/N/OP/Q/R2 resolve to path:line in
 `references/source-keys.md`). Authority for every name, regex, field and check:
-`architecture/delivery-workflow/interfaces/part-b-desk.md:7-172` (B1-B8, INTERFACES 1.4.0) and ADR
+`architecture/delivery-workflow/interfaces/part-b-desk.md:7-185` (B1-B9, INTERFACES 1.5.0) and ADR
 0055 (`decisions/0055-desk-verb-permission-tiers-02.md:42-233`, Decision §1-§5). Where design prose and part B differ
 (short `DONE`, "nine codes", "per-request account lock"), part B wins.
 
@@ -43,14 +43,17 @@ Fallback).
    accept only `run` with `<sender-id>` equal to the transport sender (the conductor claims the
    run). For a known run accept a line only when the transport sender is the registry's `run`
    id; a line for an existing `<subtask>` replaces its id (lead hand-over); an identical repeat is
-   `ok`. Any other line is `refused`. A resumed conductor under a new id stays `refused` until the
+   `ok`. The conductor sends nothing else for the run until its `run` line is `ok` (B9 send gate). Any other line is `refused`. A resumed conductor under a new id stays `refused` until the
    human types `REBIND` (step 2). Mirror the registry atomically to
    `desk-inbox/<run-id>.registry`, then reply `REGISTERED <run-id> | <subtask|run> | ok|refused`.
-2. **Human lines** `GATE`, `ANSWER`, `REBIND` (B8): check the regex and the gate x verdict
+2. **Human lines** `GATE`, `ANSWER`, `REBIND` (B8, B9): check the regex and the gate x verdict
    matrix (`H0` ok; `H1` ok, changes, reject; `H-e2e.<subtask>` ok; `H-prod.<step_id>` ok;
-   `grant.<subtask>.<n>` ok, a `DEFAULT (author)` line form; `H-pr` none). Any other pair: say so in this session and write nothing. Otherwise write the file
-   named in part A.2.1 atomically with `utc=`, `by=` (`id -un`), `ref=`, `text=`; detail in
-   `references/human-gates.md`. Agents never write `gates/`; the desk is the only writer (M30).
+   `H-pr` none; B9 adds `grant.<subtask>.<n>`, `H-destructive.<row-id>` and `RESUME.<subtask>`,
+   each ok). Any other pair: say so in this session and write nothing. Otherwise write the file
+   named in part A.2.1 atomically with `utc=`, `by=` (`id -un`), `ref=`, `text=`; every name
+   carries the run id, `<gate>.<run-id>.ok` (A.2.1 AM-5 26). `RESUME.<subtask>.<run-id>.ok` is the
+   only exit from `stopped` (A.8, owner action); `H-destructive.<row-id>.<run-id>.ok` is the grant
+   `post-merge-verify` reads for a destructive row. Detail in `references/human-gates.md`. Agents never write `gates/`; the desk is the only writer (M30).
 3. **`DESK <id> | <verb> | <path> | sha256=<hex>`**: run the 12 checks of B3 in order; **the
    first failure wins** and names exactly one reason code (steps 4-14 below; detail in
    `references/checks.md`). Split `<id>` with the B2 id regex into run-id, subtask, utc, n;
@@ -79,7 +82,7 @@ Fallback).
    profile `merge_method` and `fields.subtask` equals the `record_path` segment. Else `schema`.
    A `<verb>` outside the 20 (approve, trigger-prod, pipeline-edit included) is `schema` here,
    never `policy`. A `ref`, `base`, `merged_into`, `tag` or `package` starting with `-` is a raw
-   flag and is `schema` here. The branch regex is not checked here (`repo`, step 9; checks.md row 5).
+   flag and is `schema` here, as is an int written `-0` or in exponent form (B9, A.8 A.5). The branch regex is not checked here (`repo`, step 9; checks.md row 5).
 9. **B3 (6) per-field, redaction, never-granted.** Resolve the profile for `repo` (A.2.2; `references/checks.md` §Per-field roots). `repo` realpath under a registered clone,
    `branch` regex, `body_path`/`payload_path` realpath under `RUN_HOME/review/` or
    `RUN_HOME/bodies/` (`test-report-push`: `bodies/`), `record_path` under
@@ -92,17 +95,19 @@ Fallback).
    `pr-attach` only a file content-typed png, jpeg, gif or webp with a matching extension is an
    image (attached unscanned, labelled); any other file is scanned; classify, scan and
    upload only the one desk copy in `desk-inbox/<id>.attach/` (checks.md §Redaction). A request the desk never
-   grants, and a `tag-push` the profile `release_tags` entry does not allow (N11, below), is
+   grants, a `test-report-push` whose first call for its payload has `dry_run: false` (B9),
+   and a `tag-push` the profile `release_tags` entry does not allow (N11, below), is
    `policy`.
 10. **B3 (7) session freshness.** GitHub verbs: `gh auth status` succeeds for the operator's own
     account; Jira and Zephyr verbs: the Atlassian session answers. Else `stale-session`. A 404 or
     "not found" on any later read is checked against `gh auth status` first: an expired or
-    switched identity is `stale-session`, not a missing object (`gh-auth` learning).
-11. **B3 (8) gates, order, markers.** Gate files: `jira-create` needs `RUN_HOME/gates/H1.ok`;
-    `publish` needs `RUN_HOME/gates/H-prod.<step_id>.ok`; `tag-push` needs it only under
+    switched identity is `stale-session`, not a missing object (`gh-auth` learning). This curable
+    desk code (B2.1) is not the A.3 `stop_reason: stale-session` of a second `pm` lead.
+11. **B3 (8) gates, order, markers.** Gate files: `jira-create` needs `RUN_HOME/gates/H1.<run-id>.ok`;
+    `publish` needs `RUN_HOME/gates/H-prod.<step_id>.<run-id>.ok`; `tag-push` needs it only under
     `release_tags.approval: human`; `pr-merge` needs the profile `merge_reach` row; else
     `gate-missing`. Then `pr-merge` predecessors all merged, else `order`. Then re-derive every
-    marker the verb carries (B5, `references/checks.md` §Markers), else `marker`, including the `push` first-or-later evidence and the `pr-merge` target
+    marker the verb carries (B5, `references/checks.md` §Markers), else `marker`, including the `push` first-or-later evidence (later = exactly one open PR for the branch; `PREPR: PASS` read from `checklist-<subtask>.md` line 1 and `substate.md` `prepr`, both agreeing, B9 26) and the `pr-merge` target
     `default_branch` (AM-4); a claimed marker counts for nothing. `branch-delete` content-merged compares
     against the desk-fetched `refs/remotes/<remote>/<merged_into>`, never a local branch. The
     `push-spacing` wait polls in slices of at most 60 seconds (author default); step 15 rules.
@@ -111,7 +116,7 @@ Fallback).
     `desk/*.inflight/target` for the same `<verb> <target>` under another id with no `DONE`
     `.out`: if one exists, read the target back first and answer `DONE` from the read-back when
     the action is already present (`@<sha>` must match: checks.md §Inflight item 3). Act under the operator's own auth, per `references/verbs.md`, bound to the request `repo`
-    (`git -C <repo>`, `gh --repo=<gh-repo>`, `<remote>` = `origin`, `DEFAULT (author)`; verbs.md §Repository binding), with
+    (`git -C <repo>`, `gh --repo=<gh-repo>` from the origin URL, `<remote>` = `origin`, ratified in B9; verbs.md §Repository binding), with
     every request-derived value after `--` or `--end-of-options`, as a `refs/...` name, or
     attached as `--opt=<value>`, so none can be read as a flag. Any
     remote, `git` or `gh` error is `action-failed` with the redacted error line as `detail`;
@@ -131,7 +136,7 @@ Fallback).
     line `BUSY <id> | <what the desk is doing for that id> | <ETA>`. No step may block this: a
     long wait (push spacing, a slow `gh` call) yields between slices to serve `STATUS` only;
     every other `DESK`, `REGISTER-SENDER` or human line is queued until the current id has its
-    `.out` (`DEFAULT (author)`, `references/checks.md` §Inflight item 0). A `STATUS` changes nothing and writes no `.out`. Idle or unknown `<id>` (unset by part B and ADR
+    `.out` (one request at a time, ratified in B9; `references/checks.md` §Inflight item 0). A `STATUS` changes nothing and writes no `.out`. Idle or unknown `<id>` (unset by part B and ADR
     0055; owner to decide): `BUSY <id> | idle | -` (proposed default).
 
 ## Verbs (closed set, B4)
@@ -152,14 +157,16 @@ run, a `tag-push` the profile refuses, a redaction hit or an unusable pattern fi
 ## Fixed rules
 - **`HUSKY=0` (N10: "ALWAYS HUSKY=0 on desk pushes"):** every desk `git push` (`push`,
   `branch-delete`, `tag-push`) and PR creation, inline per-command, never exported, never
-  `--no-verify` (A.7, `architecture/delivery-workflow/interfaces/part-a-state.md:329-348`). The `GATE-PASS` record `RUN_HOME/<subtask>/gate-runs/<expect_head>.md` still gates every
+  `--no-verify` (A.7, `architecture/delivery-workflow/interfaces/part-a-state.md:335-354`). The `GATE-PASS` record `RUN_HOME/<subtask>/gate-runs/<expect_head>.md` still gates every
   push and PR creation: no record, `REJECTED marker`.
 - **`tag-push` (N11):** "tag-push behaviour is set per repo in repo-profile.md"; "With no profile
   entry, tag-push is refused." Read `release_tags.used`, `.pattern`, `.approval` from the profile
   `repo` resolves to. No entry, `used: "no"`, a `tag` not matching `pattern`, or (with
   `used: "yes"`) `pattern` or `approval` absent or malformed: `REJECTED policy`, `detail` names
-  the key. `approval: human`: `RUN_HOME/gates/H-prod.<step_id>.ok` or `gate-missing`; `none`: no
+  the key. `approval: human`: `RUN_HOME/gates/H-prod.<step_id>.<run-id>.ok` or `gate-missing`; `none`: no
   gate file. An absent `approval` is never read as "no gate".
+- **No remote (19-F6, A.8 A.5.1):** a repo with `merge_reach: local` gets no desk `fetch` or
+  `branch-delete`; branch deletion there is local-only.
 - **`record_path` and `pr-attach` (Q3, OP9 A):** roots in step 9; the desk re-derives the record's
   three lines at `pr-create` and `pr-merge` (`references/checks.md` §Markers).
 - **Credentials (R2-4):** the operator's own GitHub and Jira auth; no bot account, account list or
@@ -207,7 +214,7 @@ with a fresh id, OP5 B): `references/checks.md` §Reason codes; machine form `sc
 - [ ] No PR approval, production trigger, pipeline edit or raw flag was executed.
 - [ ] Each request and result has one redacted line in `desk-log/<run-id>.jsonl`.
 - [ ] Every registry change is mirrored in `desk-inbox/<run-id>.registry`; every gate file written
-      came from a typed `GATE` line inside the B8 matrix.
+      came from a typed `GATE` line inside the B8 and B9 matrix, named `<gate>.<run-id>.<verdict>`.
 
 ## Provenance
 Provenance: Hermes skill `learnings/gh-auth`

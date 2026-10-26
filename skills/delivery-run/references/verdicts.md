@@ -34,20 +34,21 @@ A pair outside the matrix fails filter step 3.
 
 ### `PASS`
 
-1. Run `git -C <worktree> rev-parse HEAD`, where `<worktree>` is the unit worktree `<worktree_base>/<run-id>-<subtask>-<unit>` for `u<N>`, or the sub-task worktree for an Integrator record `i<N>`. It must equal `head`.
+1. Run `git -C <worktree> rev-parse HEAD`, where `<worktree>` is the unit worktree `<worktree_base>/<run-id>-<subtask>-<unit>` for `u<N>`; it must equal `head`. For an Integrator record `i<N>` the worktree is the sub-task worktree, whose HEAD the Integrator advances with every merge, so a batch read sees earlier records behind it: `git -C <worktree> merge-base --is-ancestor <head> HEAD` must succeed, and step 2 runs at the current HEAD (proposed CV33; the strict equality stays for `u<N>`).
 2. Re-run **one load-bearing command** (M15): the work_item's `done_condition` `command` from its wave file, in that worktree at `head`, after the profile `node.prefix_cmd`. It must exit 0, and its last stdout line must equal the `done_condition` `token` exactly (C1.2).
 3. Only then:
    - rename the worker's slot row `.freed` (`ledger.md`);
    - for `i<N>`, append `u<N> <head>` to `substate.md` `integrated` (the `INTEGRATED:` entry, D1.1; one record per merged unit, A.3);
    - release the unit's lane lease if it was the lane's last work_item in the invocation;
    - below 3 live agents, run the drift and creep check (below).
-4. **Head mismatch** (step 1 differs): the post is incomplete. It is never accepted, the row is not freed on it, and nothing is appended. The unit is re-gated under its fix loop. The controller's `step_complete` gate reads the record and the branch at `head` (R-2), and the lead takes no action of its own on the controller. **Two consecutive mismatches on one unit** are a stop row for that unit. The lead counts them from the topic itself (two mismatching records for the unit with no accepted record between them), so the count survives a resume. On the second one, pause the unit as for `ESCALATE` (escalation record holding both records and the observed head), keep its dependents unreleased, and run the rest of the sub-task on.
+4. **Head mismatch** (step 1 fails: `u<N>` HEAD differs, or an `i<N>` `head` is not an ancestor): the post is incomplete. It is never accepted, the row is not freed on it, and nothing is appended. The unit is re-gated under its fix loop. The controller's `step_complete` gate reads the record and the branch at `head` (R-2), and the lead takes no action of its own on the controller. **Two consecutive mismatches on one unit** are a stop row for that unit. The lead counts them from the topic itself (two mismatching records for the unit with no accepted record between them), so the count survives a resume. On the second one, pause the unit as for `ESCALATE` (escalation record holding both records and the observed head), keep its dependents unreleased, and run the rest of the sub-task on.
 5. If step 2 fails while the head matches, handle it like a mismatch: the post is not accepted and the unit is re-gated.
 
 ### `ROLLED`
 
 - The unit is a failed gate on the controller side: its dependents stay unreleased (C2 controller side, ADR 0054 A5).
 - Wait until the live invocation returns (one live invocation per sub-task), then run a **fresh invocation** with `tier_override <unit>=<tier>` one tier up (C1.1). The controller resumes at the unpassed items from its checkpoint. Alternatively, mark the unit blocked and escalate. The lead decides: tier-up fits a capability cause (`budget`, `merge-conflict`); blocked plus an escalation fits a cause outside the agent (`lane-unavailable`, `env-bug`).
+- "One tier up" is one above the highest tier recorded for the unit in `dispatch/*.jsonl`, so it survives a `TaskStop` or a resume (CV7). A drained `fix-loop-cap-exhausted` escalation for a unit the lead tiers up (Integrator `merge-conflict` included) is closed resolved-by-lead (below, proposed CV34).
 - **Never a third attempt at the top tier.** The lead counts a unit's earlier attempts per tier from the `dispatch/*.jsonl` lines of that unit. If two top-tier attempts are already recorded, the unit is blocked and escalated with `tier-exhausted`.
 - The fixer one-MODEL-step rule (ADR 0014 T1, D2.1 `tier` row) belongs to the review loops and does not change this handling (AM4-3).
 
@@ -58,9 +59,15 @@ A pair outside the matrix fails filter step 3.
 - Free the row (the record is from the registered agent and has been handled).
 - The conductor's next status post lists open escalations. The human's answer arrives as an inbox `ANSWER` line (`control-channel.md`). A `decision-gate` record follows the `.decisions` fork flow (`handoffs-and-modes.md`).
 
+### Escalation closure (proposed CV34)
+
+- **Open:** a unit escalation is a file `escalations/<unit>.md` (`<unit>` `[ui][0-9]+`) that has not been renamed. Only these block a new invocation (CV21). Other names (`register`, `lane-wait`, `desk-<id>`, `cleanup`, `wave-<N>`, CV9 inbox items) never block step 10; each of them that stops the lead carries its own `stop_reason`.
+- **Close on `ANSWER`:** on consuming `ANSWER <run-id> <subtask> <unit> <text>` the lead appends `Resolved: <utc> <first line of the ANSWER file>` to `escalations/<unit>.md` and renames it `<unit>.md.resolved-<yyyymmddThhmmssZ>`. `decision-gate` closes only once the `.decisions` fork flow has filled its Re-dispatch instruction (`handoffs-and-modes.md`). For every other reason (`spec-gap`, `contract-gap`, `source-bug`, `arch`, `human-step`, `gherkin-checkpoint`, `tier-exhausted`, `fix-loop-cap-exhausted`, head-mismatch pause) the lead appends the CV42 pointer line naming the resolved file to the unit's `.tasks` file, and the next invocation re-dispatches the unit with the answer carried that way.
+- **Resolved by the lead:** a drained `fix-loop-cap-exhausted` for a unit the lead itself tiers up (`ROLLED`) gets `Resolved: <utc> lead tier-up <tier>` and the same rename at once, so it never blocks that tier-up.
+
 ### `{SESSION_ID}-escalation` drain
 
-On the same bus, read the topic `<session_id>-escalation` with the same idiom. For each `{halt_reason: "fix-loop-cap-exhausted", wave, work_item, iterations}` not yet drained, write `escalations/<work_item>.md` as an `ESCALATE` with reason `fix-loop-cap-exhausted`. The work_item's dependents stay unreleased (ADR 0054 A5). A work_item that already has an escalation record is not written twice.
+On the same bus, read the topic `<session_id>-escalation` with the same idiom. For each `{halt_reason: "fix-loop-cap-exhausted", wave, work_item, iterations}` not yet drained, write `escalations/<work_item>.md` as an `ESCALATE` with reason `fix-loop-cap-exhausted`. The work_item's dependents stay unreleased (ADR 0054 A5). A work_item that already has an escalation record is not written twice. A post with no `work_item` (a barrier-wave exhaustion, W' `SKILL.md:149-151`) names no unit: write `escalations/wave-<N>.md` (record `unit` `-`, reason `fix-loop-cap-exhausted`), write `stop_reason: human`, and start no further invocation (proposed CV43).
 
 ## Status-file fallback (C4)
 

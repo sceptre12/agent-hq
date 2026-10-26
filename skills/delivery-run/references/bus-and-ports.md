@@ -18,7 +18,10 @@ The lead claims the candidate cell exactly as written. It never recomputes the f
 
 ## Start order (once per sub-task; before any dispatch)
 
-0. **Existing app.** `pm2 jlist` and look for the exact app name. Listed (a resume, or a crash after start): do not claim or start; go to "Restart" below with the `bus.endpoint` values (C5.3 step 4). Never a second `pm2 start` for a listed app.
+0. **Existing app or claim.** `pm2 jlist` and look for the exact app name, and read the latest catalog rows of this sub-task.
+   - `bus.endpoint` present: go to "Restart" below with its values (C5.3 step 4).
+   - No `bus.endpoint`, but a `planned` or `live` catalog `port` or `bus` row of this sub-task, or the app listed (a crash between steps 1 and 6, or a stop the human has since fixed): take `port` from the `port` row; make no claim and register nothing (`tools/port-check.sh` refuses a second claim by the same source, and the +10 retry is spent at most once, A.5.2). Enter at step 3 when the app is not listed, at step 4 when it is, then step 5 for every row still `planned`, then step 6 (proposed CV31).
+   - Never a second `pm2 start` for a listed app.
 1. **Claim** through the `port-claim` skill (A.5.2 order step 1), with `project` = `<run-id>` and `source` = `<run-id>-<subtask>`:
    ```
    tools/port-check.sh --claim <candidate> 127.0.0.1 - swarm-bus <run-id> claimed <run-id>-<subtask> sub-task-bus

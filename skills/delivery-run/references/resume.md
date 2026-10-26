@@ -42,10 +42,24 @@ The checkpoint of `wave-execution` is the sole resume authority for what has pas
 3. **Free the dead, restore the live.** A dead row is renamed `.freed`, a live one back to `.row` (A.4). For each `GHOST` audit line write `catalog.sh release` or `catalog.sh fail`, and nothing else. A `SQUATTER` is reported in `escalations/` and never touched.
    - **3a. Lease reclaim.** For every `live` `lane-lease` row of this sub-task (`lane/<name>` and `gate-runner/<n>`) whose `owner_agent` has no live `.row` after step 3, or is the old lead's `SESSION`, write `catalog.sh release lane-lease <handle>`. Re-lease per C1.1 before the next dispatch (`ledger.md`).
    - **3b. Dispatch-record reconcile.** Every `agent_id` in `dispatch/*.jsonl` that has no `.row`, `.stale` or `.freed` file gets a row written (`ledger.md` field rules) and verified as in step 2.
-4. **Bus.** Check the pm2 app against `bus.endpoint` and restart it with `pm2 restart` only, never `reload` (`bus-and-ports.md` "Resume"). Then re-arm the merged tick: a session cron does not survive a session restart (`tick.md`).
+4. **Bus.** Check the pm2 app against `bus.endpoint` and restart it with `pm2 restart`, never `reload`; an app pm2 no longer lists gets one start on the same claimed port, and a partly started bus with no `bus.endpoint` enters `bus-and-ports.md` step 0 (`bus-and-ports.md` "Resume", proposed CV31). The merged tick is already armed at SKILL.md step 3 on every start, so it is not armed a second time here (`tick.md`).
 5. **Read `inbox/` and `gates/`** (`control-channel.md`). Then read verdicts in the order TaskStop, orphan sweep, re-read verdicts (bus and `status/*.verdict`), then free rows. At resume there is nothing to stop, so the sweep runs over the dead rows' worktrees. Bus reads past `limit 200` repeat with the last seen message id as the cursor until a page returns fewer than 200.
    Also before any send: apply the desk applied-result scan (`RUN_HOME/desk/*.out` of the lead's own verbs whose result is not yet recorded), then re-attach to each `*.req` that has no `.out` and is not `.req.noreply` (B1).
 6. **Only then dispatch.** Wave 0 and the bus are not redone: each Wave 0 item that the catalog (`live` `worktree` rows), the `status/` files or the checkpoint show done is skipped, and an existing `bus.endpoint` takes the restart path, never a new claim (proposed CV31; `bus-and-ports.md` step 0). The next invocation bumps `invocation` in `substate.md` before the call. The controller resumes at the unpassed work_items.
+
+## Re-entry by `phase` (proposed CV38)
+
+After steps 1-5 a resumed lead re-enters at the row for its `substate.md` `phase` and never writes a lower `phase` (A.2 transitions; SKILL.md 10.3 sets `building` only from `seeded`). Steps 0-6 run on every start; step 8's restart path runs whenever `bus.endpoint` exists.
+
+| `phase` | Re-entry |
+|---|---|
+| `seeded`, `building`, `integrating` | SKILL.md step 7 (done items skipped), 8, then the step 10 loop |
+| `prepr` | SKILL.md step 12: `pre-pr-gate` re-invoked from its Step 0 |
+| `pr-open` | SKILL.md step 13 at the first request whose `DONE` `.out` is not applied (B1 applied-result scan) |
+| `ci` | SKILL.md step 14: `ci-fix-loop` re-invoked |
+| `merged` | no `cleanup-<run-id>-<subtask>.md` with line 1 `CLEANUP DONE <subtask>`: re-run `delivery-cleanup` from its Step 1 (`skills/delivery-cleanup/SKILL.md` step 8) with the `MERGED` inbox file, still unconsumed, as the `merge_sha` source; with that line: `phase: done` |
+| `done` | write `substate.md`, print its path, end |
+| `post-merge`, `release` (`pm`) | `handoffs-and-modes.md` mode `post-merge` step 2 or step 3; each hosted skill resumes at its Step 0 |
 
 `REGISTER` is written again on every start, resume included. The new identity replaces the old one in the desk registry (B1 "a line for a `<subtask>` already registered replaces its id"). No `DESK` line goes out before this start's `register.consumed` (`control-channel.md`).
 
@@ -61,4 +75,5 @@ Step 0 runs on every start: the dispatch-plan header `interfaces_version` (and, 
 | "My memory says u07 passed." | The checkpoint is the sole authority (O-Q6). |
 | "Dispatch first, reconcile while it runs." | Steps 1-5 complete before any dispatch (C5.3 step 6). |
 | "The bus is down after reboot, start a new one on a fresh port." | Same claimed port, `pm2 restart`, or a single start of an unlisted app. Never a new claim (`bus-and-ports.md`). |
+| "The run is resumed, set `phase: building`." | Re-enter by `phase` and never lower it (proposed CV38). |
 | "Clear `port-refused` and carry on." | Only the human clears a stop; the lead stops again. |

@@ -39,7 +39,7 @@ max_concurrent = 30 - live_rows - sum(reserved)
 
 - `live_rows` counts `slots/*.row`. `reserved` is the seed map (`shepherd: 1, clerk: 1, ci: 1, review: 10`), copied into `substate.md` and never edited by the lead (A.3). In `plan-pr` and `post-merge`, which have no seed, the lead writes the same map at SKILL.md step 2 (proposed CV29), so the formula and the machine row count `pre-pr-gate`'s `review: 10` seats.
 - Compute it **after** the controller row exists, so the controller's own slot is already subtracted (Q1).
-- `max_concurrent` is a caller argument passed on each invocation (C1.1). It is never a spec field and never a constant 30. Before the controller row is written, the lead requires `30 - live_rows - sum(reserved) - 1 >= 1`; otherwise it bumps nothing, writes no row, releases the leases it took in this pass, and waits. The tick's pending-dispatch step re-enters the loop at 10.1 (`tick.md` step 3, proposed CV21).
+- `max_concurrent` is a caller argument passed on each invocation (C1.1). It is never a spec field and never a constant 30. Before the controller row is written, the lead requires `30 - live_rows - sum(reserved) - 1 >= 1`; otherwise it bumps nothing, writes no row, releases the leases it took in this pass, and waits. The tick's pending-dispatch step re-enters the loop at 10.1 (`tick.md` step 9a, proposed CV21); the wait has a row and a bound in `tick.md` "Wait states" (proposed CV41).
 - A controller return of `VALIDATION_FAILED` or `BUNDLE-ERROR <field>` (C1.1, AM-4 9) dispatched nothing: free the `wave-controller` row, write `stop_reason: human` and stop.
 - At most one live invocation per sub-task. A re-dispatch (`ROLLED`, `.decisions` resolution, resume) waits until the live invocation has returned (Q1).
 - Before any lead-own or hosted dispatch the same formula must leave at least one free slot. A spawn without a free slot is stop-the-line S4.
@@ -63,8 +63,8 @@ The shepherd never frees a row. It flags `FREE-CANDIDATE`, and the lead frees on
 
 - `<cap>` = env `CLAUDE_CODE_MAX_SUBAGENTS_PER_SESSION`, read at ORCHESTRATOR-CHECK. If it is unset or not an integer, the check fails and the lead stops (fail closed).
 - `spawns` counts every Agent call made in this lead session, its own and those of the skills it hosts (`pre-pr-gate`, `ci-fix-loop`, `delivery-cleanup`, the shepherd, review seats), plus every dispatch-record line of the invocations this session started. Nested spawns are counted because it is unmeasured whether the session cap counts them. The lead writes `spawns: <n>/<cap>` to `substate.md` atomically after each Agent call and after each read of new record lines.
-- Before any own Agent call: `spawns + 1 <= cap - 5`. Agent calls of a hosted skill are own calls; the headroom before an agent that dispatches on its own, and the mid-skill hand-over, are in `tick.md` "Hosted skills" (proposed CV22).
-- Before each invocation: `spawns + 1 + (dispatch_budget - dispatch-record lines so far) <= cap - 5`, where `dispatch_budget` is the `bundle.md` field.
+- Before any own Agent call: `spawns + 1 <= cap - 5`; while an invocation is live, an own call (the shepherd included) also keeps that invocation's remaining budget: `spawns + 1 + (dispatch_budget - lines so far in its dispatch record) <= cap - 5` (Q2; a failed check skips the shepherd, `tick.md` step 10). Agent calls of a hosted skill are own calls; the headroom before an agent that dispatches on its own, and the mid-skill hand-over, are in `tick.md` "Hosted skills" (proposed CV22).
+- Before each invocation: `spawns + 1 + (dispatch_budget - lines so far) <= cap - 5`, where `dispatch_budget` is the `bundle.md` field and "lines so far" counts only this invocation's `dispatch/<invocation>.jsonl` (0 at 10.1).
 - When either check fails: dispatch nothing more. Once no invocation is live, run the C5.3 hand-over: write `stop_reason: spawn-cap`, remove the lifetime `substate.lock`, and exit (`resume.md`). The new lead is a new session, so its count starts at 0 (A.3), and it clears `spawn-cap` at resume (PC-W2-8).
 
 ## Machine ledger row (PC-W2-1, PC-W2-2, AM-4 W2-9)
@@ -79,12 +79,12 @@ The shepherd never frees a row. It flags `FREE-CANDIDATE`, and the lead frees on
 
 ## Lane leases (C1.1, A.5)
 
-- Before each invocation, read the invocation's wave file(s) under `<PLANS_DIR>/subtasks/<subtask>/waves/` and lease every `lane/<name>` that any work_item names:
+- Before each invocation, read the invocation's wave file(s) under `<PLANS_DIR>/subtasks/<subtask>/waves/` and lease every `lane/<name>` that any work_item names, skipping a lane whose latest catalog `lane-lease` row is `live` with `owner_agent` = this `SESSION` (a lease an earlier pass of this lead kept; proposed CV35):
   ```
   catalog.sh register lane-lease lane/<name> <unit> <ticket> delivery-run <subtask> <SESSION>
   ```
   For `lane-lease`, `register` writes `live` directly. Exit 3 means the lane is held, for example by another sub-task's lead on a shared lane: never touch the holder's lease, release the leases this pass already took (so two leads cannot each hold a lane the other needs), make no call, and let the tick's pending-dispatch step retry (proposed CV21). An invocation never starts with a lane unleased.
-- Release a lease (`catalog.sh release lane-lease lane/<name>`) after the last work_item of that lane in the invocation has had its C2 record accepted, or after the work_item escalated. Inside the run, one live work_item per lane is the controller's rule (ADR 0054 A3; barrier-wave release on gate pass or escalate, AM-4 9).
+- Release a lease (`catalog.sh release lane-lease lane/<name>`) after the last work_item of that lane in the invocation has had its C2 record accepted, or after the work_item escalated. When the controller task returns, or after its `TaskStop` (once the CV24 order has freed the rows), release every lease the invocation took that is still `live`, so a `ROLLED` unit, a checkpoint-passed unit or a no-op invocation never keeps one into the next pass (proposed CV35). Inside the run, one live work_item per lane is the controller's rule (ADR 0054 A3; barrier-wave release on gate pass or escalate, AM-4 9).
 - **`gate-runner/<n>` leases** (`n` in `1..gates.runner_slots`) are taken by each gate runner itself (A.7 preconditions). The lead releases a dead holder's lease: after a `TaskStop`, its orphan sweep writes the `released` row (AM-4 13 / 20 Q9); at resume, step 3a does it (`resume.md`).
 - **Unit gates** are not the gate runner's: a unit posts its record, and the engine's per-work_item gate agent runs the gate command and writes `GATE-PASS` for that head (AM-4 13). The lead never requests a gate runner for a unit.
 

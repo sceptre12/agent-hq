@@ -109,7 +109,7 @@ if cg_has "$base" "$CG_DIR/scope.conf"; then
   [ -z "$grown" ] || block "GRANDFATHER-GROWTH:$grown"
 fi
 
-recs="$(mktemp)" || die "cannot create a temp file"
+recs="$(mktemp "${TMPDIR:-/tmp}/run-mapped-tests.XXXXXX")" || die "cannot create a temp file"
 cg_changed ACMR "$base" "$head" | cg_scoped >"$recs" || { rm -f "$recs"; block "DIFF-FAIL"; verdict; }
 while IFS= read -r -d '' rec; do
   p="${rec#*$'\t'}"; [ -z "$p" ] && continue
@@ -128,7 +128,7 @@ rm -f "$recs"
 
 [ -n "$TESTS" ] || verdict
 # Detached temp worktree of the pushed commit: the tests see exactly the pushed blobs.
-TWT="$(mktemp -d)/w"
+TWT="$(mktemp -d "${TMPDIR:-/tmp}/run-mapped-tests.XXXXXX")/w"
 git worktree add -q --detach "$TWT" "$head" >/dev/null 2>&1 || { TWT=""; die "cannot create a temp worktree of $head"; }
 cd "$TWT" || die "cannot cd to temp worktree"
 
@@ -139,7 +139,7 @@ run_one() {
   # rc 2 = the map could not be read for the timeout lookup: a malformed map blocks, never a silent 120 s fallback.
   [ -n "$limit" ] || limit="$(cg_timeout_for "$head" "$t")" || { block "MALFORMED-MAP:timeout_lookup($t)"; return; }
   limit="${limit:-120}"
-  out="$(mktemp)"; flag="$out.timeout"
+  out="$(mktemp "${TMPDIR:-/tmp}/run-mapped-tests.XXXXXX")"; flag="$out.timeout"
   [ -f "$t" ] && [ -x "$t" ] || { block "TEST-NOT-RUNNABLE:$t(not_executable_or_missing)"; rm -f "$out"; return; }
   [ "$(head -c2 "$t")" = '#!' ] || { block "TEST-NOT-RUNNABLE:$t(no_shebang)"; rm -f "$out"; return; }
   N=$((N + 1))

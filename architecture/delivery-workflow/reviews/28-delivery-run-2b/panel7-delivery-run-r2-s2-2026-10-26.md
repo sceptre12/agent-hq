@@ -1,0 +1,11 @@
+# s2 COUNTERS AND CAPS, round 2 (agent run28-r2-s2)
+
+id | sev | artifact file:line | defect | source file:line | fix
+---|---|---|---|---|---
+s2-1 | M | skills/delivery-run/SKILL.md:163-164; references/tick.md:42 | The tick shepherd call is an own Agent call made while an invocation is live, with no spawn check. The 10.1 check (SKILL.md:175-177) reserves the dispatch budget only at invocation start, so n shepherd spawns (one per tick at 3+ live agents) plus later controller dispatch lines can pass cap-5. | references/ledger.md:66-67; interfaces/part-a-state.md:166 | Before the shepherd call (and any own call during a live invocation) require spawns + 1 + (dispatch_budget - lines so far of the live invocation) <= cap - 5, else skip the shepherd that tick.
+s2-2 | M | SKILL.md:156-160; references/control-channel.md:59; references/tick.md:22,24,37-38 | The after-TaskStop order never re-reads dispatch/<invocation>.jsonl, and tick step 1 (inbox, INVALIDATE) precedes step 3 (dispatch records). Agents dispatched since the last read have no slot row: not swept, not in live_rows or max_concurrent, so a new invocation can exceed 30 if depth-2 agents survive the controller TaskStop. | references/ledger.md:32; interfaces/part-c-waves-control.md:21 | Add "read new dispatch lines, write their rows" right after TaskStop and before the orphan sweep; run tick step 3 before step 1 or repeat it in the INVALIDATE path.
+s2-3 | L | SKILL.md:175-176; references/ledger.md:67 | "dispatch-record lines so far" is not defined as this invocation's file only (0 at 10.1). Counting earlier invocations would shrink or negate the term on a re-dispatch invocation and under-reserve spawns. | interfaces/part-a-state.md:166; part-c-waves-control.md:20 | State that lines so far = lines of this invocation's file, so each invocation reserves the full dispatch_budget.
+
+Checked, no defect: 30 cap (controller row first, max_concurrent after it, 10.2 pre-check -1>=1, reserved 13 always subtracted, hosted agents rowed or reserved, hosted skills only run with no invocation live); machine 200 (31 per lead, real live_count, rule 8 incl. own row, plan-pr/post-merge reserved map CV29); every increment/decrement of spawns and live_count is defined.
+
+totals 0/2/1

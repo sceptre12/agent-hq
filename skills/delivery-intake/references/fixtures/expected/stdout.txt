@@ -1,0 +1,2 @@
+Summary: Badge widget, sizes small/medium/large, no theming; open items: 18; sentinels: 18. Confirm by typing GATE run-1-20261026 H0 ok <text> in the desk session.
+PROFILE: <PRIMARY_REPO>/plans/repo-profile.md@<40-hex git hash-object of that file>

@@ -3,6 +3,10 @@
 # seconds (positive integer; default 120); when several rows name the same test the largest value wins, and the
 # CODE_GATE_TIMEOUT environment variable, if set, overrides every map value. See run-mapped-tests.sh / cg_timeout_for.
 
+skills/release-track/scripts/check-zephyr-disallowed.sh	skills/release-track/scripts/test_zephyr-guard.sh
+skills/release-track/scripts/zephyr-guard.sh	skills/release-track/scripts/test_zephyr-guard.sh
+skills/security-audit/validate-coverage-ledger.cjs	skills/security-audit/tests/test_validate-coverage-ledger.sh
+skills/security-audit/validate-findings.cjs	skills/security-audit/tests/test_validate-findings.sh
 tools/check-doc-length.sh	tools/test_check-doc-length.sh
 tools/check-file-length.sh	tools/test_check-file-length.sh
 tools/check-invariants.sh	tools/test_check-invariants.sh

@@ -1,0 +1,5 @@
+CLEAN
+Closed as claimed (opened and matched): V3-1 (INTERFACES.md:125 and part-a-state.md:185 both `^([ui][0-9]+\|-)$`), V3-2 (part-a-state.md:16,219; INTERFACES.md:37,164), V3-3 (part-d-enums-topics.md:69 names `resource-catalog` row 8 :80 as the one env `RUN_HOME` exception), V3-4 (PRIMARY_REPO at part-d:73,74; part-a-state.md:50,62,121 `primary_repo`; INTERFACES.md:97,159,163 log rows; consistent, `plans_dir` is created after it).
+Preround r3c C1 (INTERFACES.md:27 `:259-273` = heading to OP10), C2 (part-c:52 cites owner-decisions.md:7,8, part-03:35, changelog.md:199, ADR 0023:137-138 all open and match), C5 (part-c:20 DEFAULT tag; N10/N11 "Recommended answer (proposed, owner to decide)") closed.
+PRIMARY_REPO contradicts nothing in architecture/delivery-workflow-sources/owner-decisions.md or ADR 0054/0055 (no primary-repo ruling in either). N10 and N11 remain open and undecided. Unit regex `^[ui][0-9]+$` / `^([ui][0-9]+\|-)$` consistent; `integrated`, `INTEGRATED:` and `NEXT:` correctly stay `u`-only as before.
+H1-H13, H15-H27 and PR8-C5: no regression found in the spot-check; the r3b edits touched only the lines above. check-doc-length.sh: 0 blocking.

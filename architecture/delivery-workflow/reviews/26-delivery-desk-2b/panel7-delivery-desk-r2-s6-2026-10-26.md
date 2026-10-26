@@ -1,0 +1,8 @@
+| id | sev | artifact file:line | defect | source file:line | fix |
+|---|---|---|---|---|---|
+| s6-1 | M | skills/delivery-desk/references/schemas.json:83-85 (envelope.verb enum of the 20), SKILL.md:242-244 | A REJECTED schema .out for a DESK line whose verb is outside B4 (approve, trigger-prod; SKILL.md:79,166-167,224) must carry that verb, which the envelope enum refuses; the exit criterion that every .out validates cannot hold and the operator must guess the verb value | architecture/delivery-workflow/interfaces/part-b-desk.md:116 (B6 envelope, no verb enum); :37 (REJECTED .out written for all but sender) | Make envelope.verb a string matching ^[a-z-]+$ (DONE results keep their per-verb const), or state the value written for a non-B4 verb |
+| s6-2 | L | skills/delivery-desk/references/schemas.json:7 (abs_path/repo) vs tools/delivery/desk-req-schema.sh:21 (abs) | Sender refuses a space in a path (legal registered clone) yet its jq test accepts a trailing newline in abs/ref/sha/job/jira-key values (verified with desk-req.sh in a scratch root: repo, merge_sha, key, job each with trailing newline exit 0), which the schema refuses as terminal schema | architecture/delivery-workflow/interfaces/part-b-desk.md:79 (B4 field types are anchored regexes) | Reject any control char in the sender before the regex test and align abs with the schema class |
+
+Checked and clean: DESK line form and id regex, .req location/name/content layout (jq -S -c, 0600, sha256 over the written file), per-verb field validation for all 20 verbs (sender vs schemas.json corpus, apart from owner notes a and b), conductor-only verbs and subtask run, REGISTER-SENDER/REGISTERED text vs B1, per-verb result schemas vs B6, test_desk-req.sh 331 passed.
+
+totals 0/1/1

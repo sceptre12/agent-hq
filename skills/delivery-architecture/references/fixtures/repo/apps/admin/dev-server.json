@@ -1,0 +1,7 @@
+{
+  "service": "admin-ui",
+  "port": 4300,
+  "bind": "127.0.0.1",
+  "fixed": true,
+  "note": "port is hard-coded in the admin auth callback allowlist"
+}

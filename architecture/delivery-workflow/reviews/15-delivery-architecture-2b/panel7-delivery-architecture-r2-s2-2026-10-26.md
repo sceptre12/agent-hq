@@ -1,0 +1,10 @@
+# Panel7 r2 s2: INTERFACES exactness (agent arch15-r2-s2)
+
+Checked against INTERFACES 1.4.0: D1 and regex, D1.1 ARCH/DRAFTS/RUNG, D2.1, D2.2 rows 3-4, D6, A.1 slug and atomic writes, A.2 security_audit/orchestrator_tier, A.2.1, A.2.2, A.5.2, A.5.3, A.6, B8. All Provenance and reference anchors (A.1 :7-52, A.2 :53-90, A.2.1 :91-105, A.2.2 :106-155, A.5.2 :279-282, A.5.3 :283-286, A.6 :287-328, B8 :152-172, D1 :6-11, D1.1 :12-31, D2.1 :34-68, D2.2 :77-78, D3 :110, :59, :64, :71, :98, :99, :132-136, :136) resolve and say what the skill claims. INPUT-ERROR forms, token regexes, slug rule, front matter, SLUG minting, GATE line and port wording match.
+
+| id | sev | artifact file:line | defect | source file:line | fix |
+|---|---|---|---|---|---|
+| s2-1 | M | skills/delivery-architecture/SKILL.md step 7; references/step0-inputs.md row 7 (:22); references/tree-rules.md K12 | Tag-step planning ignores release_tags.approval: a tag step under approval human is not made a human / H-prod step, and used "yes" with absent or malformed pattern/approval is not handled, so the plan can show an agent tag step the desk refuses without H-prod.<step_id>.ok | interfaces/part-a-state.md:100 (H-prod incl. tag-push under approval human), :132-136 | In step 7 and K12: owner human for a tag step when approval is human; plan no tag step when used is yes but pattern or approval is absent or malformed |
+| s2-2 | M | skills/delivery-architecture/SKILL.md step 12 vs references/h1-packet.md (last paragraph) and references/review-handoff.md section 8 | Step 12 fills architecture.md item 12 after the final review round, while the packet hashes artifacts "as the last round left them" and H1 ref= is the packet sha256, so the accepted architecture.md has text no round reviewed | architecture/delivery-workflow-sources/owner-decisions.md:2 (D1); interfaces/part-a-state.md:98 | Fill item 12 before the last round, or state the item-12 post-review edit as the one allowed exception, list it in the record, and hash after it |
+
+totals 0/2/0

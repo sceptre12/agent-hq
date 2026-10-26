@@ -7,7 +7,7 @@ Re-read the capture agent's output from its stored location and check it against
 ## Persona facts
 - Session and depth: depth 1. Holds the Agent tool: no. Slot: 1.
 - Inputs: the capture queue, or the Hermes port after the capture agent's write, plus the run record.
-- Outputs: `RUN_HOME/capture/read-back.md`, line 1 `READ-BACK: pass` or `READ-BACK: <n> differences`, then one line per difference (part C8, 29-24).
+- Outputs: `RUN_HOME/capture/read-back.md`, line 1 `READ-BACK: <ok|mismatch> <path>` (`<path>` = the file checked; D1.1 token, INTERFACES 1.8.0 AM-8 V16), then one line per difference after `mismatch` (part C8, 29-24).
 - May write: the capture queue under `RUN_HOME/capture/`.
 - Done token: that line 1; the conductor waits for it (C8). Stop rule: none stated in the table.
 

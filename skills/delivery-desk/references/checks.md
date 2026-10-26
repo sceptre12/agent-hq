@@ -28,16 +28,16 @@ and part B differ, part B wins and this file is wrong.
 | 2 | `RUN_HOME/desk/<id>.out` exists: re-send its reply and stop (no hash compare) | (replay) | stored |
 | 3 | Copy `RUN_HOME/desk/<id>.req` to `$DELIVERY_ROOT/desk-inbox/<id>.req` (desk-owned, 0700 dir; kept until the run is archived at CYCLE DONE) | a missing or unreadable `.req` is `schema`, `request_sha256` null (author default: the line names a file that does not exist) | yes |
 | 4 | `shasum -a 256` of the copy equals `sha256=<hex>` | `hash` | yes |
-| 5 | Copy validates: path equals `RUN_HOME/desk/<id>.req`; verb in B4 (a verb outside the 20, such as approve, trigger-prod or pipeline-edit, stops here as `schema`, never `policy`); JSON envelope `id`, `verb`, `subtask` equal the line; `fields` passes `schemas.json` `verbs.<verb>.request` (a `ref`, `base`, `merged_into`, `tag` or `package` starting with `-` fails here: raw flag, a contract rule, B9 26; an int written as `-0` or in exponent form fails here, read on the raw `.req` text, A.8 A.5; a non-Epic `jira-create` without `parent` fails here, B9 26); `pr-merge` `method` equals profile `merge_method`, `fields.subtask` equals the `record_path` `<subtask>` segment. The branch regex is deliberately **not** part of this check (`schemas.json` `definitions.branch` carries no pattern) | `schema` | yes |
-| 6 | Per-field roots and the branch regex (below); redaction (B7); never-granted request (also a `test-report-push` first call with `dry_run: false`, B9 26); `tag-push` profile entry (N11) | `repo` or `policy` | yes |
+| 5 | Copy validates: path equals `RUN_HOME/desk/<id>.req`; verb in B4 (a verb outside the 20, such as approve, trigger-prod or pipeline-edit, stops here as `schema`, never `policy`); JSON envelope `id`, `verb`, `subtask` equal the line; `fields` passes `schemas.json` `verbs.<verb>.request` (a `ref`, `base`, `merged_into`, `tag` or `package` starting with `-` fails here: raw flag, a contract rule, B9 26; an int written as `-0` or in exponent form fails here, read on the raw `.req` text, A.8 A.5; a non-Epic `jira-create` without `parent` fails here, B9 26); `pr-merge` `fields.subtask` equals the `record_path` `<subtask>` segment (the `method` check is in check 6, `repo`, INTERFACES 1.8.0 AM-8 V7). The branch regex is deliberately **not** part of this check (`schemas.json` `definitions.branch` carries no pattern) | `schema` | yes |
+| 6 | Per-field roots and the branch regex (below); `pr-merge` `method` equals the resolved profile `merge_method` (else `repo`, AM-8 V7); redaction (B7); never-granted request (also a `test-report-push` first call with `dry_run: false`, B9 26); `tag-push` profile entry (N11) | `repo` or `policy` | yes |
 | 7 | Session freshness (GitHub for `gh`/`git` verbs, Atlassian for `jira-*` and `test-report-push`) | `stale-session` | yes |
 | 8 | Gate files (`H1.<run-id>.ok`; `H-prod.<step_id>.<run-id>.ok`; `tag-push` only under `approval: human`; names per A.2.1 AM-5 26); `pr-merge` `merge_reach` row; then predecessors; then markers | `gate-missing`, `order`, `marker` | yes |
 | 9 | `mkdir desk/<id>.inflight`, write `target`, duplicate guard, act | `action-failed` | yes |
 | 10 | Write `desk/<id>.out` atomically at 0600 | - | - |
-| 11 | Append one redacted JSON line per request and per result to `$DELIVERY_ROOT/desk-log/<run-id>.jsonl` | - | - |
+| 11 | Append one masked (`[REDACTED]`, AM-8 V7) JSON line per request and per result to `$DELIVERY_ROOT/desk-log/<run-id>.jsonl` | - | - |
 | 12 | Reply `DONE` or `REJECTED` | - | - |
 
-Inside check 6 the order is: `repo` (the profile resolution and the registered clone), `branch`,
+Inside check 6 the order is: `repo` (the profile resolution and the registered clone, then the `pr-merge` `method` against `merge_method`), `branch`,
 path roots, then redaction, then never-granted, then `release_tags`. Inside check 8: gate files,
 then `order`, then markers in the B5 order (head, gate run, review record, H-pr, CI). The
 `request_sha256` of a `.out` is the copy's hash; it is null only when the reject precedes check
@@ -73,7 +73,8 @@ from it.
   did not run is never read as clean.
 - Scanned: every string field of the request; every file named by `body_path`, `payload_path`,
   `record_path` and `pr-attach` `paths[]` except images; the `ci-logs` output before it is stored
-  (a hit there refuses the request; nothing is stored).
+  (a hit there is masked as `[REDACTED]` and the log is stored, B7 split, INTERFACES 1.8.0 AM-8 V7; a
+  request body or attached file with a hit is still refused `policy`).
 - `pr-attach` copy (ADR 0055 §3, `decisions/0055-desk-verb-permission-tiers-02.md:185-191`: the
   desk acts on what it copied; author default layout): after the root check, copy each `paths[]`
   file once, without following symlinks (`cp -P`), to `$DELIVERY_ROOT/desk-inbox/<id>.attach/<k>-<basename>`
@@ -95,7 +96,7 @@ from it.
 - Scan the file once, and use the bytes that were scanned (read it into the desk's own memory or
   a desk-owned copy under `desk-inbox/`), so a file changed after the scan is never sent (same
   reasoning as M29 copy and hash; author default).
-- Log lines (`desk-log/`) are redacted before append.
+- Log lines (`desk-log/`) and a `.out` `detail` are masked before they are stored: each pattern-file hit is replaced by `[REDACTED]` and the line is kept (B7, INTERFACES 1.8.0 AM-8 V7). Masking applies to logs only; a request body or attached file with a hit is refused `policy` (above), never masked and sent.
 
 ## Markers (check 8, B5)
 
@@ -185,12 +186,12 @@ every other line waits in the queue, §Inflight item 0) (author default slice; t
 | `sender` | terminal | 1 | sender not registered; conductor-only or `run` id from a non-conductor |
 | `schema` | terminal | 5 | copy fails the closed schema or the line cross-check; verb outside B4 (approve, trigger-prod, pipeline-edit); ref, base, merged_into, tag or package starting with `-`; non-Epic `jira-create` without `parent` (B9); int as `-0` or exponent |
 | `hash` | terminal | 4 | copy sha256 differs |
-| `repo` | terminal | 6 | repo not a registered clone; branch regex; path outside its root |
+| `repo` | terminal | 6 | repo not a registered clone; branch regex; path outside its root; `pr-merge` `method` differs from the profile `merge_method` (AM-8 V7) |
 | `policy` | terminal | 6 | never-granted in-schema request; `test-report-push` first call with `dry_run: false` (B9); `tag-push` not allowed by profile; redaction hit; pattern file unusable or scan error |
 | `stale-session` | curable | 7 | GitHub or Atlassian session not fresh |
 | `gate-missing` | curable | 8 | `H1.<run-id>.ok`, `H-prod.<step_id>.<run-id>.ok` or `merge_reach` row absent |
 | `order` | curable | 8 | a `pr-merge` predecessor not merged |
-| `marker` | curable | 8 | a re-derived marker fails (also `push-spacing`, `pipeline-bound`) |
+| `marker` | curable | 8 | a re-derived marker fails (also `push-spacing`, `pipeline-bound`; a `jira-create` parent missing at re-fetch, AM-8 V7) |
 | `action-failed` | curable | 9 | valid request, the action failed |
 
 Terminal: stop-the-line for that request; the requester reports it to the owner and never

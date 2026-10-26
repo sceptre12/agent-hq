@@ -40,7 +40,7 @@ Guidance mode (`state.md` `security_audit: guidance`) writes no file; the RUN ro
 |---|---|---|
 | in-run `pr-review` bus: `bus.endpoint` and `data_dir` `bus/` | RUN `review/<subtask>/<review-id>/`; one fresh session `pr-review-<uuid8>` per review (the M12 namespacing exception for review buses, E42) | `pr-review` Step 1 |
 | `pm/inbox/<seq>-<yyyymmddThhmmssZ>-verdict.md` (inbox type `verdict`) | RUN `pm/inbox/` | `post-merge-verify` verdict agent (C5.1, C8); the desk for a human-decision `VERDICT pm <row-id> <text>` (B8, C8, AM-7 touch-up 7) |
-| `capture/read-back.md` (line 1 `READ-BACK: pass` or `READ-BACK: <n> differences`) | RUN `capture/` | read-back agent (C8, 29-24) |
+| `capture/read-back.md` (line 1 `READ-BACK: <ok|mismatch> <path>`, D1.1, AM-8 V16) | RUN `capture/` | read-back agent (C8, 29-24) |
 | `launcher/disallowed-tools.txt` (one tool name per line; absent or empty is `INPUT-ERROR launcher.disallowed_tools missing`) | ROOT `launcher/`, written at the move | the move operator (A.8, 29-21) |
 | `homes/<session>/pid`, `homes/<session>/prompt` (0600) | ROOT `homes/<session>/` | the launch subshell (A.8, 29-39) |
 

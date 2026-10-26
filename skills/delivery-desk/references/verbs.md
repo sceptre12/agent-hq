@@ -106,8 +106,8 @@ the branch, labels, template), `harness-api` (read-only verbs), `jira`.
 ### `pr-merge` `{repo, pr, subtask, method, expect_head, predecessors[], record_path}`
 - Requester: the conductor only (`<subtask>` `run`, `fields.subtask` the PR's `st<N>`). Reader:
   the conductor, which writes `merge-<sha>.md` (A.6).
-- Checks: `method` equals the profile `merge_method` and `fields.subtask` equals the
-  `record_path` segment (else `schema`); `merge_reach` row (else `gate-missing`); predecessors
+- Checks: `fields.subtask` equals the `record_path` segment (else `schema`); `method` equals
+  the profile `merge_method` (else `repo`, check 6, INTERFACES 1.8.0 AM-8 V7); `merge_reach` row (else `gate-missing`); predecessors
   merged (else `order`); head (PR `headRefOid`), gate run, review record, H-pr, CI aggregate
   `success` (else `marker`); merge target: `gh pr view <pr> --repo=<gh-repo> --json=baseRefName`
   equals the profile `default_branch` (A.2.2 `part-a-state.md:123`, AM-4 20 Q6: "main" in the
@@ -153,8 +153,8 @@ the branch, labels, template), `harness-api` (read-only verbs), `jira`.
 ### `ci-logs` `{repo, ci_run_id, job}`
 - Requester and reader: `ci-fix-loop`.
 - Act: resolve `job` to its job id in `gh run view <ci_run_id> --repo=<gh-repo> --json jobs`, then
-  `gh run view <ci_run_id> --repo=<gh-repo> --job=<job-id> --log`; scan the output (a hit refuses with `policy`
-  and stores nothing); store it under `RUN_HOME/ci/` as a data file (name
+  `gh run view <ci_run_id> --repo=<gh-repo> --job=<job-id> --log`; scan the output (each hit is masked as `[REDACTED]`, B7 split,
+  INTERFACES 1.8.0 AM-8 V7); store it under `RUN_HOME/ci/` as a data file (name
   `ci/<id>.log`, author default).
 - Result: `log_path`.
 
@@ -229,7 +229,7 @@ Atlassian session.
   carrier: a `fields.parent` entry is `schema` at check 5 (`schemas.json`
   `verbs.jira-create.request`); `fields` needs `summary` and `issuetype`, every other allowlisted
   field is optional (AM-4 22, `part-b-desk.md:100`); `parent` present exactly when
-  `fields.issuetype` is not `Epic` (else `schema`; a missing `parent` is `schema`, B9 26; top-level `parent` only, a `fields.parent` is refused, INTERFACES 1.6.0 AM-6 B-9a); the parent is re-fetched first and must exist.
+  `fields.issuetype` is not `Epic` (else `schema`; a missing `parent` is `schema`, B9 26; top-level `parent` only, a `fields.parent` is refused, INTERFACES 1.6.0 AM-6 B-9a); the parent is re-fetched first and must exist (else `marker`, INTERFACES 1.8.0 AM-8 V7).
   A changed draft `parent` or `issuetype`, and a terminal `REJECTED`, are `ticket-clerk`'s to
   report (B4); the desk does not update a created issue's parent.
 - Result: `key`, `parent` (null for an epic).

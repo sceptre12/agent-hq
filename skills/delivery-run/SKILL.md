@@ -43,12 +43,12 @@ the lead copies nothing (C1.2, R4-J14). Tier names only, never models (M19).
 
 2. **Lifetime lock and seed (A.3).** `mkdir ST/substate.lock`; write `owner` (`<pid> <ISO UTC>`)
    to a temp file in it and `mv` it to `owner`. A lock that exists and is not stale: print the
-   reason and stop (S6; a second `pm` lead: `stale-session`, A.8). A stale lock is broken per A.3 and
+   reason and stop (S6; a second `pm` lead: `STOP stale-session`, AM-8 V1). A stale lock is broken per A.3 and
    logged in `lock_breaks`. `MODE=build`: copy `PLANS_DIR/subtasks/<subtask>/substate.seed.md`
    verbatim into `ST/` (never edit the copy) and create `substate.md` from it with every other
    A.3 field empty or derived. `plan-pr`/`post-merge`: `subtask_id`, `session_id`
    (`<run-id>-<subtask>`) and `phase: seeded` only (A.2 modes), plus the A.3 seed `reserved`
-   map `{shepherd: 1, clerk: 1, ci: 1, review: 10}` (proposed CV29). A resumed lead clears
+   map `{shepherd: 1, ci: 1, review: 10}` (CV29; AM-8 V8). A resumed lead clears
    `stop_reason: spawn-cap` here (PC-W2-8, AM-4 W2-5); `invalidate` stays until the fresh
    `RELEASE` is consumed; any other `stop_reason`: print it and stop; only the desk-written
    `RESUME.<subtask>.<run-id>.ok` gate ends `stopped` ([resume](references/resume.md)).

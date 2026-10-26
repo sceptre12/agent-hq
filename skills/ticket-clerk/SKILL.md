@@ -6,7 +6,7 @@ description: Use when the conductor session must create or update Jira epics, st
 
 ## Trigger
 
-Use when the conductor (the only host of this skill) reaches a loop hand-back, or about 30 minutes have passed since the last flush, and either `PLANS_DIR/drafts/` holds drafts not yet in `tickets.tsv` (after H1) or `ticket-events.log` has lines past `ticket-events.cursor`. The tracker is Jira. This skill makes no Jira CLI call and no web call: its only transport is desk requests (part B1 "Non-lead requesters"; spec 22 §4 Transport row).
+Use when the conductor (the only host of this skill: it runs only in the conductor session, never as a sub-task seat, and no sub-task reserves a clerk seat; INTERFACES 1.8.0 AM-8 V8) reaches a loop hand-back, or about 30 minutes have passed since the last flush, and either `PLANS_DIR/drafts/` holds drafts not yet in `tickets.tsv` (after H1) or `ticket-events.log` has lines past `ticket-events.cursor`. The tracker is Jira. This skill makes no Jira CLI call and no web call: its only transport is desk requests (part B1 "Non-lead requesters"; spec 22 §4 Transport row).
 
 ## Inputs
 
@@ -56,7 +56,7 @@ A `REJECTED <id> | <reason>` is data. The class is quoted from INTERFACES part B
 | `schema` | terminal | Stop; report the request file. Do not widen the fields. |
 | `hash` | terminal | Stop; report. Do not resend the same file. |
 | `repo` | terminal | Stop; report (not expected for `jira-*`). |
-| `marker` | curable | Not expected for `jira-*`; report, resend with a fresh id when the cause clears. |
+| `marker` | curable | For `jira-create`: the parent was missing at the desk's re-fetch (INTERFACES 1.8.0 AM-8 V7); report it, and resend with a fresh id once the parent exists. Otherwise not expected for `jira-*`; report, resend when the cause clears. |
 | `order` | curable | Not expected for `jira-*`; report, resend with a fresh id when the cause clears. |
 | `policy` | terminal | Stop; report. Never resend; a corrected request is a new request (B2.1), composed only from a corrected draft. |
 | `stale-session` | curable | Report that the Atlassian session needs a refresh by the human; resend with a fresh id once it is refreshed. No probe by the clerk. |

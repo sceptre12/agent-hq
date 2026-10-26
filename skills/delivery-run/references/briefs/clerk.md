@@ -9,7 +9,7 @@ Tier: execute for creates, mechanical for updates (card 14). Rationale: composit
 - Inputs: drafts (§5.1), status events (`TICKET-EVENT` lines, D3).
 - Outputs: desk requests `jira-create|jira-update|jira-transition`; read-back record `RUN_HOME/tickets.tsv`; advances `ticket-events.cursor`.
 - Done token: none stated for this persona in the §3.2/3.3 table or card 14 (card 14 names outputs only).
-- Session row (design §3.1): one slot on demand (reserved: clerk 1), no Agent tool; `ticket-clerk` runs only in the conductor session (A.6), which sends the `DESK` line.
+- Session row (design §3.1): runs only in the conductor session (D2.2 row 14, D3; INTERFACES 1.8.0 AM-8 V8), never as a sub-task seat; no sub-task reserves a clerk seat; no Agent tool; the conductor session sends the `DESK` line.
 
 ## COMMON block (verbatim; pass unchanged to any agent you brief)
 

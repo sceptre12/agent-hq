@@ -46,9 +46,9 @@ Columns beyond the design (INTERFACES A.6 additions): `ticket`, `branch`, `repo`
 ### P4 Unit table (feeds `waves/01-build.md`, C1.2; one done condition per unit)
 | id (`u<N>`) | ticket | scope globs | blocked-by | persona | lane | budget_min | done token | verifier command | review path | e2e |
 |---|---|---|---|---|---|---|---|---|---|---|
-| `u1` | `<JIRA-KEY>` | `<glob>`, `<glob>` | `-` or `u<M>` (same wave only, C1.3 rule 15) | `<persona>` | `<lane or ->` | `FILL_IN_BEFORE_DISPATCH` (from measured medians) | `<verbatim last stdout line>` | `<command; exit 0 and last line = token>` | `<rung per D2.1>` | `new\|updated\|none` |
+| `u1` | `<JIRA-KEY>` | `<glob>`, `<glob>` | `-` or `u<M>` (the wave file's `depends_on` names `i<M>`, same wave only, C1.3 rule 15; AM-8 V13) | `<persona>` | `<lane or ->` | `FILL_IN_BEFORE_DISPATCH` (from measured medians) | `<verbatim last stdout line>` | `<command; exit 0 and last line = token>` | `<rung per D2.1>` | `new\|updated\|none` |
 
-Rules: scope globs are the dispatch-plan copy; the authority is Part B `## 3` (C1.2). A unit with no verifier, or overlapping scopes, rejects the plan (stop rows, P11). `done_condition` is `{"token", "command"}` (C1.2). The Integrator work_item that merges `u<N>` is `i<N>` in `02-integrate.md`.
+Rules: scope globs are the dispatch-plan copy; the authority is Part B `## 3` (C1.2). A unit with no verifier, or overlapping scopes, rejects the plan (stop rows, P11). `done_condition` is `{"token", "command"}` (C1.2). The Integrator work_item that merges `u<N>` is `i<N>`: in its dependents' wave when `u<N>` blocks another unit, else in `02-integrate.md` (INTERFACES 1.8.0 AM-8 V13).
 
 ### P5 Shared-file owner and serial-lane table (M16; D63, design `part-06-build-plan-and-sources.md` stage 2 row)
 | shared file or contract | owning unit (exactly one per sub-task) | owning document of the cross-unit contract | serial lane |
@@ -58,7 +58,7 @@ Rules: scope globs are the dispatch-plan copy; the authority is Part B `## 3` (C
 Overlap or an implicit touch of a shared file rejects the plan.
 
 ### P6 DAG and wave sketch
-Text diagram. One DAG wave `01-build.md` per sub-task, then `02-integrate.md` (C1; waves numbered from 1); `constitution.md` at the bundle root, not a wave file, only when the repo has no profile, run by the lead before `01-build.md`; the bundle header is `bundle.md` at the bundle root (C1, AM-3 errata (c), (d)). Frontiers are inside `01-build.md`; no numbered lane-waves.
+Text diagram. One DAG wave `01-build.md` per sub-task, then `02-integrate.md` (C1; waves numbered from 1); `constitution.md` at the bundle root, not a wave file, only when the repo has no profile, run by the lead before `01-build.md`; the bundle header is `bundle.md` at the bundle root (C1, AM-3 errata (c), (d)). Frontiers are inside `01-build.md`; no numbered lane-waves. A blocker's Integrator item sits in its dependents' wave and they `depends_on` it; wave order carries cross-wave dependencies (INTERFACES 1.8.0 AM-8 V13).
 
 ### P7 Lane table with per-lane resource profile
 | lane | HTTP port need | HMR / devtools ports | browser pre-staged (desk `INSTALL`) | device lane (human-run) | leased by |

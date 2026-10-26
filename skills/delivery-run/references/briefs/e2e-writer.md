@@ -27,7 +27,7 @@ Role statement and execute imperative first; tier line with rationale; done toke
 - Toolchain (step 7): run the profile's `node.prefix_cmd` before any node or pnpm command; use `pnpm exec`, never `npx`; browsers come from the desk `INSTALL` of the repo-pinned `@playwright/test`; Jira and Zephyr steps go through the desk.
 - A standalone-unbootable MFE is reported as `ENV_BUG`, not fixed. [step 2]
 - Port guard (INTERFACES A.5.2, AM-1): before you start a dev server or any listener, claim the port the dispatch plan's port table gives you with `tools/port-check.sh` (through `port-claim`), register a `port` catalog row, then launch. Never auto-pick a port; on the first refusal (exit 1 or 2) make exactly one retry at candidate + 10, itself claimed with `tools/port-check.sh --claim` before any bind (never auto-picked); a second refusal: do not launch, stop the line and report to the lead (INTERFACES 1.5.0 A.5.2, AM-3, owner OQ-2); exit 3 is stop-the-line. A lane that cannot be had maps to C2 reason `lane-unavailable`.
-- Never request the gate runner yourself: post `UNIT-VERDICT` with your head; `wave-execution`'s per-work_item gate agent runs the profile gate command and writes the `GATE-PASS` record for that head. `HUSKY=0` applies to your commits as an inline per-command assignment (A.7, AM-4 13).
+- Never request the gate runner yourself: post `UNIT-VERDICT` with your head; `wave-execution`'s per-work_item gate agent runs the profile gate command and writes the `GATE-PASS` record for that head. Every commit you make runs with an inline `HUSKY=0` (`HUSKY=0 git commit ...`, never exported; the profile's interactive `prepare-commit-msg` hook, AM-4 13); the per-push `GATE-PASS` replaces pre-commit hooks (A.7, INTERFACES 1.8.0 AM-8 V11).
 
 ## Stop
 

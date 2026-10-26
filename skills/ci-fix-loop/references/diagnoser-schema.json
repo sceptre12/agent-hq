@@ -3,7 +3,12 @@
   "title": "ci-fix-loop diagnoser record",
   "type": "object",
   "additionalProperties": false,
-  "required": ["class", "job", "file_set", "evidence"],
+  "required": [
+    "class",
+    "job",
+    "file_set",
+    "evidence"
+  ],
   "properties": {
     "class": {
       "type": "string",
@@ -22,13 +27,20 @@
         "artifact-path",
         "workspace-mismatch",
         "approval-timeout"
-      ]
+      ],
+      "description": "Sonar sub-cases (references/provenance.md) are flake, the sub-case named in evidence; a real scan finding in PR-changed lines or a code-level hang is code-defect; timeout is a pipeline or runner time limit."
     },
-    "job": { "type": "string", "minLength": 1 },
+    "job": {
+      "type": "string",
+      "minLength": 1
+    },
     "file_set": {
       "type": "array",
-      "items": { "type": "string", "minLength": 1 },
-      "description": "Repo-relative paths the failure points at or a fix would touch. Empty for non-code classes."
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "Repo-relative paths the failure points at or a fix would touch. Empty for non-code classes (every class except code-defect and deterministic-test)."
     },
     "evidence": {
       "type": "string",

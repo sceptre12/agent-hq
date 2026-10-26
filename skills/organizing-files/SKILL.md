@@ -150,6 +150,5 @@ configure `protected` FIRST, before running `scan` or `place` against that tree.
 
 ## Provenance
 Provenance: architecture/file-organizer.md (§3.1 binds this skill to
-`tools/skill-authoring.md`'s house format) and projects/file-organizer.md (project
-record). No separate friction/learning entry exists for this skill; the architecture
+`tools/skill-authoring.md`'s house format). No separate friction/learning entry exists for this skill; the architecture
 spec is the recorded design source it derives from.

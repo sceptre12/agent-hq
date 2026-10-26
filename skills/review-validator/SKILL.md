@@ -30,7 +30,7 @@ gate.
 
 **Resolved 2026-07-21:** detection relaxed to match any automated-review comment (see
 above) rather than requiring pr-review to emit specific markers — see hq
-Hermes skill `retros/2026-07-21-imported-skills-performance-eval-03` (was retros/2026-07-21-imported-skills-performance-eval-03.md).
+Hermes skill `retros/2026-07-21-imported-skills-performance-eval-03`.
 
 This skill is a downstream companion to the review-escalation ladder
 (`tools/review-ladder.md`), not one of its numbered rungs — it triages an existing review's

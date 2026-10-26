@@ -1,0 +1,15 @@
+#!/bin/zsh
+# hermes-gw: LaunchAgent entry (H2c, T-411). Fail-closed; token delivered by inline env assignment on a direct command (R-ac form), never via bash -c/sh -c, never argv, never printed.
+# TEMPLATE: replace the 3 <auth-profile> placeholders below (TOKFILE, the [[ ]] check, its message) with the name of your auth profile dir; unreplaced, this refuses to run (exit 0). See tools/hermes/setup/README.md.
+TOKFILE=~/claude-profiles/'<auth-profile>'/token  # owner decision, architecture/hermes-agent.md section 6
+set -u
+# Refusals exit 0: with plist KeepAlive{SuccessfulExit:false} an exit 0 parks the job (no respawn storm); a crash/nonzero would be respawned.
+H="$HOME/claude-profiles/hermes"
+gref() { print -u2 -r -- "hermes-gw: $1"; exit 0; }
+[[ "$TOKFILE" == "$HOME/claude-profiles/<auth-profile>/token" ]] || gref "TOKFILE is not the <auth-profile> token"
+[[ "${HERMES_HOME:-}" == "$H/h1-home" ]] || gref "HERMES_HOME is not $H/h1-home"
+[[ -f "$TOKFILE" && ! -L "$TOKFILE" ]] || gref "TOKFILE missing or not a regular file"
+[[ -r "$TOKFILE" ]] || gref "TOKFILE unreadable"
+case "$(stat -f %Lp "$TOKFILE" 2>/dev/null)" in 600|400) ;; *) gref "TOKFILE mode is not 600 or 400";; esac
+[[ -s "$TOKFILE" ]] || gref "TOKFILE empty"
+CLAUDE_CODE_OAUTH_TOKEN="$(<"$TOKFILE")" exec "$H/bin/hermes-up" gateway run

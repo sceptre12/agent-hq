@@ -21,10 +21,10 @@ Role statement and execute imperative first; tier line with rationale; done toke
 - Run concurrently with the unit's test writer only on a frozen interface; if the interface is not frozen, stop and post `ESCALATE` with reason `contract-gap`. [3.4 par.rule 4]
 - Touch a manifest, lockfile, barrel, generated file or CI config only when the dispatch plan names your unit as its owner; otherwise stop and report. [par.rule 3]
 - On a fork the spec does not settle, write `.decisions/<unit>.md` (fork; options; recommendation; `Outcome: Blocked`) and post `ESCALATE` with reason `decision-gate`. [5.10, C2]
-- Port guard (INTERFACES A.5.2, AM-1): before you start a dev server or any listener, claim the port the dispatch plan's port table gives you with `tools/port-check.sh` (through `port-claim`), register a `port` catalog row, then launch. Never auto-pick a port and never re-pick; on a refusal (exit 1 or 2) do not launch, and report to the lead; exit 3 is stop-the-line.
+- Port guard (INTERFACES A.5.2, AM-1): before you start a dev server or any listener, claim the port the dispatch plan's port table gives you with `tools/port-check.sh` (through `port-claim`), register a `port` catalog row, then launch. Never auto-pick a port; on the first refusal (exit 1 or 2) make exactly one retry at candidate + 10, itself claimed with `tools/port-check.sh --claim` before any bind (never auto-picked); a second refusal: do not launch, stop the line and report to the lead (INTERFACES 1.3.0 A.5.2, AM-3, owner OQ-2); exit 3 is stop-the-line.
 
 ## Stop
 
 Decision Gate fork.
 
-<!-- cites (design part-03 unless noted): 3.1 seat table; 3.2/3.3 Implementer row; 4 Parallelization rules 3 and 4; 5.10; C2; INTERFACES A.5.2, AM-1 -->
+<!-- cites (design part-03 unless noted): 3.1 seat table; 3.2/3.3 Implementer row; 4 Parallelization rules 3 and 4; 5.10; C2; INTERFACES A.5.2, AM-1, AM-3 (owner OQ-2) -->

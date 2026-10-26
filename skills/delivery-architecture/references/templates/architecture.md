@@ -9,11 +9,20 @@ Purpose: the single design document of one epic, reviewed at stage 2 and accepte
 # Architecture: <epic title>
 epic: <epic>
 repo_profile: <path>@<40-hex sha>
-security_sensitive: yes
+security_sensitive: yes|no
 ````
 - `epic` is the original-case epic token (INTERFACES A.1).
 - `repo_profile` links the profile with its full 40-hex sha and never copies it (D22).
-- `security_sensitive: yes` is optional (AM-1). Include the line only when the epic touches auth, secrets, money, personal data or a sensitive-path deny-list entry. Its presence makes the conductor set `state.md` `security_audit: full` (INTERFACES A.2, D2.1 `guidance|full`); omit the line entirely otherwise, the default is `guidance`. Never write `security_sensitive: no`.
+- `security_sensitive: yes|no` is required: exactly one such line, `no` allowed (INTERFACES 1.3.0 A.2, AM-3, owner OQ-1). Write `yes` when the epic touches any of:
+  - auth;
+  - secrets;
+  - money;
+  - personal data;
+  - the e2e mock or auth-bypass gate;
+  - network-facing input parsing;
+  - a new third-party dependency;
+  - and `yes` when unsure.
+  Otherwise write `no`. `yes` makes the conductor set `state.md` `security_audit: full`; `no` leaves the default `guidance` (INTERFACES A.2, D2.1 `guidance|full`).
 
 ## Skeleton (14 sections, in this order)
 ````markdown

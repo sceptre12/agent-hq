@@ -1,6 +1,6 @@
 # Units to `waves/`: what step 10 writes
 
-Authority is INTERFACES `1.1.0` part C1, C1.1, C1.2 and part A.3, A.6. This file points at them and records only how this skill applies them; it does not restate their tables. Field names for the spec come from `skills/wave-execution/references/spec-format.md` (item 9 extends it); read that file before writing, and follow it where it is more exact than this page.
+Authority is INTERFACES `1.3.0` part C1, C1.1, C1.2 and part A.3, A.6. This file points at them and records only how this skill applies them; it does not restate their tables. Field names for the spec come from `skills/wave-execution/references/spec-format.md` (item 9 extends it); read that file before writing, and follow it where it is more exact than this page.
 
 ## Output paths (A.6)
 
@@ -9,18 +9,20 @@ Authority is INTERFACES `1.1.0` part C1, C1.1, C1.2 and part A.3, A.6. This file
 | `dispatch-plan.md` | `PLANS_DIR/` | template: `references/templates/dispatch-plan.md` (item 27 writes it) |
 | `.tasks/<unit>-<slug>.md` | primary repo root | `<slug>` is the unit's ticket slug (A.1), never `NN-slug` |
 | `subtasks/<subtask>/substate.seed.md` | `PLANS_DIR/` | exactly the seed keys below |
-| `subtasks/<subtask>/waves/` | `PLANS_DIR/` | Option B layout of the spec format |
+| `subtasks/<subtask>/bundle.md` | `PLANS_DIR/` | the bundle header (bundle fields below), at the bundle root next to `waves/` (C1, AM-3 errata (c)) |
+| `subtasks/<subtask>/waves/` | `PLANS_DIR/` | Option B layout of the spec format; waves numbered from 1 |
+| `subtasks/<subtask>/constitution.md` | `PLANS_DIR/` | only when the repo has no profile; not a wave file (C1, AM-3 errata (d)) |
 | `catalog.tsv`, `plan-check.md` | `RUN_HOME/` | the first created empty by this skill; the second written by the Plan-checker |
 
 ## Wave files per sub-task (C1)
 
 - `01-build.md`: one DAG wave holding every unit of the sub-task, with `depends_on` edges. Successive frontiers live inside this file. Do not write numbered "lane-wave" files.
 - `02-integrate.md`: the Integrator work_items `i<N>` (one per unit `u<N>`, merging serially into the sub-task branch) and the `pre-pr-gate` hand-off.
-- `00-constitution.md`: only when `REPO_PROFILE` shows the repo has no profile content to lean on, the serial constitution-and-contracts agent. Otherwise absent.
+- `constitution.md` (bundle root, next to `waves/`; not a wave file, since spec-format rule 4 numbers waves from 1): only when `REPO_PROFILE` shows the repo has no profile content to lean on, the serial constitution-and-contracts agent, which the lead runs before `01-build.md`. Otherwise absent. Never `00-constitution.md`.
 - Wave 0 setup (worktrees, baseline gates, lane leases) is not a wave file; `delivery-run` performs it. Do not add it.
 - `st0` (plan PR) and `pm` have no `waves/`; their seeds hold only the seed keys.
 
-## Bundle fields (written once per sub-task, in the bundle header the spec format defines)
+## Bundle fields (written once per sub-task, in `bundle.md` at the bundle root, the bundle header the spec format defines)
 
 | Field | Value this skill writes |
 |---|---|
@@ -57,12 +59,13 @@ Columns beyond the template's: `ticket` (the sub-task's `JIRA-KEY` from `tickets
 ## Worked sketch (shape only; values are placeholders)
 
 ```
-## Bundle
+# bundle.md
 session_id: <run-id>-st1
 output_topic: <run-id>-st1-rendezvous
 bus_endpoint: <run-id>/st1/bus.endpoint
 dispatch_budget: <n>
 
+# waves/01-build.md, work_item u03
 ## u03
 persona: implementer
 lane: -

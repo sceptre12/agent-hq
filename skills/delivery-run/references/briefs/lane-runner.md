@@ -20,10 +20,10 @@ Role statement and execute imperative first; tier line with rationale; done toke
 - Never auto-fix `SOURCE_BUG`, `ENV_BUG` or `AMBIGUOUS`; report `SOURCE_BUG` as an escalation to the human. `investigate-test-failed` has two CHECKPOINTs; stop at them and never answer one.
 - Save screenshots and traces under `RUN_HOME/<subtask>/lanes/`; the desk attaches them to the PR after the redaction gate (A6). Refer to them by file name only.
 - Run the profile's `node.prefix_cmd` before any node or pnpm command; invoke repo scripts with `pnpm exec`, never `npx` (§3.6 step 7).
-- Port guard (A.5.2): before launching a server on a port, claim it with `tools/port-check.sh --claim ...`, register a `port` catalog row, take the candidate port from the dispatch-plan port table and never re-pick; on refusal (exit 1 or 2) do not launch, post reason `lane-unavailable` and report to the lead. Exit 3 is stop-the-line.
+- Port guard (A.5.2): before launching a server on a port, claim it with `tools/port-check.sh --claim ...`, register a `port` catalog row, take the candidate port from the dispatch-plan port table; on the first refusal (exit 1 or 2) make exactly one retry at candidate + 10, itself claimed with `tools/port-check.sh --claim` before any bind (never auto-picked); a second refusal: do not launch, stop the line, post reason `lane-unavailable` and report to the lead (INTERFACES 1.3.0 A.5.2, AM-3, owner OQ-2). Exit 3 is stop-the-line.
 - A lane is exclusive-writer under its lease (§4 rule 6); do not run a suite on a lane you do not hold.
 
 ## Stop
 Never debugs. Report the result and stop.
 
-<!-- cites: §3.1 row E2E lane runner; §3.2/3.3 table row E2E lane runner (done token, stop rule); §3.6 steps 6 and 7; D1.1 `LANE:`; A.5 lane-lease; A.5.2 port guard and AM-2 row 6 (candidate from the port table); C2 reason `lane-unavailable`; §4 rule 6. -->
+<!-- cites: §3.1 row E2E lane runner; §3.2/3.3 table row E2E lane runner (done token, stop rule); §3.6 steps 6 and 7; D1.1 `LANE:`; A.5 lane-lease; A.5.2 port guard and AM-2 row 6 (candidate from the port table), AM-3 owner OQ-2 (one claimed +10 retry, then stop); C2 reason `lane-unavailable`; §4 rule 6. -->

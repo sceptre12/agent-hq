@@ -7,8 +7,8 @@
 #   list --live [--subtask <st>]            (latest row of each pair is planned or live; INTERFACES 1.4.0 AM-4 row 20)
 #   audit                                   (see catalog-audit.sh)
 # Stdout: register/start/release/fail/keep the row_id; list the matching TSV rows; audit the verdict lines.
-# Exit: 0 ok; 2 usage or rejected row; 3 lane-lease held, or audit could not read live truth (lsof missing
-#   or failed: fail closed, no verdict for that row); 4 lock timeout.
+# Exit: 0 ok; 2 usage or rejected row; 3 lane-lease held; 4 lock timeout, or audit could not read live truth
+#   (lsof missing or failed: fail closed, no verdict for that row).
 # Test hooks: DL_LOCK_TIMEOUT (seconds, default 60), DL_LOCK_SLEEP (seconds, default 1).
 # Runtime: /bin/bash 3.2, BSD userland, mkdir lock, no ps/pgrep.
 set -u

@@ -19,7 +19,7 @@ Authority: INTERFACES C1.3 (invocation), D1.1 (`PLAN-CHECK:` token), D7 (round c
 
 - Round cap is 3 (D7). Round 3 not `clean`: stop, write the open findings and the round history into the plan's review section, tell the owner, and leave `plan-check.md` as the last checker wrote it. Do not start round 4.
 - Same finding class in two consecutive rounds: replace the mechanism (rewrite the section or its source) and check the section got shorter in bytes (D60), rather than patching again.
-- A second fix round that adds Mediums escalates the fixer one tier for that round; never a third top-tier attempt (ADR 0014 T1).
+- The fixer is design tier (INTERFACES D2.1 `tier` row, E25, AM-3). A second fix round that adds Mediums escalates the fixer one tier for that round; never a third top-tier attempt (ADR 0014 T1).
 - A frozen "(fact)" contradicted by a finding: stop and re-measure it before anything else (D51).
 - Plan-checker failure to write `plan-check.md`: treat it as a stalled agent; re-dispatch once as a fresh checker in the same round, else report to the conductor.
 

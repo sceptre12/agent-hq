@@ -15,7 +15,10 @@ checked. hq owns `tools/ports.tsv`; this skill never edits any file outside hq
 1. Before picking a port, check it: `~/projects/agent-hq/tools/port-check.sh <port>`.
    - Exit `0` → free in both registry and `lsof`. Proceed.
    - Exit `1` → taken (registry and/or live agree). Stop. Do not auto-pick the next port —
-     report the collision and let a human choose.
+     report the collision and let a human choose. Exception, the one retry (INTERFACES 1.3.0
+     A.5.2, AM-3, owner OQ-2): on the first refusal of a candidate, make exactly one retry at
+     candidate + 10, itself checked and claimed with `--claim` before any bind (the tool never
+     picks it); a second refusal stops the line and is reported. Never a second +10.
    - Exit `2` → registry and live **disagree** (staleness signal). Stop — this is a hard stop,
      never a warning. It is the exact failure class named in architecture §5.1.
    - Exit `3` → usage error, or the registry is unusable: missing, empty, or carrying a
@@ -35,7 +38,7 @@ checked. hq owns `tools/ports.tsv`; this skill never edits any file outside hq
    must be one of `live` / `claimed` / `reserved` / `unmerged` / `released` /
    `UNVERIFIED` — the enum is closed (architecture §2.1) and `--claim` refuses anything else with
    exit `3`. `--claim` re-runs the check first and refuses to append on a live conflict (exit `1`
-   or `2`: do not bind, report); only add a trailing `--force` when the conflict is understood and
+   or `2`: do not bind; take the one +10 retry of Step 1 at most once, else report); only add a trailing `--force` when the conflict is understood and
    accepted — it is then recorded as `note=forced`, never silently.
 4. Bind the port in the target project as normal, only after the claim returned exit `0`. This
    skill does not touch any file outside hq. If the bind fails, supersede the claim at once with a
@@ -54,7 +57,7 @@ checked. hq owns `tools/ports.tsv`; this skill never edits any file outside hq
 |---|---|
 | "The docker healthcheck is passing, so the binding is fine." | The healthcheck curls `localhost` *inside* the container. Run `lsof -nP -iTCP:<port> -sTCP:LISTEN` on the host. |
 | "The project's own port doc says there's no collision." | That is the doc that was wrong on 2026-09-04. Run `--audit`; a doc is a claim, `lsof` is evidence. |
-| "It's taken, I'll just use the next port up." | Refuse and report. Auto-picking is how four undocumented remaps happened. |
+| "It's taken, I'll just use the next port up." | Refuse and report. Auto-picking is how four undocumented remaps happened. The only exception is the single claimed retry at candidate + 10 (A.5.2, OQ-2); never a second retry. |
 | "I found the port number on a `docker-compose.yml` line, that's the mapping." | It may be a comment describing an old remap, not the live binding (a real incident: `:115` was a comment, the actual `- "host:container"` line was `:118`). Confirm against the literal mapping line or `lsof`/`docker ps`, not the nearest matching number. |
 | "This project has no ports, I'll add a row saying so." | The registry holds claims, not projects (architecture §2.2). There is no placeholder port and no "not applicable" status — a zero-claim project is recorded in the architecture doc's §7.6 prose, and `command grep <project> tools/ports.tsv` returning nothing *is* the answer. |
 | "I'll just fix this stale row directly in `ports.tsv`." | The registry is append-only on the hot path; a stale row is superseded by a new row (e.g. `status=released` repeating the claim's exact port and `source`; `--claim` warns if it supersedes nothing), never edited in place — hand-editing risks losing a concurrent agent's append. Use `--claim`, or leave compaction to a dedicated, serialized maintenance pass. |
@@ -63,7 +66,8 @@ checked. hq owns `tools/ports.tsv`; this skill never edits any file outside hq
 - [ ] `tools/port-check.sh <port>` was run and returned exit `0` before the port was chosen —
       not after the bind was already attempted.
 - [ ] If exit was `1` or `2`, the bind was NOT attempted and the collision/disagreement was
-      reported instead of worked around or auto-remapped.
+      reported instead of worked around or auto-remapped, except the single retry at
+      candidate + 10, checked and claimed before any bind; a second refusal stopped the line.
 - [ ] `tools/port-check.sh --claim ... claimed ...` was run and returned exit `0` (one row
       appended) before the bind, not after it.
 - [ ] A bind that failed was followed by a `released` row of the same port and source.
@@ -76,4 +80,4 @@ Provenance: Hermes skill `learnings/port-collisions` (was learnings/port-collisi
 host 9000 while agent-hq's agent-topology already held it; the container healthcheck passing, and
 that project's own port doc separately asserting no collision on unrelated ports, both masked host-level
 truth that only `lsof` revealed).
-Ported into agent-hq 2026-10-26 for the delivery workflow (design §7 item 8); amended 2026-10-26, AM-1 A.5.2: claim before bind.
+Ported into agent-hq 2026-10-26 for the delivery workflow (design §7 item 8); amended 2026-10-26, AM-1 A.5.2: claim before bind; amended 2026-10-26, INTERFACES 1.3.0 AM-3 / owner OQ-2: exactly one claimed retry at candidate + 10, then stop.

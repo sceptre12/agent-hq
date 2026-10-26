@@ -33,7 +33,7 @@ Scripts: `~/projects/agent-hq/tools/delivery/catalog.sh` (the only appender; ite
 | "I'll register it after it starts, it is faster." | Register first (`planned`), start, then `start`. A started thing with no row is a SQUATTER and nothing can clean it. |
 | "I'll write the cleanup command into the row." | Rows hold kind and handle only. The per-kind table inside `catalog.sh` owns every command (M26). |
 | "A quick edit of `catalog.tsv` or `ports.tsv` fixes this row." | Only `catalog.sh` appends the catalog and only `port-check.sh --claim` appends the registry. A stale row is superseded by a later row. |
-| "The port is taken, I'll use +10." | Refuse and report. +10 is the dispatch plan's candidate formula, fixed before any check, never a fallback. |
+| "The port is taken, I'll keep adding 10." | One retry only: claim candidate + 10 before any bind; a second refusal stops the line and is reported (A.5.2, AM-3, OQ-2). |
 | "The port hook did not ask, so it is free." | The PreToolUse hook `port-precheck.sh` is advisory and always exits 0. It does not replace the claim. |
 | "It is an orphan, `pkill` it." | Register it, flag it, kill by catalog row (literal pid) at cleanup only. |
 | "I'll pass `RUN_HOME=<path>` as an argument." | It is the environment variable. |
@@ -47,4 +47,4 @@ Scripts: `~/projects/agent-hq/tools/delivery/catalog.sh` (the only appender; ite
 - [ ] Any unregistered resource found was registered and flagged, not killed (D9).
 
 ## Provenance
-Provenance: pending pilot (<pilot-run-id>). Card 8 (design part-02 §2.2) and part-04 §5.6; INTERFACES 1.1.0 A.5, A.5.1, A.5.2 (amendment AM-1, agent-hq PR #9); cleanup facts C1, C6, C7 (live-only cleanup, orphan sweep); port-registry collision incident 2026-09-04 via `skills/port-claim`. Drafted 2026-10-26 (task 18).
+Provenance: pending pilot (<pilot-run-id>). Card 8 (design part-02 §2.2) and part-04 §5.6; INTERFACES 1.1.0 A.5, A.5.1, A.5.2 (amendment AM-1, agent-hq PR #9), re-checked against 1.3.0 (AM-3: owner OQ-2 one +10 retry; 17 kinds); cleanup facts C1, C6, C7 (live-only cleanup, orphan sweep); port-registry collision incident 2026-09-04 via `skills/port-claim`. Drafted 2026-10-26 (task 18).

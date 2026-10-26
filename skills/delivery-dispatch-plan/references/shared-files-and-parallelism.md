@@ -40,7 +40,7 @@ One row per bind per sub-task.
 - Lane `k` is the bind's index in this table's lane rows, counted from 0 in table order across all lanes (one bind per lane means the lane index). Lane leases are run-wide, so a lane keeps one candidate across sub-tasks and the `pm` lead reuses it.
 - A serial lane whose ports are fixed in the app config keeps those ports with `k = 0`, and the row says "fixed by app config".
 - The candidate is a proposal fixed before any check. The launcher claims each one per A.5.2 (`port-check.sh --claim`, then `catalog.sh register port`, launch, `catalog.sh start`); the plan runs no `port-check.sh`.
-- A refusal is never re-picked: a lane that cannot claim ends as C2 reason `lane-unavailable`; a bus that cannot claim is reported to the lead. The `+10` is never applied after a refusal.
+- On a refusal the launcher makes exactly one retry at candidate + 10, itself claimed with `port-check.sh --claim` before any bind (the tool never auto-picks); a bus is then pinned to the retry port (`PORT_RANGE_START=PORT_RANGE_END=<port+10>`). A second refusal stops the line: a lane ends as C2 reason `lane-unavailable`; a bus is reported to the lead. Never a second +10 (INTERFACES 1.3.0 A.5.2, C1.1, AM-3, owner OQ-2). Distinctness (below) covers the plan candidates only; the retry port is checked by the claim.
 - Distinctness is checked across the whole table (checklist row 8).
 
 ## 4. Slot plan and dispatch arithmetic
@@ -51,7 +51,7 @@ Per sub-task, with `g = 1` (one gate agent per work_item under `step_complete`) 
 |---|---|
 | `01-build.md` (frontier) | `n_units * (1 + (cap + 1) * g)` |
 | `02-integrate.md` (barrier, `step_complete` so gate agents = work_items) | `n_i + (cap + 1) * n_i`, `n_i` = Integrator work_items |
-| `00-constitution.md` (barrier, when present) | `1 + (cap + 1) * 1` |
+| `constitution.md` (barrier, when present; bundle root, not a wave file, C1) | `1 + (cap + 1) * 1` |
 | `dispatch_budget` | the sum of the terms above |
 
 Illustration only: 12 units, `cap` 3, `g` 1 gives `12 * 5 = 60` for the build wave and `12 + 4 * 12 = 60` for integration, so `dispatch_budget` 120.

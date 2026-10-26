@@ -56,14 +56,14 @@ Rules: scope globs are the dispatch-plan copy; the authority is Part B `## 3` (C
 Overlap or an implicit touch of a shared file rejects the plan.
 
 ### A.6 DAG and wave sketch
-Text diagram. One DAG wave `01-build.md` per sub-task, plus `00-constitution.md` only when the repo has no profile, then `02-integrate.md` (C1). Frontiers are inside `01-build.md`; no numbered lane-waves.
+Text diagram. One DAG wave `01-build.md` per sub-task, then `02-integrate.md` (C1; waves numbered from 1); `constitution.md` at the bundle root, not a wave file, only when the repo has no profile, run by the lead before `01-build.md`; the bundle header is `bundle.md` at the bundle root (C1, AM-3 errata (c), (d)). Frontiers are inside `01-build.md`; no numbered lane-waves.
 
 ### A.7 Lane table with per-lane resource profile
 | lane | HTTP port need | HMR / devtools ports | browser pre-staged (desk `INSTALL`) | device lane (human-run) | leased by |
 |---|---|---|---|---|---|
 | `lane/<name>` | `yes\|no` | `<count>` | `yes\|no` | `yes\|no` | lead, per invocation (C1.1) |
 
-Every lane, dev-server and bus port is claimed at launch per A.5.2 (`port-check.sh --claim`, then `catalog.sh register port`), never auto-picked; a collision is C2 reason `lane-unavailable`.
+Every lane, dev-server and bus port is claimed at launch per A.5.2 (`port-check.sh --claim`, then `catalog.sh register port`), never auto-picked; on a refusal exactly one retry at candidate + 10, claimed before bind; a second refusal is C2 reason `lane-unavailable` (A.5.2, AM-3, owner OQ-2).
 
 ### A.8 Port table (PC-4; A.5.2 candidate formula)
 `candidate = <base> + 10*k`; `<base>` is the profile key `ports.bus_base` (bus, review-bus) or `ports.lane_base` (lanes); either absent means `FILL_IN_BEFORE_DISPATCH`, which fails the pre-dispatch checklist. Fixed app ports keep `k = 0`. Bus rule: `st<N>` bus `k = 2N`, review bus `k = 2N + 1`; lanes by lane index.
@@ -74,7 +74,7 @@ Every lane, dev-server and bus port is claimed at launch per A.5.2 (`port-check.
 | `st1` | `review-bus` | `ports.bus_base` | `3` | `FILL_IN_BEFORE_DISPATCH` |
 | `st1` | `lane/<name>` | `ports.lane_base` | `<lane index>` | `FILL_IN_BEFORE_DISPATCH` |
 
-One row per bind per sub-task. The launcher claims each candidate at launch (A.5.2); a refusal (exit 1 or 2) is reported to the lead and the candidate is never moved by +10. A candidate is never promised free; the plan runs no `port-check.sh`. A bus starts with `PORT_RANGE_START=PORT_RANGE_END=<port>` and its `$DATA_DIR/port` must equal the claim.
+One row per bind per sub-task. The launcher claims each candidate at launch (A.5.2); on a refusal (exit 1 or 2) the launcher makes exactly one retry at candidate + 10, claimed before bind; a second refusal stops the line and is reported to the lead (A.5.2, AM-3, owner OQ-2). A candidate is never promised free; the plan runs no `port-check.sh`. A bus starts with `PORT_RANGE_START=PORT_RANGE_END=<port>` (the retry port when retried, C1.1) and its `$DATA_DIR/port` must equal the claim.
 
 ### A.9 Capacity and parallelism
 - Per sub-task: `dispatch_budget` (C1.1: frontier wave `work_items x (1 + (fix_loop_cap + 1) x g)`, barrier waves `work_items_count + (fix_loop_cap + 1) x gate_agents`) and peak concurrency (cap 30). Machine line: sum of peaks against 200 (D4); rule 8, at most 3 builds.

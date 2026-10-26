@@ -20,7 +20,7 @@ Intent: add a Badge widget with three sizes to demo-widgets.
 - `zephyr.read_ops`: Zephyr read operations (no test-management tool named); the human answers.
 - `ports.bus_base`: bus port base for this machine (machine choice, no ports table given); the human answers.
 - `ports.lane_base`: lane port base for this machine (machine choice); the human answers.
-- `gates.command`: the per-push gate command (no affected-capable runner; full-repo scripts lint, typecheck, test exist); the human answers.
+- `gates.command`: the per-push gate command (no affected-capable runner; full-repo scripts lint, typecheck, test, build, clean exist); the human answers.
 - `gates.parallel`: gate parallelism on the run machine (machine fact); the human answers.
 - `gates.min_free_kb`: minimum free disk for a gate run (machine fact); the human answers.
 - `gates.runner_slots`: gate runner slots (machine fact); the human answers.

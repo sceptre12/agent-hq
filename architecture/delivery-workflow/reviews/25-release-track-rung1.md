@@ -104,3 +104,16 @@ Note: the expected count was 48/0. It is now 63/0 because round 1 added 15 allow
 - Spec §4 says the simulation comes before a "stable publish". The skill now gates every `publish` and `tag-push`, which is stricter and fails closed. Confirm or amend the spec wording.
 - The guard does not enforce the profile-snapshot rule: it strips `@<40-hex>` and reads any path. That rule rests on the launcher. The code gate should look at it.
 - Loop artifacts: `SCRATCH/rt25-loop/` (r1-r4 screens, r1 review, r1-r3 fixlogs and verify files).
+
+## Post-D7 fix (owner-authorized, 2026-10-26; no new review round)
+Owner ruling "release-track D7 stop" ("Accept all", `owner-decisions.md`): one fix+verify pass for P4-1..3, and OQ-1..3 recorded.
+- **P4-1:** `SKILL.md` Step 3 runs the plan-check loop of `skills/delivery-dispatch-plan/references/plan-check-loop.md` with input `RUN_HOME/release-plan.md` and output `RUN_HOME/pm/plan-check.md` (so the dispatch plan's `RUN_HOME/plan-check.md` is kept), and reads `PLAN-CHECK:` from line 1 of that file.
+- **P4-2:** Step 3 calls `review-tailor` with all ten inputs. The six it lacked: `SLUG=run-plan-<n>` (first free `n`), `STAKES`, `CONTENTION`, `NOVELTY` (new skill inputs set by the conductor, a proposed INTERFACES amendment), `SECURITY_AUDIT` and `ORCHESTRATOR_TIER` (from `RUN_HOME/state.md`). An `INPUT-ERROR` from it stops the skill with the same line.
+- **P4-3:** Step 4: a simulation `fail` sends no request, records `fail` with evidence, sets the guarded row to `not-run`, writes `RELEASE: WAITING-HUMAN` with the failure listed; the human decides.
+- **OQ-1:** `references/zephyr-leg.md` (keyword check narrowed at P0 against measured op ids, refusing until then), `hook-wiring.md` positive control item 4, `SKILL.md` Step 8.
+- **OQ-2:** `references/hook-wiring.md` "Guarantee" and `zephyr-leg.md` "Who and how": `pm`-lead session-level enforcement accepted for the P1 pilot.
+- **OQ-3:** `SKILL.md` Step 6: grant-then-desk stands (frozen B4); the desk runs `publish`/`tag-push` only after the `H-prod` grant. The spec §4 amendment named in the ruling is not in this pass's write set (integrator).
+- **Test map:** `tools/code-gate/test-map.tsv` gained the two rows from "Integrator notes" (LC_ALL=C sorted, unique).
+- **Checks:** `s9.sh` printed `SKILL-25-OK`, exit 0; `test_zephyr-guard.sh` ended `63 passed, 0 failed` (scripts unchanged).
+- **Fix-verify (Sonnet, installed `fix-verifier`): CLEAN, 0 Blocking, 0 Medium, 4 Low.** D60 data: Step 3 grew 2337 to 2784 bytes, because the ruling requires the input path, verdict read and inputs. Lows, left to the integrator and the pilot: the `pm/plan-check.md` path exists only in this skill; the first Exit criterion does not name the simulation-fail path; `STAKES`/`CONTENTION`/`NOVELTY` are not yet in INTERFACES; `not-run` and the human's resume decision have no defined carrier.
+- Working files: `SCRATCH/postd7/` (`orig/`, `rt25.diff`, `testmap.diff`, `verify.md`).

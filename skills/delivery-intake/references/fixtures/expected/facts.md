@@ -34,4 +34,4 @@ cannot measure: hosting-service required-checks list, merge-method setting and P
 cannot measure: durations.pr_review_min, durations.ci_round_min, durations.unit_median_min (CI run history lives on the hosting service; no local record in the repo)
 cannot measure: Node version manager and machine limits for node.prefix_cmd and gates.parallel, gates.min_free_kb, gates.runner_slots (facts of the run machine, not the repo)
 cannot measure: ports.bus_base, ports.lane_base (no tools/ports.tsv or tools/app-ports.tsv given to the dry run; the base is the human's choice)
-cannot measure: gates.command (no affected-capable runner: no nx.json, turbo.json or task runner file; package.json has only the full-repo scripts lint, typecheck, test)
+cannot measure: gates.command (no affected-capable runner: no nx.json, turbo.json or task runner file; package.json has only full-repo scripts (lint, typecheck, test, build, clean))

@@ -4,7 +4,7 @@ Goal: the Zephyr Cloud `execute` tool is callable only in the `pm` lead session 
 
 ## Guarantee (what the hook does and does not enforce)
 - Enforced by wiring plus hook: `execute` runs only in the `pm` lead session, and only for operations in `zephyr.read_ops` that pass the second check (GET, no deploy/promote/rollback text).
-- Not enforced: which skill inside the `pm` lead makes the call. The `pm` lead also runs `post-merge-verify` (A.2), and a PreToolUse hook cannot tell skills apart. "`release-track` alone" (owner R2-1) below the session rests on the skill text only. Enforcing it technically (for example a dedicated release agent) is an owner decision routed through `.decisions/25.md`; until the owner rules, the claim is stated as "`pm` lead session, read ops only".
+- Not enforced: which skill inside the `pm` lead makes the call. The `pm` lead also runs `post-merge-verify` (A.2), and a PreToolUse hook cannot tell skills apart. "`release-track` alone" (owner R2-1) below the session rests on the skill text only. Owner ruling OQ-2 (2026-10-26): enforcement at the `pm` lead session level is accepted for the P1 pilot, and the claim is stated as "`pm` lead session, read ops only". Enforcing it below the session (for example a dedicated release session) is revisited only if the DEV2-to-DEMO step is ever ruled in.
 
 ## The command (fail closed on launch failure)
 The guard's own trap covers a running script only. If the hook cannot start (wrong `<agent-hq>` path, no `bash`, script missing), the shell exits 127 or 126, which does not block. So the wired command always ends in `|| exit 2`:
@@ -35,6 +35,7 @@ Run the wired session and record each result:
 1. A deliberate non-read call. Expected: exit 2, the call blocked, one new line in `RUN_HOME/pm/zephyr-refusals.log` (assert the line, not only the block).
 2. The same wiring with the script path deliberately broken. Expected: the call blocked (the `|| exit 2` form), not allowed.
 3. The measured `execute` input shape (keys and types), so the guard's closed key set can replace its assumption.
+4. The measured operation ids, and the keyword check narrowed against them (owner ruling OQ-1, `zephyr-leg.md`); until this is recorded the unnarrowed check stands.
 Record the option used, the profile snapshot method, the date, and the log line here at the move. Until recorded, `release-track` makes no `execute` call (fail closed).
 
 ## Recorded wiring

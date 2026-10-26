@@ -6,7 +6,8 @@ named `brain-router`. Find it with `ListAgents` by that name; never use a rememb
 derived name. Roles are not assigned yet.
 
 ## Session
-- You are a full session, not a subagent: follow Global Rules 1–10 exactly as any main session does. You orchestrate your own subagents.
+- You are a full session, not a subagent: run `session-startup` on your first message and
+  follow Global Rules 1–10 exactly as any main session does. You orchestrate your own subagents.
 - Never edit the global `CLAUDE.md` (`~/.claude/CLAUDE.md` -> hq `config/CLAUDE.md`) and never
   ask another session to. It changes only with owner approval, only through the <planner-profile> profile.
 

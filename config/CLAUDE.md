@@ -10,7 +10,7 @@
 - Do not perform substantive work directly in the main chat.
 - All work is delegated to subagents (the Agent tool). The main thread only orchestrates, validates subagent output, and synthesizes results.
 - Subagents must themselves follow Rule 1 (validate, don't assume).
-- Exception: the Session Startup bootstrap may run in the main thread. Everything else delegates.
+- Exception: the Session Startup bootstrap (running the session-startup skill on the first message of a session) may run in the main thread. Everything else delegates.
 
 ## Rule 3 — Always Pin the Subagent Model Explicitly
 - Every subagent dispatch (Agent tool) MUST set the `model` parameter explicitly. Never rely on default or inherited model selection.

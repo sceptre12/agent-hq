@@ -14,8 +14,7 @@ earning its keep, delete it.
 ## 3. Naming
 
 - **Learnings:** live in Hermes, recorded and asked through its API door (recipe: `tools/brain/templates/member-CLAUDE.md` (Memory section)).
-  hq keeps tools (`architecture/hermes-agent-memory.md` §1). The existing
-  `learnings/<topic>/YYYY-MM-DD-<kebab-title>.md` files stay in hq until the owner-gated removal.
+  hq keeps tools (`architecture/hermes-agent-memory.md` §1).
 - **Skills:** `skills/<name>/SKILL.md`, authored per `tools/skill-authoring.md`, installed by symlink into `~/.claude/skills/<name>` (ADR 0009).
 
 ## 4. Document format

@@ -48,13 +48,13 @@ reserves them for other inputs).
 
 1. The Output Contract JSON (every run without a Step 0 failure).
 2. Only with a malformed `FILE_SET`: the single line `INPUT-ERROR FILE_SET <reason>`,
-   matching D1's regex `^INPUT-ERROR [A-Za-z_][][A-Za-z0-9_.]* (missing|enum|path|unset|format)$`.
+   matching D1's regex `^INPUT-ERROR [A-Za-z_][][A-Za-z0-9_.]* (missing|enum|path|unset|format|sha)$` (INTERFACES 1.5.0).
    The entire response is that line: no preamble, no explanation, no JSON, no code fence,
    no trailing text, no verdict. Then stop: no retry, no prompt, no checks.
 
 The caller detects shape 2 by a first line matching `^INPUT-ERROR `, fixes the input and
-re-dispatches; iteration accounting stays with the orchestrator (SKILL.md Loop
-Integration).
+re-dispatches with the same iteration number: the reply is not an iteration and gets no
+`verify-*` record (INTERFACES 1.5.0 D1, AM-4 11-Q11-R1; SKILL.md Loop Integration).
 
 Red flag: "I'll explain the `FILE_SET` error first, then print the line." No: print only
 the line.

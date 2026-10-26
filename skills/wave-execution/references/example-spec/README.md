@@ -45,7 +45,10 @@ them, so the legacy form (waves 1-3, no new fields) still validates and runs as 
   they run one after the other; `site` waits for both; `release-note` waits for `site`.
 - **Runtime rules the example relies on** (`../../SKILL.md`, `../frontier-mode.md`): an
   `example-run/build/bus.endpoint` whose `session_id=` or `topic=` differs from `bundle.md`
-  (or lacks a key) halts the run before any dispatch; lane `writer-a` stays busy from
+  (or lacks a key) halts the run before any dispatch, and an invocation without the
+  `invocation` argument halts with `BUNDLE-ERROR invocation` (INTERFACES 1.5.0 C1.1); in the
+  dispatch record a wave 1-3 worker carries `persona` `none` and a wave-level gate agent
+  `unit` `wave-<N>`; lane `writer-a` stays busy from
   `index`'s dispatch until its gate passes or it escalates (a frontier wave); a `tier_override` such as
   `site=opus` is recorded as `tier` in that worker's dispatch record line; gate agents get
   ids like `site-gate1-<nonce>` (workers `site-<nonce>`, fixers `site-fix1-<nonce>`), each id

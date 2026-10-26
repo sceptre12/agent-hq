@@ -109,6 +109,10 @@ defect, caught by preflight rule 10 below).
 `token` is the string `command` prints as its last stdout line on success. The `step_complete`
 gate agent passes the work_item only when `command` exits 0 and that line equals `token`
 exactly. `persona` and `lane` are validated inline (non-empty, one line), not by a numbered rule.
+A work_item generated at runtime (from a `work_items` rule, or a fix agent) may carry `persona`
+and `lane`, stated by the rule that generates it; absent, the defaults above apply. In a barrier
+wave, as in a frontier wave, a lane is released when its holder's gate passes or it escalates
+(INTERFACES 1.5.0 C1.1).
 
 Entry shape: under the wave's `- **work_items:**` line, each work_item is a listed
 `- **<id>**` entry whose fields are `- **<field>:**` sub-bullets (e.g. a `lane` value under its work_item).
@@ -144,7 +148,7 @@ them:
 |---|---|---|
 | `session_id` | `^[a-z0-9-]+$` | Replaces the minted `wave-exec-<date>-<uuid>` and is the same value on every invocation, resume included, so every `{SESSION_ID}-*` topic is stable. Absent = minted per invocation as today. Two bundles differing only in `session_id` hash differently and keep two checkpoints. |
 | `output_topic` | one literal topic, no placeholder | The one topic for completions and gate verdicts of every wave; overrides per-wave `output_topic`. `{SESSION_ID}-fix-loop-output` and `{SESSION_ID}-escalation` are unchanged. Absent = per-wave values work as before. |
-| `bus_endpoint` | `$DELIVERY_ROOT`-relative path `<run-id>/<subtask>/bus.endpoint` (never absolute: the bundle is committed and hashed) | Attach to the caller-owned bus the file names. The file holds `key=value` lines `port, data_dir, pm2_app, pid, session_id, topic`; the port is read only from `$data_dir/port`, and `session_id=` and `topic=` must equal the bundle's; a mismatch or a missing key halts the run before any dispatch. The skill skips its own bus bootstrap (step 4) and `cleanup()` (step 8); the identity preflight, `start_session` (step 5) and the final result post still run. When declared, the skill also appends a dispatch record (`dirname(<resolved bus_endpoint>)/dispatch/<invocation>.jsonl`, one JSON line per agent before it is dispatched). Absent = today's bootstrap and teardown. No preflight rule. |
+| `bus_endpoint` | `$DELIVERY_ROOT`-relative path `<run-id>/<subtask>/bus.endpoint` (never absolute: the bundle is committed and hashed) | Attach to the caller-owned bus the file names. The file holds `key=value` lines `port, data_dir, pm2_app, pid, session_id, topic`; the port is read only from `$data_dir/port`, and `session_id=` and `topic=` must equal the bundle's; a mismatch or a missing key halts the run before any dispatch. Declared without a bundle `session_id` or `output_topic`, or invoked without `invocation`, it halts before any dispatch with the one line `BUNDLE-ERROR <field>` (INTERFACES 1.5.0 C1.1). The skill skips its own bus bootstrap (step 4) and `cleanup()` (step 8); the identity preflight, `start_session` (step 5) and the final result post still run. When declared, the skill also appends a dispatch record (`dirname(<resolved bus_endpoint>)/dispatch/<invocation>.jsonl`, one JSON line per agent before it is dispatched). Absent = today's bootstrap and teardown. No preflight rule. |
 
 **Invocation arguments — not spec fields.** They are passed by the caller on each invocation,
 never written in `spec_root`, so they never change the content hash and a resume still finds
@@ -165,6 +169,8 @@ constraint is only that each id is unique and matches the charset (ADR 0054 A7).
 role decides whether it is a completion (checked against its `output_schema`) or a gate verdict.
 With `bus_endpoint`, each dispatch-record line is
 `{"agent_id","role":"worker|gate|fix","unit","persona","tier","backend":"agent-tool|claude-p","utc"}`,
+with `unit` the served work_item id or `wave-<N>` for a wave-level gate agent and `persona`
+`none` for a worker whose work_item declares none (INTERFACES 1.5.0 C1.1),
 appended before that agent is dispatched; the caller accepts posts only from ids registered
 there. The skill never reads a caller's `status/<agent-id>.verdict` fallback file.
 

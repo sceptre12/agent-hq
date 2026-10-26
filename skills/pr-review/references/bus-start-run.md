@@ -14,7 +14,8 @@ SESSION_ID="${RUN_ID}-${SUBTASK}-${SESSION_SUFFIX}"   # ^[a-z0-9-]+$; never equa
 APP_NAME="swarm-mcp-${RUN_ID}-${SUBTASK}-${SESSION_SUFFIX}"   # carries <run-id>-<subtask>; unique per review
 REVIEW_ID="pr-${SESSION_SUFFIX}"
 REVIEW_DIR="$RUN_HOME/review/$SUBTASK/$REVIEW_ID"    # A.1: review/<subtask>/ is pr-review's
-DATA_DIR="$REVIEW_DIR/bus"                            # in-run review bus (lead decision 10-B2; spec 10 Q10-5)
+DATA_DIR="$REVIEW_DIR/bus"                            # in-run review bus (INTERFACES 1.5.0 A.1, D5, AM-5 10-B2)
+ENDPOINT="$REVIEW_DIR/bus.endpoint"                   # this review's own bus.endpoint (D5, AM-5 10-B2)
 DIFF_DIR="$REVIEW_DIR"
 DIFF_PATH="$DIFF_DIR/diff.diff"
 PM2=${PM2_BIN:-$(which pm2 2>/dev/null)}
@@ -23,8 +24,8 @@ PM2=${PM2_BIN:-$(which pm2 2>/dev/null)}
 
 ## Order (never reorder)
 
-The review bus lives at `RUN_HOME/review/<subtask>/<review-id>/bus/` (lead decision 10-B2, spec 10
-Q10-5; INTERFACES 1.4.0 A.5.2 covers this bus's port but does not yet state the path), never in the sub-task lead's `RUN_HOME/<subtask>/bus/` (A.1, D4 `<run-id>-<subtask>-rendezvous`). `<review-id>` = `pr-review-<uuid8>`, fresh per
+The review bus lives at `RUN_HOME/review/<subtask>/<review-id>/bus/` with its `bus.endpoint` beside it
+(INTERFACES 1.5.0 A.1, D5, AM-5 10-B2; the review-bus exception to the M12 namespacing, E42), never in the sub-task lead's `RUN_HOME/<subtask>/bus/` (A.1, D4 `<run-id>-<subtask>-rendezvous`). `<review-id>` = `pr-review-<uuid8>`, fresh per
 review, so app name, `SESSION_ID` and `DATA_DIR` never collide with the lead's bus or another review's.
 
 1. **Claim.** Through `skills/port-claim` (Steps 1-4):
@@ -32,7 +33,7 @@ review, so app name, `SESSION_ID` and `DATA_DIR` never collide with the lead's b
    - Exit 0: claimed, continue.
    - Exit 1 (taken) or 2 (registry and listener disagree): refuse the launch on `$BUS_PORT`; never
      auto-pick. Make exactly one retry: set `BUS_PORT=$((BUS_PORT + 10))` and run the same `--claim`
-     line once more, before any bind (INTERFACES 1.3.0 A.5.2, D2.3, AM-3 / owner OQ-2). If
+     line once more, before any bind (INTERFACES 1.5.0 A.5.2, D2.3, AM-3 / owner OQ-2). If
      `BUS_PORT + 10` exceeds 65535, that counts as the second refusal. Exit 0 on the retry: continue
      with this `BUS_PORT` in every step below. A second exit 1 or 2: stop the line and report to the
      lead (the dispatching `pre-pr-gate`); the report names both ports, and notes that the +10 port may
@@ -66,8 +67,15 @@ review, so app name, `SESSION_ID` and `DATA_DIR` never collide with the lead's b
    `$DATA_DIR`) and the loopback guard exactly as in `bus-start-standalone.md` "Step 1", from the
    `curl -sf http://localhost:${PORT}/health` line through the bind-address guard (they use `PORT`,
    `APP_NAME` and `DATA_DIR`, all set here).
+   Then write this review's `bus.endpoint` (D5 fields, atomic temp file plus `mv`, `umask 077`); its
+   readers are this review's seats, gate checkers and synthesizer only:
+   ```bash
+   PID=$("$PM2" pid "$APP_NAME" 2>/dev/null | tail -1)
+   ( umask 077; printf 'port=%s\ndata_dir=%s\npm2_app=%s\npid=%s\nsession_id=%s\ntopic=rendezvous\n' \
+       "$PORT" "$DATA_DIR" "$APP_NAME" "$PID" "$SESSION_ID" > "$ENDPOINT.tmp" ) && mv "$ENDPOINT.tmp" "$ENDPOINT"
+   ```
 4. **Start**: `catalog.sh start <kind> <handle>` for the four rows. Print and capture
-   `SESSION_ID`, `DATA_DIR`, `APP_NAME`, `PORT`, `DIFF_PATH` and `SESSION_SUFFIX`.
+   `SESSION_ID`, `DATA_DIR`, `APP_NAME`, `PORT`, `DIFF_PATH`, `ENDPOINT` and `SESSION_SUFFIX`.
 
 **Stop after a claim** (`resource-catalog/references/ports.md`, failure branches). Any stop after step 1
 succeeded (port-file mismatch, health, identity or loopback failure): run the cleanup below for what this
@@ -90,11 +98,12 @@ executor tier). The scripts in `diff-fetch.md` take `DIFF_PATH` as an input.
 `end_session` (explicit `session_id`), then:
 
 ```bash
-APP_NAME="$APP_NAME" REVIEW_DIR="$REVIEW_DIR" REVIEW_ID="$REVIEW_ID" DATA_DIR="$DATA_DIR" DIFF_PATH="$DIFF_PATH" RUN_HOME="$RUN_HOME" SUBTASK="$SUBTASK" bash -c '
+APP_NAME="$APP_NAME" REVIEW_DIR="$REVIEW_DIR" REVIEW_ID="$REVIEW_ID" DATA_DIR="$DATA_DIR" DIFF_PATH="$DIFF_PATH" RUN_HOME="$RUN_HOME" SUBTASK="$SUBTASK" ENDPOINT="$ENDPOINT" bash -c '
   PM2=${PM2_BIN:-$(which pm2 2>/dev/null)}
   [ -n "$PM2" ] && [ -x "$PM2" ] && "$PM2" delete "$APP_NAME" 2>/dev/null || true
   [ -n "$RUN_HOME" ] && [ "$REVIEW_DIR" = "$RUN_HOME/review/$SUBTASK/$REVIEW_ID" ] || exit 0
   [ "$DIFF_PATH" = "$REVIEW_DIR/diff.diff" ] && rm -f "$DIFF_PATH"
+  [ "$ENDPOINT" = "$REVIEW_DIR/bus.endpoint" ] && rm -f "$ENDPOINT" "$ENDPOINT.tmp"
   [ "$DATA_DIR" = "$REVIEW_DIR/bus" ] \
     && [ "$(cat "$DATA_DIR/.created-by" 2>/dev/null)" = "$APP_NAME" ] && rm -rf "$DATA_DIR"
   rmdir "$REVIEW_DIR"

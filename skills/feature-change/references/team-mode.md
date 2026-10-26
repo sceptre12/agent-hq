@@ -1,6 +1,6 @@
 # feature-change: team mode (`UNIT_MODE=team`)
 
-One unit inside a delivery run. The lead (conductor, `delivery-run`) already fixed what solo Steps 0, 1, 8, 9 and 10 decide. `solo` (the default) is unchanged. Contracts: INTERFACES 1.3.0 D1, D2.3, C1, C1.1, C1.2, C2, C3, C4, D5, A.1, A.2, A.5, A.5.2, A.6, A.7. Open owner questions are marked `OQ-13-<n>` (this skill's own build questions, listed at the end; not the task spec's `Q13-<n>`); until the owner answers, the conservative path written here applies.
+One unit inside a delivery run. The lead (conductor, `delivery-run`) already fixed what solo Steps 0, 1, 8, 9 and 10 decide. `solo` (the default) is unchanged. Contracts: INTERFACES 1.5.0 D1, D2.3, C1, C1.1, C1.2, C2, C3, C4, D5, A.1, A.2, A.5, A.5.2, A.6, A.7. Open owner questions are marked `OQ-13-<n>` (this skill's own build questions, listed at the end; not the task spec's `Q13-<n>`); `OQ-13-1`, `OQ-13-2`, `OQ-13-7` and `OQ-13-8` are settled by INTERFACES 1.5.0 A.7 (AM-4 13); for the others the path written here applies until the owner answers.
 
 ## Input check (Step 0)
 `UNIT_MODE` is `team` or `solo`; unset means `solo`. Any other value: print `INPUT-ERROR UNIT_MODE enum` and stop (D1, D2.3). In `team`, Step 0 then checks every brief field below, prints one line `INPUT-ERROR <NAME> <reason>` per failing field (D1 reason words only), and stops after the last line; no retry, no prompt, no silent stop, and never a guessed bus or path. Names are UPPER_SNAKE `NAME=value` (D2.3 input transport); `UNIT_MODE` is the one new skill input (D2.3), the others are brief-supplied values (`OQ-13-6`).
@@ -15,7 +15,7 @@ One unit inside a delivery run. The lead (conductor, `delivery-run`) already fix
 | `REPO` | absolute path of the repo's main checkout (same as solo) | `missing` | `path` |
 | `SLUG` | the unit's ticket slug, `^[a-z0-9][a-z0-9-]*$` (A.1; no `<n>-` prefix in team mode) | `missing` | `format` |
 | `TASK_FILE` | `<primary_repo>/.tasks/<unit>-<slug>.md` (A.6), an existing file named `$UNIT-$SLUG.md` | `missing` | `path` (not a file), `format` (name differs) |
-| `REPO_PROFILE` | `<abs path>@<sha>` of `repo-profile.md`, `<sha>` the git blob id (A.2 `repo_profile`) | `missing` | `format` (not `<abs>@<40-hex>`, or `git hash-object <path>` differs from `<sha>`), `path` (file absent) |
+| `REPO_PROFILE` | `<abs path>@<sha>` of `repo-profile.md`, `<sha>` the git blob id (A.2 `repo_profile`) | `missing` | `format` (not `<abs>@<40-hex>`), `sha` (`git hash-object <path>` differs from `<sha>`, D1), `path` (file absent) |
 | `SUBTASK_BRANCH` | the sub-task's own ticket branch (dispatch-plan sub-task table `branch` column, `<sub-task key>-<slug>`, A.6 additions), never this unit's `$BR` (`OQ-13-5`) | `missing` | `format` (no local ref in `REPO`) |
 
 Profile keys read in Step 0 (A.2.2): `worktree_base` (absolute; its root check is `catalog.sh`'s, A.5) and `gates.command`; a missing key prints `INPUT-ERROR worktree_base missing` or `INPUT-ERROR gates.command missing` (A.2.2 "A missing key fails the reader's Step 0").
@@ -26,9 +26,9 @@ Profile keys read in Step 0 (A.2.2): `worktree_base` (absolute; its root check i
 | 0 Repo policy lookup | Replaced by the input check above: `GATES` = `gates.command` from `REPO_PROFILE` (A.7 Command row); `ROUTE` is moot. Arrival duty (Rule 6) is surface-only: run its two commands read-only and quote their output in the unit report; `$REPO` is the lead's main checkout (it holds the sub-task worktrees), so never fix it and never stop on it; no failure row (`OQ-13-11`). |
 | 1 Ticket | team: skip ticket creation; say "ticket owned by the conductor". Read the key, see Key below. No Jira, tracker or desk call. |
 | 2 Worktree | Worktree `$WORKTREE_BASE/$RUN_ID-$SUBTASK-$UNIT` (C1.1 dispatch record row), branch `<JIRA-KEY>-<slug>`, created only after the key exists. Catalog first, see Worktree and catalog. |
-| 3-4 Implement, tests | Before Step 3, confirm the Agent tool is available (the verifier and the `review path` need it); absent = its failure row, before any edit (`OQ-13-8`). Otherwise unchanged. A `HANDBACK` ends the unit per the failure table. |
-| 5 Repo gates | Run the checks locally while working. The final record is the gate runner's, see Unit end. |
-| 6 Distinct verifier | Unchanged (never the implementer). At most 3 fix rounds (D7). |
+| 3-4 Implement, tests | Before Step 3, confirm the Agent tool is available (the `review path` needs it; the unit dispatches no verifier, Step 6); absent = its failure row, before any edit. Otherwise unchanged. A `HANDBACK` ends the unit per the failure table. |
+| 5 Repo gates | Run the checks locally while working. The `GATE-PASS` record is not the unit's: the engine's per-work_item gate agent writes `gate-runs/<head>.md` after the post (A.7, AM-4 13), see Unit end. |
+| 6 Distinct verifier | The distinct verifier is `wave-execution`'s per-work_item gate agent (depth 1, dispatched by the engine), which runs `gates.command` on the posted head and writes `GATE-PASS` to `gate-runs/<head>.md` (A.7, AM-4 13, `OQ-13-8`); the unit dispatches no verifier. |
 | 7 Review rung | The rung is the unit table's `review path` (C1.2); `pre-pr-gate` owns the PR-level `pr-review`. At most 3 rounds, then stop (D7). |
 | 8 Integrate | team: skip integration; the Integrator persona is the single writer of the sub-task branch. No push, no merge, no PR. |
 | 9 Cleanup | team: skip cleanup; `delivery-cleanup` removes the worktree. Never run `git worktree remove`. |
@@ -69,14 +69,13 @@ Form: `NEXT: <unit>.<n> <text>` with `<unit>` = `$UNIT` (it already carries the 
 `<n>` = the number of the last completed command of the `TASK_FILE` §9 verification list; `0` before the first. Write `<unit>.0` once the worktree exists (Case C: once it is confirmed), then after each §9 command; after the last command `<n>` is that command's number. Feature-change step numbers are never used, and a skipped feature-change step writes nothing. The last `NEXT:` write comes before the post or the `.verdict` write, so the record is always the unit's final write. A unit that stops before its worktree exists writes no `NEXT:` line.
 
 ## Unit end (ordered)
-1. All work committed on `$BR` in `$WT`; `git -C "$WT" status --porcelain` is empty. Commits outside a desk push run the repo hooks: never set `HUSKY=0` and never pass `--no-verify` (A.7, the single statement).
-2. A distinct verifier reported every AC item MET (Step 6), within 3 rounds (D7).
-3. The `review path` ended at 0 Blocking / 0 Medium (Step 7), within 3 rounds (D7).
-4. `HEAD=$(git -C "$WT" rev-parse HEAD)` (40-hex); any later commit means steps 2-5 again for the new head.
-5. Gate record: read `RUN_HOME/$SUBTASK/gate-runs/$HEAD.md`; line 1 must match `^GATE-PASS $HEAD .+$`; cite its path and line 1 in your report. Only the gate runner writes it, never this skill (A.7 Writer row). INTERFACES 1.3.0 gives no channel through which a unit requests a run (`OQ-13-2`; spec §8 AC5 "requested" is met only once that channel exists), and the unit neither dispatches the runner nor holds a `gate-runner/<n>` lease, so the unit reads the file once here and never runs `gates.command` as the record. Absent or not matching: no `PASS` (failure table).
-6. Write your last `NEXT:` line, then post the record (below) with `head` = `$HEAD`, and stop.
+1. All work committed on `$BR` in `$WT`; `git -C "$WT" status --porcelain` is empty. Each commit carries `HUSKY=0` as an inline assignment on that one command (the work profile's interactive `prepare-commit-msg` hook), never exported, and never `--no-verify` (A.7, the single statement; AM-4 13, `OQ-13-7`).
+2. The `review path` ended at 0 Blocking / 0 Medium (Step 7), within 3 rounds (D7).
+3. `HEAD=$(git -C "$WT" rev-parse HEAD)` (40-hex); any later commit means step 2 again for the new head.
+4. Gate record: the unit never requests the gate runner, never waits for or reads `gate-runs/<head>.md` and never runs `gates.command` as the record (`OQ-13-1`, `OQ-13-2`). After the post, `wave-execution`'s per-work_item gate agent runs the gate command on `$HEAD` and writes `RUN_HOME/$SUBTASK/gate-runs/$HEAD.md` (A.7, AM-4 13); a gate failure is the engine's fix loop, not a unit failure class.
+5. Write your last `NEXT:` line, then post the record (below) with `head` = `$HEAD`, and stop.
 
-`PASS` only when steps 1-5 all hold for the same `$HEAD`; reason `none`.
+`PASS` only when steps 1-3 all hold for the same `$HEAD`; reason `none`.
 
 ## Failure table (C2 verdict -> reason pairs)
 C2 pairing: `PASS` takes only `none`; `ROLLED` takes only `budget`, `lane-unavailable`, `env-bug`, `merge-conflict`; `ESCALATE` takes every other non-`none` code. No code outside the C2 closed set (spec §11). `head` on every row that posts: if `git -C "$REPO" worktree list --porcelain` lists `worktree $WT`, `git -C "$WT" rev-parse HEAD` (C2 "the unit worktree's head"); otherwise (key absent, a `$BR` clash, a catalog exit or a failed add in Case A) `git -C "$REPO" rev-parse "$SUBTASK_BRANCH"`, which Step 0 proved exists (`OQ-13-3`).
@@ -91,10 +90,9 @@ C2 pairing: `PASS` takes only `none`; `ROLLED` takes only `budget`, `lane-unavai
 | Step 3 `HANDBACK` (layer outside the repo) | `ESCALATE` | `spec-gap` |
 | A `.decisions/<unit>.md` was written (spec §11 class) | `ESCALATE` | `decision-gate` |
 | AC NOT MET or review Blocking/Medium still open after round 3 (D7) | `ESCALATE` | `fix-loop-cap-exhausted` (`OQ-13-9`) |
-| No Agent tool for the verifier or the `review path` (depth limit, C1.1), found before Step 3 | `ESCALATE` | `contract-gap` (`OQ-13-8`) |
+| No Agent tool for the `review path` (depth limit, C1.1), found before Step 3 | `ESCALATE` | `contract-gap` |
 | Dev-server port refused at its candidate and at its one +10 retry, or `port-check.sh` exit 3 (A.5.2, AM-3) | `ESCALATE` | `human-step` (`OQ-13-10`) |
 | The unit's `budget` (C1.2: brief text the lead copies into the slot row `budget_min`) passes before Unit end completes | `ROLLED` | `budget` |
-| No matching `gate-runs/<head>.md` at Unit end step 5 | `ESCALATE` (never `PASS`) | `contract-gap` (`OQ-13-1`) |
 
 Every `ESCALATE` pauses the unit for the human (C2 lead handling); a `ROLLED` is re-dispatched one tier up, which re-enters through Case C.
 
@@ -112,19 +110,19 @@ Unreachable (C4 Trigger) = `bus.endpoint` missing or disagreeing with step 1, no
 ## Port guard
 This skill binds no port; any dev server a unit starts is claimed per A.5.2 through `port-claim` first (one +10 retry, AM-3). `security-audit` is not used here (the security seat belongs to the review step).
 
-## Open owner questions
-Each is recorded in the item 13 Rung 1 record; the path in the right column is the one this file follows until the owner answers.
+## Owner questions
+Each is recorded in the item 13 Rung 1 record. `OQ-13-1`, `-2`, `-7` and `-8` are settled by INTERFACES 1.5.0 A.7 (AM-4 13); for the others the path in the right column is the one this file follows until the owner answers.
 
 | Id | Question | Path followed here |
 |---|---|---|
-| `OQ-13-1` | C2 reason when `gate-runs/<head>.md` is absent at Unit end | `ESCALATE` `contract-gap`, never `PASS` |
-| `OQ-13-2` | How a unit requests the gate runner, and how long it waits | no request; read the file once at Unit end |
+| `OQ-13-1` | C2 reason when `gate-runs/<head>.md` is absent at Unit end | settled (A.7): the unit does not read the file; "gate runner absent" is not a unit failure class |
+| `OQ-13-2` | How a unit requests the gate runner, and how long it waits | settled (A.7): no request, no wait; the engine's gate agent runs after the post |
 | `OQ-13-3` | `head` of a record posted with no unit worktree | `git -C "$REPO" rev-parse "$SUBTASK_BRANCH"` |
 | `OQ-13-4` | Who adds the unit worktree: the lead in Wave 0 (C1) or the unit (spec §8 AC3) | both handled (Cases A, B) |
 | `OQ-13-5` | Unit branch start point and A.5 `<base>` | `SUBTASK_BRANCH` tip, never `origin/main` |
 | `OQ-13-6` | Brief field names other than `UNIT_MODE` | the names in the Step 0 table |
-| `OQ-13-7` | COMMON block restates `HUSKY=0` for unit commits; A.7 limits it to desk pushes and PR creation (cross-item) | A.7: this skill never sets `HUSKY=0` |
-| `OQ-13-8` | C1.1 "none of which dispatches" vs the distinct verifier a depth-2 unit needs (cross-item) | dispatch at depth 3; no Agent tool = `ESCALATE` `contract-gap` before any edit |
+| `OQ-13-7` | COMMON block restates `HUSKY=0` for unit commits; A.7 limited it to desk pushes and PR creation (cross-item) | settled (A.7): inline `HUSKY=0` on commits and desk pushes, never exported, never `--no-verify` |
+| `OQ-13-8` | C1.1 "none of which dispatches" vs the distinct verifier a depth-2 unit needs (cross-item) | settled (A.7): the engine's per-work_item gate agent is the distinct verifier; the unit dispatches none |
 | `OQ-13-9` | Reason a unit posts at the D7 round cap (`fix-loop-cap-exhausted` is C2's lead-side code; spec §4 omits it) | `fix-loop-cap-exhausted`; any ESCALATE code gets the same lead action |
 | `OQ-13-10` | Reasons for a non-lane port refusal (A.5.2 names none) and a catalog lock timeout (C2 ties `env-bug` to the e2e writer) | `human-step`; `ROLLED` `env-bug` |
 | `OQ-13-11` | Arrival duty (Rule 6) in team mode: surface-only or skipped | surface-only, never fixed, never a stop |

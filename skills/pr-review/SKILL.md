@@ -56,7 +56,7 @@ Measured on the live bus, 2026-10-09 (T-141/T-159 reviews) — facts, not rules:
 - Before binding, `lsof -nP -iTCP:$PORT -sTCP:LISTEN` must be empty; otherwise add 10 and re-check
   exactly once; a second taken port stops the line and is reported (standalone and inside a run; inside
   a run the retry port is claimed before the bind). (owner rule 2026-10-08 19:08Z, R-x; INTERFACES
-  1.3.0 A.5.2, D2.3 `BUS_PORT`, AM-3 / owner OQ-2)
+  1.5.0 A.5.2, D2.3 `BUS_PORT`, AM-3 / owner OQ-2)
 - `read_messages` takes `session_id` (mandatory on every call), `agent_id` and `topics` as an ARRAY.
 - **Reader idiom (every read):** `"peek":true`, `"limit":200`, one topic per call. Orchestrator,
   gate-checker and synthesizer use a fresh `agent_id` per reader and per read; seats keep their own
@@ -83,7 +83,7 @@ the dispatch prompt before invoking the skill; the skill does not prompt for mis
 ### Step 0 — Validate inputs (D1)
 
 Run before Step 1. Print one `INPUT-ERROR <field> <reason>` line per failing field (reason in
-`missing|enum|path|unset|format`), then stop: claim no port, register no catalog row, start no bus.
+`missing|enum|path|unset|format|sha`), then stop: claim no port, register no catalog row, start no bus.
 
 The full table (rule and reason per field) is `references/step0-inputs.md`. Fields: `PR_REVIEW_MODE`,
 `ROLES` (unset = 7; a set list must equal the 7 seat ids, else `INPUT-ERROR ROLES enum`),
@@ -133,14 +133,15 @@ script lives in `references/`; the sub-agent runs it as written.
   starts pinned (`PORT_RANGE_START=PORT_RANGE_END`) and `$DATA_DIR/port` must equal it. All else
   (session id, `/tmp` data dir, health, identity and loopback checks) is unchanged.
 - **Inside a run (`RUN_HOME` set):** `references/bus-start-run.md`, in A.5.2 order: claim `BUS_PORT`
-  with `tools/port-check.sh --claim` (through `port-claim`) before the bind; register the `port`,
-  `pm2-app`, `bus`, `tmpdir` rows; launch under `RUN_HOME/review/<subtask>/<review-id>/bus/` (never the
-  lead's `RUN_HOME/<subtask>/bus/`) pinned to the claimed port; `catalog.sh start`. Exit 1 or 2 refuses the
-  launch (no auto-pick); exactly one retry at `BUS_PORT + 10`, claimed before the bind; a second refusal
-  stops the line and is reported to the lead; exit 3 is stop-the-line (INTERFACES 1.3.0 A.5.2, C1.1,
-  D2.3, AM-3 / owner OQ-2). App name and `SESSION_ID` carry `<run-id>-<subtask>-review-<uuid8>`.
+  (`tools/port-check.sh --claim` via `port-claim`) before the bind; register the `port`, `pm2-app`,
+  `bus`, `tmpdir` rows; launch under `RUN_HOME/review/<subtask>/<review-id>/bus/` (never the lead's
+  `RUN_HOME/<subtask>/bus/`) pinned to the claimed port and write that review's own `bus.endpoint`
+  (INTERFACES 1.5.0 A.1, D5, AM-5 10-B2); `catalog.sh start`. Exit 1 or 2 refuses the launch (no
+  auto-pick); one retry at `BUS_PORT + 10`, claimed before the bind; a second refusal stops the line,
+  reported to the lead; exit 3 is stop-the-line (1.5.0 A.5.2, C1.1, D2.3, AM-3 / owner OQ-2). App name
+  and `SESSION_ID` carry `<run-id>-<subtask>-review-<uuid8>`.
 
-Capture `SESSION_ID`, `DATA_DIR`, `APP_NAME`, `PORT` and `SESSION_SUFFIX` (in a run also `DIFF_PATH`).
+Capture `SESSION_ID`, `DATA_DIR`, `APP_NAME`, `PORT` and `SESSION_SUFFIX` (in a run also `DIFF_PATH` and `ENDPOINT`).
 
 ### Step 2 — Fetch the diff
 
@@ -285,4 +286,4 @@ network-check pre-check before any `gh` call and, when unreachable, skip as `ref
 
 Provenance: Hermes skill learnings/skill-sharing (imported from learnings/skill-sharing.md)
 Lineage: X-context-docs skills/pr-review@0e9281e
-Provenance: EXTEND 1.1.0 (2026-10-26), delivery-workflow item 10: peek/fresh-id/limit-200 reads, stacked diff, preamble, local-diff default, RACI-remap refusal (references/roles-subset.md), port guard (A.5.2; one checked or claimed `BUS_PORT + 10` retry, then stop, standalone and in a run, INTERFACES 1.3.0 AM-3 / owner OQ-2), security-audit guidance seat; scripts in references/. Post-D7 fix (2026-10-26, lead decision 10-B2): in-run bus at `RUN_HOME/review/<subtask>/<review-id>/bus/` (spec 10 Q10-5), refusal pre-check removed; synthesizer back on Sonnet (D35). Pending pilot (no pilot run recorded).
+Provenance: EXTEND 1.1.0 (2026-10-26), delivery-workflow item 10: peek/fresh-id/limit-200 reads, stacked diff, preamble, local-diff default, RACI-remap refusal (references/roles-subset.md), port guard (A.5.2; one checked or claimed `BUS_PORT + 10` retry, then stop, standalone and in a run, INTERFACES 1.5.0 A.5.2, AM-3 / owner OQ-2), security-audit guidance seat; scripts in references/. Post-D7 fix (2026-10-26): in-run bus at `RUN_HOME/review/<subtask>/<review-id>/bus/` with its own `bus.endpoint` (INTERFACES 1.5.0 A.1, D2.3, D5, AM-5 10-B2; spec 10 Q10-5), refusal pre-check removed; synthesizer back on Sonnet (D35). Pending pilot (no pilot run recorded).

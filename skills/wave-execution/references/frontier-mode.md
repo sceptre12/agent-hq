@@ -22,8 +22,9 @@ An agent is dispatched only when all of these hold:
    agents together. A gate or fix agent with no free slot waits for one; it is never
    dispatched over the cap. `max_concurrent` absent = unbounded.
 2. **Lane (work_item agents only):** no other work_item with the same `lane` is live in the
-   run (one invocation of the skill). In a frontier wave a work_item counts as live from its dispatch until its
-   gate passes or it escalates, including its gate and fix agents. Leasing the lane's real
+   run (one invocation of the skill). In a barrier and a frontier wave alike a work_item holds its lane from its
+   dispatch until its gate passes or it escalates, including its gate and fix agents (INTERFACES 1.5.0 C1.1).
+   A work_item generated at runtime, and a fix agent, may carry `persona` and `lane` (C1.1). Leasing the lane's real
    resources is the caller's.
 3. **Blockers (frontier only):** every work_item in its `depends_on` has a passed gate.
 
@@ -40,8 +41,10 @@ Work_items without edges are releasable at once.
 - **Dispatch record (only when `bus_endpoint` is declared):** before dispatching an agent,
   append one JSON line to `dirname(<resolved bus_endpoint>)/dispatch/<invocation>.jsonl`:
   `{"agent_id","role","unit","persona","tier","backend","utc"}` — `role` `worker|gate|fix`;
-  `unit` the served work_item id; `persona` the work_item's `persona` for a worker,
-  `gate-checker` for a gate agent, `fixer` for a fix agent; `tier` the model the wave's
+  `unit` the served work_item id, or `wave-<N>` for a wave-level gate agent (a barrier wave's
+  `exit_criteria`, `adversarial_verify` or `judge_panel` gate); `persona` the work_item's `persona`
+  for a worker (`none` when it declares none), `gate-checker` for a gate agent, `fixer` for a fix
+  agent (INTERFACES 1.5.0 C1.1); `tier` the model the wave's
   `agents` field names (a required field, spec-format) (a worker under `tier_override` takes the overriding tier); `backend` `agent-tool` or
   `claude-p` (the Operating Mode Gate result); `utc` ISO 8601. The caller reads this file;
   the skill only appends to it.

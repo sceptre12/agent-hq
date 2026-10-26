@@ -1,7 +1,7 @@
 # PR Review — Local-diff mode (`PR_REVIEW_MODE=local-diff`)
 
 Review a local `git diff` with no GitHub PR; the review record goes to a file instead of a PR comment.
-Authority: INTERFACES 1.3.0 D2.3 `PR_REVIEW_MODE`; every other choice here is a brain default under R-q
+Authority: INTERFACES 1.5.0 D2.3 `PR_REVIEW_MODE`; every other choice here is a brain default under R-q
 (owner may veto). Differences from pr mode, all in one place:
 
 - **Inputs** (replace `REPO`/`PR_NUMBER`): `REPO_DIR` (git checkout holding both refs; read-only for the

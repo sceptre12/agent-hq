@@ -1,6 +1,6 @@
 # INTERFACES.md: the frozen interface set of the delivery workflow
 
-- **Freeze status:** `FROZEN 2026-10-26 after 2b review round 4 (record: reviews/interfaces-2b.md)` (design §7 item 2; reviewed on the ported `review-7-panel`, W0). `version: 0.1.0-draft`.
+- **Freeze status:** `FROZEN 2026-10-26 after 2b review round 4 (record: reviews/interfaces-2b.md)` (design §7 item 2; reviewed on the ported `review-7-panel`, W0). `version: 1.1.0` (1.0.0 at the freeze; 1.1.0 by amendment AM-1, 2026-10-26).
 - **Date:** 2026-10-26. **Integrator:** Worker1 (W0 item 2 integration). Section authors: A (state), B (desk), C (waves and control), D (enums, topics, planes).
 - **Authority:** design v2 (`architecture/delivery-workflow/part-01-summary-and-process-map.md:1-84`, `part-02-skill-inventory.md:1-103`, `part-03-personas-and-concurrency.md:1-95`, `part-04-templates.md:1-72`, `part-05-execution-constraints.md:1-60`, `part-06-build-plan-and-sources.md:1-98`) is the source; this set fixes the grammars the design names. Where the design implies an answer the part cites the section; where it is silent the part says `DEFAULT (integrator)` and the decisions log below lists it. Owner rulings (`architecture/delivery-workflow-sources/owner-decisions.md:1-84`; the INTERFACES owner answers at `:57-60`, the ADR 0055 open-point answers at `:62-72`, the ADR 0054 answers at `:73-74`, the INTERFACES 2b answers at `:78-84`) bind throughout; no ruling is reopened here.
 - **Consumers:** every W1 skill, template, task spec (item 2b) and persona brief (item 27b); ADR 0054 (`decisions/0054-adr-0023-amendment-delivery-workflow.md:1-290`) and ADR 0055 (`decisions/0055-desk-verb-permission-tiers-02.md:1-271`) (consistency noted per part, no edit to either ADR).
@@ -9,7 +9,7 @@
 
 | Part | File | Contents |
 |---|---|---|
-| A | `interfaces/part-a-state.md` | `DELIVERY_ROOT`/`RUN_HOME` and every derived path; `state.md`, `substate.md`, slot row, machine row; gate files and pointers; `catalog.tsv` columns and the per-kind table; artifact names and writers; the single `HUSKY=0` / `GATE-PASS` statement |
+| A | `interfaces/part-a-state.md` | `DELIVERY_ROOT`/`RUN_HOME` and every derived path; `state.md`, `substate.md`, slot row, machine row; gate files and pointers; `catalog.tsv` columns and the per-kind table; port claims (A.5.2) and the security-audit run directory (A.5.3); artifact names and writers; the single `HUSKY=0` / `GATE-PASS` statement |
 | B | `interfaces/part-b-desk.md` | transport identity; `DESK`/`DONE`/`REJECTED` grammar and reason-code mapping; request file and copy-and-hash; the closed verb table and request schemas; marker re-derivation and the H-pr read-back; result envelope and per-verb result fields; redaction; human gate lines |
 | C | `interfaces/part-c-waves-control.md` | unit table to `waves/` mapping and the wave files per sub-task; invocation values (`session_id`, `output_topic`, `max_concurrent`, `bus_endpoint`); preflight rules 13-15; the `UNIT-VERDICT` record and lead handling; `NEXT:`; the status-file fallback; inbox, outbox, escalations; resume; `RELEASE`/`INVALIDATE`; shepherd and watchdog flags |
 | D | `interfaces/part-d-enums-topics.md` | Step 0 `INPUT-ERROR`; every enum; per-skill named inputs and output tokens; status vocabulary and transitions; bus topics; `bus.endpoint`; artifact-to-plane table; change control |
@@ -20,7 +20,17 @@ After the freeze a change is a diffed amendment plus a consumer re-check list; a
 
 | Amendment | Date | Sections | Consumers re-checked | Approver |
 |---|---|---|---|---|
-| (none yet) | | | | |
+| AM-1 (1.0.0 -> 1.1.0) | 2026-10-26 | A.2 `security_audit`; A.4 security-audit agents; A.5.1 `port` cleanup; new A.5.2 port claims, A.5.3 security-audit run directory; A.6 row; C1.1 lane lease; D2.1 `persona`, `security_audit`; D2.2 rows 4, 6, 10; D2.3 `pr-review`; D4 namespacing; D5 writer; D6 rows; D7 record; errata E18, E19 | pending, see "Amendment AM-1" below | the owner, via the item 33 packet (pending) |
+
+### Amendment AM-1: port guard and security-audit integration
+
+- **Rulings:** port guard, owner 2026-10-26 "PORT GUARD" (`architecture/delivery-workflow-sources/owner-decisions.md:85-87`), build-pause record "Port guard"; security-audit, owner YES 2026-10-26 (`owner-decisions.md:77`), build-pause record "security-audit integration". Rows O-PG, O-SA.
+- **Diff, port guard:** every port a run binds (lanes, dev servers, review buses) is claimed with `tools/port-check.sh` before launch, refused on collision, never auto-picked; the bind is a catalog `port` row (kind already in A.5) that cleanup releases with a `released` registry row; the PreToolUse hook `tools/hooks/port-precheck.sh` catches launches outside that path; the move installs it from `config/settings.json` and fills `ports.tsv` / `app-ports.tsv`; P0 runs a positive control of the hook (part A.5.2, A.5.1, C1.1, D4, D5, D6). Lands as agent-hq PR #9 (branch `wt/port-guard`).
+- **Diff, security-audit:** vendored unmodified at `skills/security-audit` plus `PROVENANCE.md`; new enum `security_audit` `guidance|full` (`state.md` field, input `SECURITY_AUDIT` of `delivery-run`, `review-tailor`, `pre-pr-gate`, `pr-review`); guidance mode in the security seat of `pre-pr-gate` and `pr-review`/panels, diff-scoped, no files, no extra agents; full mode only on an explicit operator request or a `security_sensitive: yes` epic, with `output-dir` `RUN_HOME/<subtask>/security-audit/run-<N>`, agents from the free slots under the 30/sub-task cap and counted in the slot ledger (persona `security-auditor`), target code no-network, and `node skills/security-audit/validate-findings.cjs <findings>` as a `pre-pr-gate` gate row (part A.2, A.4, A.5.3, A.6, D2.1-D2.3, D6).
+- **Rung:** 2b (the change is consumed by more than three skills, D7).
+- **Consumers to re-check (D7; a failing consumer blocks AM-1):** skills `delivery-pipeline` (sets `security_audit`), `delivery-architecture` (`security_sensitive:` header), `delivery-run` (input, bus port claim, lane ports), `review-tailor`, `pre-pr-gate`, `pr-review`, `panel-review` and `review-7-panel` security seats, `resource-catalog` (`catalog.sh` `port` cleanup), `delivery-cleanup`, `wave-execution` (lanes), `port-claim`; the persona brief `security-auditor` (item 27b); the task specs (item 2b) of those skills; the `state.md` and `dispatch-plan.md` templates. Status 2026-10-26: no W1 consumer is authored yet (no W1 item is dispatched before the freeze, D7), so each is checked against 1.1.0 when authored; the re-check record is added to this table row.
+
+## Owner questions and notes
 
 ## Owner questions and notes
 
@@ -196,6 +206,9 @@ Every regex in this set is POSIX ERE (`grep -E`, bash `[[ =~ ]]`): numbered grou
 | O-N10 | "ALWAYS HUSKY=0 on desk pushes"; the recorded affected pass before each push (D21/R2-3) still applies (`owner-decisions.md:80`) | A.7, B4 `push`, `pr-create` | N10, r3 H36 (moot) |
 | O-N11 | "tag-push behaviour is set per repo in repo-profile.md": "whether the repo uses release tags at all"; "if it does, its push and approval rule"; "With no profile entry, tag-push is refused." (`owner-decisions.md:81-84`) | A.2.2 `release_tags.*`, B2.1, B3, B4 `tag-push`, B8 | N11, r3 H14 |
 
+| O-PG | PORT GUARD: "ensure we have the port check hook setup in agent-hq and that its apart of this plan" (`architecture/delivery-workflow-sources/owner-decisions.md:85-87`) | A.5.1, A.5.2, C1.1, D4, D5, D6; errata E18 (amendment AM-1) | (new) |
+| O-SA | security-audit skill: desk INSTALL into agent-hq, wired into the security seat in the pre-PR gate and panels (`owner-decisions.md:77`) | A.2, A.4, A.5.3, A.6, D2.1-D2.3, D6; errata E19 (amendment AM-1) | (new) |
+
 `owner-decisions.md` = `architecture/delivery-workflow-sources/owner-decisions.md`; ADR 0054 = `decisions/0054-adr-0023-amendment-delivery-workflow.md`.
 
 ### Decisions added by the round-4-0 fix (2026-10-26; Kind DEF)
@@ -268,6 +281,8 @@ Every regex in this set is POSIX ERE (`grep -E`, bash `[[ =~ ]]`): numbered grou
 | E15 | §2.2 card 6 (`part-02-skill-inventory.md:60`) and §2.3 `wave-execution` row (`:84`): per-wave `max_concurrent`, no `bus_endpoint`, "cancellation = `TaskStop` of dependents" | `max_concurrent` per invocation (ADR 0054 A1, Q9); optional bundle `bus_endpoint` (A9, owner Q2); dependents are never released on gate failure (A5), part C1.1, C1.2 |
 | E16 | §3.1 depth column: implementer, test writer, e2e writer, fixer, fix-verifier, Integrator, lane runner at "depth 1"; "Max depth below a lead is 2" | under the R4-J13 call model the `wave-execution` controller is depth 1 and the agents it dispatches depth 2 (none dispatches; review stays lead 0, orchestrator 1, seats 2), so max depth below a lead stays 2, within the measured limit 3 (`measurements-2026-10-26.md:115-118`); the §3.1 depth-2 fallback also covers waves (blocking call, part C1.1) |
 | E17 | §1 stage 7-8 and card 13: `release-plan.md` v1, retro and execution-log rows committed to `plans/<epic>/` | RUN-only in this contract version; the commit is a human step after CYCLE DONE (row R4-J19), part A.6, D6 |
+| E18 | §3 lanes, §4 namespacing ("ports from the `port-claim` register"), card 8 and card 9 `port` rows, the Move and P0 rows: no claim-before-launch rule, no hook, no positive control | port guard (AM-1, row O-PG): claim with `tools/port-check.sh` before every bind, refuse on collision, never auto-pick; catalog `port` row released at cleanup by a `released` registry row; `tools/hooks/port-precheck.sh` installed at the Move from `config/settings.json`, `ports.tsv` / `app-ports.tsv` filled at the Move; P0 positive control of the hook, part A.5.1, A.5.2, C1.1, D4 |
+| E19 | §1 stage 4b, §2.2 card 10 (`pre-pr-gate`) and the §2.3 `pr-review` row: the security seat has no named skill or mode; §3 slot counting has no security-audit agents | `skills/security-audit` (AM-1, row O-SA): guidance mode in the security seat, diff-scoped, no files, no extra agents; full audit mode only on an operator request or a `security_sensitive: yes` epic, run directory `RUN_HOME/<subtask>/security-audit/run-<N>`, agents in the slot ledger, no-network target code, `validate-findings.cjs` gate row, part A.2, A.4, A.5.3, D2.1-D2.3 |
 
 ## Checks run at integration
 

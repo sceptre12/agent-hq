@@ -82,3 +82,6 @@
     - whether the repo uses release tags at all;
     - if it does, its push and approval rule.
     With no profile entry, tag-push is refused.
+- PORT GUARD (owner, 2026-10-26): "ensure we have the port check hook setup in agent-hq and that its apart of this plan", so that running multiple apps can't knock over another service on the same port.
+  - Port tools/port-check.sh, the hooks/port-precheck.sh PreToolUse(Bash) hook, the ports.tsv and app-ports.tsv registries, and architecture/port-registry.md into agent-hq. Wire the hook in config/settings.json (the move-time template).
+  - Workflow rule: every port a run binds is claimed through port-claim/port-check before launch and recorded as a catalog `port` row. Cleanup releases it.

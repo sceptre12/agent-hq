@@ -67,6 +67,7 @@ Writer: conductor only (§3.1). Readers: conductor at resume, `delivery-run` Ste
 | `subtasks` | list of objects | one per sub-task | §5.0 |
 | `skill_versions` | map `name: <version>@<sha256 of SKILL.md>` | version from frontmatter plus the installed-target hash (`ls -L`, `shasum -a 256`), so §6.5's hash has a home (`DEFAULT`: encoded in the value) | §5.0, §6.5, A6 |
 | `interfaces_version` | `<version>@<sha256>` of the frozen `INTERFACES.md` | consumers re-check against it after an amendment (part D7) | `DEFAULT (integrator)` |
+| `security_audit` | `guidance\|full` | default `guidance`; the conductor sets `full` only on an explicit operator request or when `architecture.md` carries the header line `security_sensitive: yes` (`DEFAULT (integrator)` marker name), and passes it on as `SECURITY_AUDIT` (part D2.2, D2.3); amendment AM-1 | owner 2026-10-26, security-audit integration (AM-1) |
 | `machine_ledger_row` | abs path | the conductor session's `machine/<session>.row` | §5.0, §4 |
 
 `subtasks[]` object:
@@ -141,7 +142,7 @@ stage: 4
 gates: {H0: /abs/delivery/found-1234-20261102/gates/H0.ok, H1: /abs/delivery/found-1234-20261102/gates/H1.ok, H-e2e: [/abs/delivery/found-1234-20261102/st1/gates/H-e2e.st1.ok], H-pr: ["gh:org/repo#812@9be01d4c2a7f3e5b6d8c0a1f2e3d4c5b6a7f8e90"], H-prod: []}
 subtasks: [{id: st0, session: lead-st0-a1, lead_id: lead-st0, backend: agent-tool, state: merged, pr: 812, merge_sha: 9be01d4c2a7f3e5b6d8c0a1f2e3d4c5b6a7f8e90, released_utc: 2026-11-02T10:14:00Z}]
 skill_versions: {delivery-pipeline: 0.1.0@5c1e..., delivery-run: 0.1.0@a90b...}
-interfaces_version: 0.1.0@77d2...
+interfaces_version: 1.1.0@77d2...
 machine_ledger_row: /abs/delivery/machine/conductor-a0.row
 ```
 
@@ -213,6 +214,8 @@ Resume (M15, §4): step 1 renames every `.row` to `.stale`; step 2 re-verifies b
 
 Free slots: `max_concurrent = 30 - live_rows - sum(A.3 reserved)`, where `live_rows` counts `.row` files; that value is the caller argument of part C1.1 (owner 2026-10-26, ADR 0054 Q3 and Q9, `owner-decisions.md:74`: the caller passes its free slot count and gate and fix agents count toward it; the formula is `DEFAULT (integrator)`).
 
+**security-audit agents (AM-1):** in full audit mode (part A.5.3) every hunter and verifier the `security-audit` skill launches gets a slot row before it starts (`persona` `security-auditor`, `unit` `-`, `tier` `verify`); its total-agent `budget` is the free slot count at launch by the formula above, and it starts no agent without a free slot. Guidance mode launches no agent.
+
 Example: `impl-u07 implementer u07 execute 2026-11-02T10:31:00Z 45 /abs/delivery/wt/found-1234-20261102-st1-u07 claude-p 48213`
 
 **Machine ledger row (§4, A4):** `$DELIVERY_ROOT/machine/<session>.row`, key=value on one line: `session=<session> pid=<pid> live_count=<n> build=<0|1> utc=<ISO>` (`DEFAULT` format; `session` per A.1). Summed under `mkdir machine/.lock` before every launch against 200 per machine and rule 8 (at most 3 rows with `build=1`). **Reaper (`DEFAULT (integrator)`):** while holding the lock, a row whose `pid` fails `kill -0` is renamed `.dead` and not counted; `machine/.lock` breaks as `substate.lock` does.
@@ -253,7 +256,7 @@ General rules (card 9): read-only dry run first; the lead approves an explicit l
 | `worktree` | `git worktree list` names it | `git worktree remove <path>` only if `git status --porcelain` is clean, `git status --ignored` shows no uncaptured ignored files, and its PR is open or merged (`DEFAULT (integrator)`) |
 | `branch` | `git show-ref --verify refs/heads/<branch>` (local), desk `fetch` for remote (`DEFAULT`) | local delete (`git branch -D` after the check) and remote delete via desk `branch-delete`, **both only when content-merged into main** (part B5: ancestor, per-commit patch-id, or squash patch-id); else `kept` plus flag (D8) (`DEFAULT (integrator)`: D8 gates local and remote alike) |
 | `process` | `kill -0 <pid>` | `kill <pid>`, `kill -0` before and after; never by pattern; cleanup acts only on rows already in `catalog.tsv` (the C7 orphan sweep registers each orphan before killing it) (`DEFAULT (integrator)`) |
-| `port` | `lsof -nP -iTCP:<port> -sTCP:LISTEN` | `port-claim release <port>` (the register's release subcommand; `DEFAULT` name, verified at W1 item 5 against the installed skill) |
+| `port` | `lsof -nP -iTCP:<port> -sTCP:LISTEN` | after the listener is stopped, `tools/port-check.sh --claim <port> <bind> <container_port> <service> <project> released <source> <note>` with the claim's `port` and `source` (a `released` row supersedes the claim), then `catalog.sh release` (A.5.2; amendment AM-1) |
 | `pm2-app` | `pm2 jlist` lists the exact name | `pm2 delete <exact name>` (`DEFAULT`) |
 | `bus` | `kill -0` on the `bus.endpoint` pid | `pm2 delete <pm2_app>`, then `rm` of `data_dir` by literal path after `pm2 jlist` no longer lists it (`DEFAULT`) |
 | `tmpdir`, `file`, `clone` | `test -e <path>` | delete by literal path, one `rm` per path (`DEFAULT (integrator)`) |
@@ -263,6 +266,14 @@ General rules (card 9): read-only dry run first; the lead approves an explicit l
 | `cron` | `CronList` shows the id | `CronDelete <id>` (`DEFAULT`) |
 | `bgtask` | `TaskList` shows the id | `TaskStop <id>`, then the orphan sweep (part C7) |
 | `lane-lease` | the latest row is `live` | write a `released` row (`DEFAULT`) |
+
+### A.5.2 Port claims (amendment AM-1; owner 2026-10-26, PORT GUARD)
+
+The single statement of the port guard. **Scope:** every port a run binds: e2e lanes, dev servers, the sub-task bus and `pr-review`'s per-review bus. **Order before launch:** (1) `tools/port-check.sh --claim <port> <bind> <container_port> <service> <project> claimed <source> <note>` (through the `port-claim` skill), with `project` = `<run-id>` and `source` = `<run-id>-<subtask>` (`DEFAULT (integrator)`); (2) `catalog.sh register port <port> ...` (`planned`); (3) the launch; (4) `catalog.sh start` (`live`). **Collision:** exit 1 (taken) or 2 (registry and `lsof` disagree) refuses the launch; the launcher **never auto-picks** another port and reports to its lead (a lane maps to C2 reason `lane-unavailable`); exit 3 (registry unusable) is stop-the-line. **Release:** cleanup only, per the `port` row of A.5.1. **Hook:** the PreToolUse(Bash) hook `tools/hooks/port-precheck.sh` checks launches made outside this path against `tools/app-ports.tsv` and `lsof` and asks the human on a live listener; it is advisory and always exits 0. **Move and P0:** the move installs the hook from `config/settings.json` and fills `tools/ports.tsv` and `tools/app-ports.tsv` for the work machine; P0 runs a positive control (a listener on an `app-ports.tsv` port plus that row's launch command must return `permissionDecision: "ask"`; silence fails P0). Lands as agent-hq PR #9 (branch `wt/port-guard`).
+
+### A.5.3 security-audit run directory (amendment AM-1)
+
+Full audit mode only (part D2.1 `security_audit`): `output-dir` = `RUN_HOME/<subtask>/security-audit/run-<N>/` (`N` = 1 + the count of existing `run-*` directories, `DEFAULT (integrator)`), never the skill's `~` default; target code runs with no network (the skill's `execution_policy: sandboxed-source-and-local-only`); `node skills/security-audit/validate-findings.cjs <output-dir>/findings.json` is a gate row of `pre-pr-gate` (a non-zero exit is `PREPR: FAIL`). Guidance mode writes no file and launches no agent.
 
 ## A.6 Artifact names (design §1 Artifacts column, §2.2 cards, §5)
 
@@ -289,6 +300,7 @@ Planes are in part D6. Names are exact; `<x>` is a substitution.
 | `postmerge-<sha>.md` | `post-merge-verify` | RUN | card 12 |
 | `release-<sha>.md`, `release-plan.md` v1 | `release-track` | RUN (`RUN_HOME/release-plan.md`); RUN-only in this contract version (row R4-J19) | card 13 |
 | `pr-body.md` names lane files only by their `lanes/` file names | `pre-pr-gate` | RUN `review/<subtask>/` | §6.3 |
+| `security-audit/run-<N>/` (`findings.json`, `coverage-ledger.json`, `run-metadata.json`, `agents/`), full audit mode only | `security-audit` (full mode) and its hunters, own `agents/<agent-id>/` | RUN `<subtask>/security-audit/` | A.5.3, AM-1 |
 | `retro.md`, `execution-log.md` (rows), capture record | conductor (stage 8) | RUN; `capture/` | §1 stage 8, §5.9 |
 
 **Plan-plane commit after the run (`DEFAULT (integrator)`, row R4-J19):** `release-plan.md` v1, `retro.md` and `execution-log.md` stay in RUN; no desk verb carries a plan-plane commit after stage 5, so committing them to `plans/<epic>/` is a human step after CYCLE DONE, listed in the conductor's final status post (design errata E17).

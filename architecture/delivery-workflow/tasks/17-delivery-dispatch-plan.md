@@ -24,7 +24,7 @@ Write the skill `delivery-dispatch-plan`: it turns an accepted `architecture.md`
 - `references/predispatch-checklist.md` (sentinels, `ls`-verified paths, flags, six unit pre-flight checks).
 - `references/plan-check-loop.md` (Plan-checker invocation, G48 pre-round check, round cap).
 
-**Out:** `references/templates/**` (item 27 owns them; SPEC-QUESTION 2), `skills/delivery-run/**` (briefs, persona list), `tools/**`, INTERFACES, any other skill, any ADR.
+**Out:** `references/templates/**` (item 27 owns them; RESOLVED Q2), `skills/delivery-run/**` (briefs, persona list), `tools/**`, INTERFACES, any other skill, any ADR.
 **Do NOT create:** a script, a symlink, a second copy of any INTERFACES table, a persona brief, a `catalog.tsv` writer (only `catalog.sh` appends), cost or effort metrics (B-4), a `disable-model-invocation` field.
 
 ## 4. Contracts (cite the anchor, never restate the table)
@@ -71,6 +71,8 @@ Write the skill `delivery-dispatch-plan`: it turns an accepted `architecture.md`
 
 ## 8. Acceptance criteria
 - [ ] SKILL.md has the five required sections, Step 0 with the four named inputs and `INPUT-ERROR`, and every card-5 step: cut sub-tasks (one PR each, D5, merge order from `architecture.md`; `st0` = plan PR), units with one done condition each, scope globs, shared-file owner and serial-lane table (overlap or implicit touch rejects the plan, M16), blockers, personas and tiers, e2e units per user-visible story, per-lane resource profile, worst-case dispatch count against 30 and the machine ledger against 200 (D4), computed Rule 7 note, Plan-checker before round 1 (D55), pre-dispatch checklist, `review-tailor`, loop (D7 cap).
+- [ ] Port table (RESOLVED Q4, PC-4): one candidate per bind per sub-task (`bus`, `review-bus`, each lane port), `candidate = <base> + 10·k` from the profile keys `ports.bus_base` / `ports.lane_base` (`FILL_IN_BEFORE_DISPATCH` when absent, which fails the pre-dispatch checklist), `k` written in the table; the plan states that the launcher claims each candidate per A.5.2 and a refusal is never re-picked; the plan itself runs no `port-check.sh`.
+- [ ] Budgets (RESOLVED Q3): per sub-task the plan states `dispatch_budget` and peak concurrency; the machine line sums peaks against 200; the plan header carries `security_sensitive:` (RESOLVED Q1).
 - [ ] Post-merge re-entry path: `NEW_UNITS` adds units for `st<N>` and produces the stage-3 outputs for it only (A.2 post-merge re-entry).
 - [ ] AM-1 is reflected where this skill touches it: (a) port guard: the lane resource profile records port needs, states that each port is claimed per A.5.2 before launch (never auto-picked, collision = `lane-unavailable`) and that no plan value is promised free; (b) `security-audit`: the plan reads `security_sensitive:` from `architecture.md`, notes in the slot plan that full-mode `security-auditor` agents draw on free slots and count in the ledger, and names the `pre-pr-gate` `validate-findings.cjs` gate row; the audit is not a plan unit. Wording stays at what AM-1 fixes.
 - [ ] Stop rows stated: unit without verifier; overlapping scopes; unmeasured claim contradicted (re-measure first).
@@ -87,10 +89,11 @@ if grep -q 'disable-model-invocation' "$F"; then echo "FAIL: forbidden match"; e
 for h in Trigger Steps 'Red flags' 'Exit criteria' Provenance; do grep -qE "^## $h" "$F"; done
 [ "$(wc -c < "$F")" -le 20000 ]; [ "$(wc -l < "$F")" -le 500 ]
 for t in RUN_HOME PLANS_DIR REPO_PROFILE NEW_UNITS INPUT-ERROR 'PLAN-CHECK:' interfaces_version FILL_IN_BEFORE_DISPATCH \
-  01-build.md 02-integrate.md done_condition depends_on 'Brief:' tickets.tsv plan-check.md review-tailor security_sensitive 'A.5.2' lane-unavailable security-auditor; do
+  01-build.md 02-integrate.md done_condition depends_on 'Brief:' tickets.tsv plan-check.md review-tailor security_sensitive 'A.5.2' lane-unavailable security-auditor \
+  'ports.bus_base' 'ports.lane_base' 'review-bus' dispatch_budget 'run-plan-'; do
   grep -rqF -- "$t" "$S" || { echo "missing: $t"; exit 1; }; done
 ! grep -rn 'max_concurrent' "$S" | grep -viE 'not a (spec )?field|caller|argument' || { echo "max_concurrent misuse"; exit 1; }
-if grep -rniE 'notion|touri|ofw|runfrist|jetblue|/Users/[a-z]+|brain(Alpha|Beta|Gamma)|hermesAuth|cost|tokens? budget' "$S"; then echo "FAIL: forbidden match"; exit 1; fi
+if grep -rniE --exclude-dir=templates 'notion|touri|ofw|runfrist|jetblue|/Users/[a-z]+|brain(Alpha|Beta|Gamma)|hermesAuth|cost|tokens? budget' "$S"; then echo "FAIL: forbidden match"; exit 1; fi
 find "$S" -type l | grep -q . && { echo symlink; exit 1; }
 for f in $(find "$S" -name '*.md'); do [ "$(wc -l < "$f")" -le 500 ] || { echo "over 500: $f"; exit 1; }; done
 bash "$W/tools/check-doc-length.sh" "$W" >/dev/null
@@ -104,8 +107,9 @@ Write in `~/projects/agent-hq-worktrees/delivery-w0` (branch `wt/delivery-w0`). 
 ## 11. Decision Gate reminder
 Stop and write `.decisions/T17.md` (or report `STUCK`) if: INTERFACES and the card disagree on a name or path and the Known-risky-values table does not settle it; a step would need an owner decision (never invent wording for one); the 1.1.0 amendment contradicts section 4; a criterion cannot be checked with the section 9 commands; you must edit outside section 3.
 
-## SPEC-QUESTIONs (for the plan-checker)
-1. SPEC-QUESTION: AM-1 lists the `dispatch-plan.md` template as a consumer but fixes no dispatch-plan field for `security_sensitive` or the audit slot note (only the `architecture.md` header line and `state.md` `security_audit`). Where does the plan record it (header line, slot-plan row), and what slot count does it state for the audit agents (A.4 sets the budget at launch from free slots, so possibly none)?
-2. SPEC-QUESTION: card 27 says templates live in `references/templates/` of the owning skill, so item 27 writes into this skill's directory. Confirm the two items stay disjoint (this spec excludes `references/templates/`).
-3. SPEC-QUESTION: "worst-case dispatch count per sub-task against 30 and the machine ledger against 200" mixes concurrent slots with total spawns (A.3 `spawns` cap is unmeasured). Which quantity does the plan state: `dispatch_budget` (C1.1 rule 11 sum), peak concurrency, or both?
-4. SPEC-QUESTION: card 5 lists per-lane port resources (HTTP, HMR, devtools) and A.5.2 claims a specific number. Who chooses the number: the plan (as a proposal the claim may refuse), the profile's lane resource profile, or the lane launcher? This spec records needs only.
+## Plan-check resolutions (2026-10-26; report `reviews/plan-check-w1-specs.md`)
+1. RESOLVED (PLAN-CHECK DEFAULT; INTERFACES A.2 `security_audit`, A.4 security-audit agents): the plan header carries `security_sensitive: yes|no`, copied from `architecture.md`; the slot plan states "full-mode `security-auditor` agents draw on free slots at launch (A.4); 0 pre-allocated" and, when `yes`, names the `pre-pr-gate` checklist row `C26` (PC-8) for each sub-task.
+2. RESOLVED (spec 27 §3 piece T-C; PC-3): disjoint at the subdirectory: item 27 writes only `references/templates/dispatch-plan.md` in this skill; this item writes everything else and never `references/templates/`.
+3. RESOLVED (INTERFACES C1.1 `dispatch_budget` row, A.3 `spawns`, A.4 free-slot formula; PLAN-CHECK DEFAULT to state both): per sub-task (a) `dispatch_budget`, the rule-11 total spawns of the bundle, checked against the `spawns` stop at `cap - 5`, and (b) peak concurrency, at most `30 - sum(reserved)`; the machine line sums the peaks against 200 and rule 8 (at most 3 builds).
+4. RESOLVED (PC-4; A.5.2 "never auto-picks"; AM-2 rows 5-6): the plan chooses the candidate numbers by the fixed formula `<base> + 10·k` (`st<N>` bus `k = 2N`, review bus `k = 2N + 1`, lanes by lane index; a serial lane whose ports are fixed in the app config keeps them, `k = 0`). The candidate is a proposal fixed before any check; the launcher claims it and a collision is `lane-unavailable` (lanes) or a report to the lead (buses), never a re-pick. This is the only meaning of the card's "+10 rule" (design erratum, AM-2 row 16).
+5. RESOLVED (INTERFACES A.1 `<slug>` "minted by the caller"; spec 15 Q4): this skill mints `run-plan-<n>` for its `review-tailor` call.

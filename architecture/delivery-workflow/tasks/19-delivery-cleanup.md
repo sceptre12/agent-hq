@@ -88,7 +88,8 @@ for h in Trigger Steps 'Red flags' 'Exit criteria' Provenance; do grep -qE "^## 
 [ "$(wc -c < "$F")" -le 20000 ]; [ "$(wc -l < "$F")" -le 500 ]
 for t in RUN_HOME MODE SUBTASK MERGE_RECORD INPUT-ERROR 'CLEANUP DONE' 'du -sk' 'find' 'type f' 'wc -l' '.git' 'git status --porcelain' \
   'git status --ignored' 'git cherry' 'patch-id' 'branch-delete' 'kill -0' 'literal path' 'one `rm`' 'D8' 'D9' 'dry-run' 'approved' \
-  'executed' 'residual' 'spot-check' 'catalog.sh' 'list --live' 'port-check.sh' 'A.5.1' 'ancestor' 'released' 'security-audit'; do
+  'executed' 'residual' 'spot-check' 'catalog.sh' 'list --live' 'port-check.sh' 'A.5.1' 'ancestor' 'released' 'security-audit' \
+  'validator' 'stage: stopped' 'WORKTREE_BASE'; do
   grep -rqF -- "$t" "$S" || { echo "missing: $t"; exit 1; }; done
 awk '/## dry-run/ && !a{a=NR} /## approved/ && !b{b=NR} /## executed/ && !c{c=NR} /## residual/ && !d{d=NR}
   END{exit !(a&&b&&c&&d&&a<b&&b<c&&c<d)}' "$S/references/cleanup-record.md"
@@ -105,11 +106,11 @@ echo SKILL-19-OK
 Write in `~/projects/agent-hq-worktrees/delivery-w0` (branch `wt/delivery-w0`). No `git add`, commit, branch or push (integrator Worker1 commits). No symlinks, installs or web.
 
 ## 11. Decision Gate reminder
-Stop and report `STUCK` (or write `.decisions/T19.md`) if: the way the executor obtains a per-kind cleanup command is still unanswered (SPEC-QUESTION 2); a guard would need deletion of a non-catalog path; the 1.1.0 amendment contradicts section 4; a criterion cannot be checked with section 9; you must edit outside section 3.
+Stop and report `STUCK` (or write `.decisions/T19.md`) if: a catalog kind has no row in the A.5.1 table (RESOLVED Q2: the executor applies A.5.1 by citation); a guard would need deletion of a non-catalog path; the 1.1.0 amendment contradicts section 4; a criterion cannot be checked with section 9; you must edit outside section 3.
 
-## SPEC-QUESTIONs (for the plan-checker)
-1. SPEC-QUESTION: AM-1 gives no explicit cleanup rule for `security-audit/run-<N>/` (D6 lists it as a RUN artifact and A.5.3 gives the path). This spec reads it as a record, not deleted, from the card 9 never-touch list (ledger and records). Confirm, or state whether the final pass should archive it.
-2. SPEC-QUESTION: A.5.1 says "`catalog.sh` derives `cleanup` and `verify` from a fixed per-kind table", but the Script interfaces table lists no subcommand that runs or prints a cleanup command (only `register start release keep fail list audit`). How does the executor obtain the command: a script subcommand added by item 5, or the A.5.1 table read by the skill? This spec cites A.5.1 and restates nothing; confirm.
-3. SPEC-QUESTION: who runs the `released` claim: the executor (this skill, per A.5.1 "then `catalog.sh release`") or `catalog.sh release port` itself (item 5)? Same as T18 SPEC-QUESTION 1; the answer must be identical in both skills.
-4. SPEC-QUESTION: the spot-check agent: the card says "a different agent spot-checks" without a persona or tier (persona list D2.1 has `validator` and `read-back`). Which persona, and what is sampled (all deleted paths or a count)?
-5. SPEC-QUESTION: an abandoned run (card Trigger "or a run is abandoned") has no merge record. Which `MODE` and `MERGE_RECORD` value does it pass? D2.2 row 9 defines evidence only for `st<N>`, `pm`, `final`.
+## Plan-check resolutions (2026-10-26; report `reviews/plan-check-w1-specs.md`)
+1. RESOLVED (INTERFACES A.5.1 general rules "never touched: ledger and records"; D6 row `security-audit/run-<N>/` is a RUN record): never deleted, never archived by cleanup; the RUN plane is archived as a whole at CYCLE DONE (A.1).
+2. RESOLVED (INTERFACES Script interfaces subcommand list, closed; A.5.1 table; AM-2 row 2): no script subcommand; the executor applies the cleanup column of A.5.1 by citation (no restated copy in this skill) and records each command it ran in `## executed`.
+3. RESOLVED (INTERFACES A.5.1 `port` row "... then `catalog.sh release`"; identical to T05 Q6 and T18 Q1): the executor runs the `released` claim, then `catalog.sh release`; `catalog.sh` runs nothing itself.
+4. RESOLVED (PLAN-CHECK DEFAULT; D2.1 persona `validator`, verify tier): the spot-check is a `validator` agent, never the executor or the approver; it re-tests every path in `## executed` (`test -e` false, `kill -0` fails, `git worktree list` lacks it, the ref is gone, `lsof` shows no listener) and writes its result into `## residual`.
+5. RESOLVED (PLAN-CHECK DEFAULT; AM-2 row 14): an abandoned run is `stage: stopped`; the conductor runs mode `final` with no `MERGE_RECORD`, evidence `state.md` `stage: stopped`. D8 and D9 still bind: unmerged branches and their worktrees are `kept` and flagged, processes, ports, leases, buses and temp dirs are released.

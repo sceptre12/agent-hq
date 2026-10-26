@@ -8,7 +8,7 @@
 | Tier | `execute` (§7 table) for the four authors |
 | Review rung | Rung 1 trio per split piece (`doc-reviewer`, fix agent, `fix-verifier`; 3 rounds then the owner, D7); the integration check is mechanical |
 | Depends on | INTERFACES frozen (done: persona token set D2.1, `Brief:` line C1.2, COMMON block text). Soft: item 27 (templates) is independent; item 28 (`delivery-run` SKILL.md) must not write `references/briefs/` |
-| Split | 4 agents by persona group; all write into the one briefs root, so the split is by **file**, not by directory (SPEC-QUESTION 1); one integration step |
+| Split | 4 agents by persona group; all write into the one briefs root, so the split is by **file**, not by directory (RESOLVED Q1: one root, file-disjoint, Rule 7); one integration step |
 
 ## 1. Objective
 Write one brief per persona token of the closed set (32), each opening with its role statement and carrying the COMMON block verbatim, so a dispatched agent that reads its `Brief:` file first (`delivery-dispatch-plan` writes the line, C1.2) has every constraint in its own context and can pass the block unchanged to any agent it spawns.
@@ -39,7 +39,7 @@ Each author writes only its own files. No author edits the COMMON text, another 
 5. `## Persona-specific rules`: only items the design states for that persona (for example reviewers never hunt lint or typecheck; fixer never the author and may refuse a finding with a reason; fix-verifier never the fixer; lane runner never debugs; shepherd flags and redirects only, the lead decides `TaskStop`; desk requests carry no approval; e2e writer stops at any CHECKPOINT; auto-heal rules from §3.6).
 6. `## Stop` line restating the stop rule verbatim from the table.
 
-Session personas (`conductor`, `lead`, `desk`) are sessions, not dispatched workers; their brief is the text the session is started with or resumes with (card 1/6/15; resume phrase in card 6). Write them the same way (SPEC-QUESTION 2).
+Session personas (`conductor`, `lead`, `desk`) are sessions, not dispatched workers; their brief is the text the session is started with or resumes with (card 1/6/15; resume phrase in card 6). Write them the same way (RESOLVED Q2).
 
 **Out of scope:** `SKILL.md` files, templates (item 27), scripts, INTERFACES, wave specs, the `Brief:` line writer (`delivery-dispatch-plan`). **Do NOT create:** a brief for a persona outside D2.1; a summary of COMMON in place of the block; model names; cost or token metrics (B-4); new rules beyond the design (no standing rules, Rule 9); symlinks.
 
@@ -54,7 +54,7 @@ Session personas (`conductor`, `lead`, `desk`) are sessions, not dispatched work
 | Tier | names only | M19 |
 
 ## 4b. AM-1 content (INTERFACES 1.1.0; the COMMON block is unchanged, design §3.0 has no port-guard text)
-- `security-auditor` (tier `verify`, slot row with `unit` `-`, A.4; hunters and verifiers of the vendored `skills/security-audit`, full audit mode only): writes only under `RUN_HOME/<subtask>/security-audit/run-<N>/agents/<own-id>/` (A.5.3); target code runs with no network; starts only with a free slot. Done token and stop rule: take them from `skills/security-audit/SKILL.md` and `PROVENANCE.md` (read, do not copy); if absent write `none stated` and cite A.5.3 (SPEC-QUESTION 4).
+- `security-auditor` (tier `verify`, slot row with `unit` `-`, A.4; hunters and verifiers of the vendored `skills/security-audit`, full audit mode only): writes only under `RUN_HOME/<subtask>/security-audit/run-<N>/agents/<own-id>/` (A.5.3); target code runs with no network; starts only with a free slot. Done token and stop rule: take them from `skills/security-audit/SKILL.md` and `PROVENANCE.md` (read, do not copy); if absent write `none stated` and cite A.5.3 (RESOLVED Q4).
 - `review-seat` (security seat) and `validator`: guidance mode loads `skills/security-audit` diff-scoped, no files, no agents (D2.1 `security_audit`); under `full` the `pre-pr-gate` gate row runs `validate-findings.cjs`.
 - Port guard (A.5.2): personas that bind a port (`lead` for the sub-task bus, `lane-runner`, `review-orchestrator` for the per-review bus, `implementer` and `e2e-writer` when they start a dev server) get one persona-specific rule: claim with `tools/port-check.sh` before launch, register a `port` catalog row, never auto-pick on refusal, report to the lead.
 
@@ -67,7 +67,7 @@ Frozen INTERFACES, design part 03, the ported `review-7-panel` seat vocabulary (
 ## 7. Known Risky Values
 | Value | Correct | Wrong | Source |
 |---|---|---|---|
-| briefs root | `skills/delivery-run/references/briefs/` | per-owning-skill `references/briefs/` | INTERFACES C1.2 vs item row (SPEC-QUESTION 1) |
+| briefs root | `skills/delivery-run/references/briefs/` | per-owning-skill `references/briefs/` | INTERFACES C1.2 vs item row (RESOLVED Q1) |
 | persona set | 32 tokens of D2.1 (incl. `security-auditor`) | display names ("E2E lane runner"), `gate-runner` omitted | D2.1 |
 | COMMON block | verbatim paragraph | paraphrase | §3.0 |
 | `HUSKY=0` | inline per command, never exported | exported or `--no-verify` | A.7 |
@@ -119,10 +119,10 @@ bash tools/check-doc-length.sh .
 ## 10. Branch
 Worktree `delivery-w0` (`wt/delivery-w0`); no git add, commit, branch, push or rebase by authors.
 
-## 11. Decision Gate Reminder, SPEC-QUESTIONs
+## 11. Decision Gate Reminder, plan-check resolutions
 Stop and write `.decisions/27b-<piece>.md` if the table and a card disagree on a done token or a stop rule, or if the COMMON block conflicts with INTERFACES. Do not reword COMMON.
-- `SPEC-QUESTION 1:` the item row says "in the owning skills"; the frozen INTERFACES (C1.2, D2.1, row R4-J14) say one briefs root, `skills/delivery-run/references/briefs/`. This spec follows INTERFACES. If the owner wants per-skill roots, the split becomes directory-disjoint and `Brief:` paths change (an INTERFACES amendment).
-- `SPEC-QUESTION 2:` whether the session personas (`conductor`, `lead`, `desk`) need briefs files; D2.1 lists them as tokens, so this spec writes them.
-- `SPEC-QUESTION 3:` item 28's `references/` scope must exclude `briefs/` and `templates/` (same directory family).
-- `SPEC-QUESTION 4:` AM-1 adds a port rule and security-audit duties but leaves design §3.0 (COMMON) untouched. This spec places them as persona-specific rules (§4b), not in COMMON. If the owner wants the port rule in COMMON, design §3.0 changes first (an amendment), then all 32 files are re-synced; authors never edit COMMON locally. The `security-auditor` done token and stop rule are not in the design (§4b).
+- RESOLVED Q1 (INTERFACES C1.2 `persona` row, D2.1, rows r3 H6 and R4-J14: one briefs root `skills/delivery-run/references/briefs/`; first in authority over the design item row): one root; the four pieces are file-disjoint (Rule 7 "disjoint files"); the item row "in the owning skills" is design errata (AM-2 row 16).
+- RESOLVED Q2 (INTERFACES D2.1 lists `conductor`, `lead`, `desk` in the closed persona set that names the brief files): all three get brief files; their brief is the start or resume text of the session.
+- RESOLVED Q3 (PC-3): the W2 spec for item 28 must exclude `references/briefs/` and `references/templates/`; recorded in the plan-check report for the W2 spec author.
+- RESOLVED Q4 (INTERFACES A.5.2 is the single statement of the port rule; design §3.0 COMMON unchanged by AM-1; PLAN-CHECK DEFAULT): the port and security-audit rules stay persona-specific (§4b), COMMON is copied verbatim; the `security-auditor` done token and stop rule come from `skills/security-audit/SKILL.md` and `PROVENANCE.md`, else `none stated` citing A.5.3. Port binders in §4b take the candidate from the dispatch-plan port table and never re-pick (PC-4); `review-orchestrator` runs the claim in `pr-review` Step 1 with `BUS_PORT` (spec 10).
 - Re-read INTERFACES `Amendments` just before finishing; a newer amendment is handled the same way or marked STUCK.

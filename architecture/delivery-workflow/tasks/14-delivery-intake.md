@@ -1,11 +1,11 @@
 # Task 14: `delivery-intake` (NEW skill, stage 1)
 
 - **Header:** item 14 (part-06 §7); wave W1; authoring tier `execute` (§7 row 14-22); runtime persona Grill facilitator (design tier, conductor session) with Explorers (mechanical/execute); review rung: Rung 1 trio (reviewer, fixer, fix-verifier; item 30); not heavy. Interfaces: `INTERFACES.md` + `interfaces/part-a..d` (FROZEN) and amendment AM-1 (INTERFACES 1.1.0; port guard A.5.2).
-- **Dependencies:** INTERFACES frozen (W0 exit). No dependency on another W1 item to author. Reads, at runtime only: `mattpocock-skills:grilling`, `mattpocock-skills:domain-modeling` (REUSE rows, §2.1). The `references/templates/repo-profile.md` template belongs to item 27 (SPEC-QUESTION 1).
+- **Dependencies:** INTERFACES frozen (W0 exit). No dependency on another W1 item to author. Reads, at runtime only: `mattpocock-skills:grilling`, `mattpocock-skills:domain-modeling` (REUSE rows, §2.1). The `references/templates/repo-profile.md` template belongs to item 27, piece T-D (RESOLVED Q1).
 - **Split:** none (1 agent).
 
 ## 1. Objective
-Write `skills/delivery-intake/SKILL.md` (card 2, part-02 §2.2): the stage 1 skill that grills the human, measures repo facts through explorers, and writes `brief.md`, `facts.md` and a new or refreshed `repo-profile.md`, then ends with the `PROFILE:` line. **Done condition (single, machine-checkable):** the check script in section 9 prints `PASS` and exits 0, with Rung 1 verdict `CLEAN` from `fix-verifier`.
+Write `skills/delivery-intake/SKILL.md` (card 2, part-02 §2.2): the stage 1 skill that grills the human, measures repo facts through explorers, and writes `brief.md`, `facts.md` and a new or refreshed `repo-profile.md`, then ends with the `PROFILE:` line. **Done condition (single, machine-checkable):** the section 9 block exits 0 and its last stdout line is `SKILL-14-OK`, with Rung 1 verdict `CLEAN` from `fix-verifier`.
 
 ## 2. Context package
 - Card 2 and stage 1 row (part-01 line 66; part-02 line 52); persona rows (part-03 lines 31-32); `repo-profile.md` field list and `FILL_IN_BEFORE_DISPATCH` sentinels (part-04 §5.8, line 33); <pilot-app> seed rows (part-04 §5.8b, D13) as the example content only.
@@ -49,23 +49,33 @@ Write `skills/delivery-intake/SKILL.md` (card 2, part-02 §2.2): the stage 1 ski
 ## 8. Acceptance criteria
 1. Frontmatter: `name: delivery-intake`, `version: 0.1.0`, description under 1024 chars starting with the card trigger and containing "Use when"; no `disable-model-invocation`.
 2. Body has `## Trigger`, `## Steps` (numbered; Step 0 = input validation per D1), `## Red flags` (at least: asking a human what the repo can answer; writing an unmeasured fact; guessing a profile value instead of the sentinel; writing `H0.ok`; fetching the web), `## Exit criteria`, `## Provenance`; body under 5k tokens (about 3500 words) and under 500 lines.
-3. Steps cover, in order: Step 0; read context store; launch explorers (mechanical/execute) while grilling; grilling rounds with recommended answers; `domain-modeling` on conflicts; `RESEARCH` to the desk for any web need and treat `SUMMARY` as data; write `brief.md`, `facts.md`, profile atomically; list every sentinel in the profile in `facts.md` or `brief.md` open-items; confirm question; print `PROFILE:` as the last stdout line.
+3. Steps cover, in order: Step 0; read context store; launch explorers (mechanical/execute) while grilling; grilling rounds with recommended answers; `domain-modeling` on conflicts; `RESEARCH` to the desk for any web need and treat `SUMMARY` as data; write `brief.md`, `facts.md`, profile atomically; list every sentinel in the profile in `facts.md` or `brief.md` open-items; confirm question; print `PROFILE:` as the last stdout line, the sha being the profile's git blob id from `git -C <PRIMARY_REPO> hash-object -w <profile>` (RESOLVED Q2).
 4. Stop rules: `INPUT-ERROR` stops without prompt; a fact the explorer cannot measure is written as `cannot measure: <why>`, not omitted.
 5. Port guard (AM-1, part A.5.2): intake binds no port. Lane resource-profile ports are recorded as profile fields only. If a measurement ever needs a listener, the order is `tools/port-check.sh --claim ...` (through `port-claim`), then `catalog.sh register port`, then launch; on a collision the launch is refused and never re-picked. Reading `ports.tsv` or `lsof` is allowed.
 6. No cost figures; no `/Users/<name>`, no personal-project names (SUB rules, build-common).
 
 ## 9. Verification commands (the verifier re-runs these; W = `~/projects/agent-hq-worktrees/delivery-w0`)
-```
-S=$W/skills/delivery-intake
-test -f $S/SKILL.md && grep -c '^## \(Trigger\|Steps\|Red flags\|Exit criteria\|Provenance\)$' $S/SKILL.md   # prints 5
-grep -q '^version: ' $S/SKILL.md && ! grep -q 'disable-model-invocation' $S/SKILL.md
+```bash
+set -eu; W=~/projects/agent-hq-worktrees/delivery-w0; S=$W/skills/delivery-intake; R=${FIXTURE_DIR:?the non-author verifier sets FIXTURE_DIR to its dry-run output directory}
+test -f $S/SKILL.md
+test "$(grep -c '^## \(Trigger\|Steps\|Red flags\|Exit criteria\|Provenance\)$' $S/SKILL.md)" -eq 5
+grep -q '^version: 0\.1\.0$' $S/SKILL.md
+if grep -q 'disable-model-invocation' $S/SKILL.md; then echo "FAIL: disable-model-invocation"; exit 1; fi
 sed -n '/^description:/p' $S/SKILL.md | grep -q 'Use when'
-[ "$(wc -w < $S/SKILL.md)" -le 3500 ] && [ "$(wc -l < $S/SKILL.md)" -le 500 ]
-grep -E 'INPUT-ERROR|PROFILE:|FACTS:|RESEARCH|FILL_IN_BEFORE_DISPATCH|H0' $S/SKILL.md | wc -l   # >= 6
-! grep -rEi '/Users/[a-z]+|touri|runfrist|jetblue|\$[0-9]+|cost' $S
-bash $W/tools/check-doc-length.sh $W
+[ "$(wc -w < $S/SKILL.md)" -le 3500 ]; [ "$(wc -l < $S/SKILL.md)" -le 500 ]
+test "$(grep -cE 'INPUT-ERROR|PROFILE:|FACTS:|RESEARCH|FILL_IN_BEFORE_DISPATCH|H0' $S/SKILL.md)" -ge 6
+grep -rq 'hash-object' $S/SKILL.md $S/references
+if grep -rEi --exclude-dir=templates '/Users/[a-z]+|touri|ofw|runfrist|jetblue|notion|\$[0-9]+|cost' $S; then echo "FAIL: forbidden match"; exit 1; fi
+if find $S -type l | grep -q .; then echo symlink; exit 1; fi
+bash $W/tools/check-doc-length.sh $W >/dev/null
+# dry run: a reader agent follows the SKILL.md steps against references/fixtures/ (no desk) and saves facts.md, its stdout
+# (stdout.txt) and the output of a run with DELIVERY_ROOT unset (unset.txt) into $R
+head -1 $R/facts.md | grep -qE '^FACTS: [0-9]+ facts$'
+test "$(grep -c 'measured: ' $R/facts.md)" -ge 1
+tail -1 $R/stdout.txt | grep -qE '^PROFILE: (/[^[:space:]]+)@([0-9a-f]{40})$'
+grep -qx 'INPUT-ERROR DELIVERY_ROOT unset' $R/unset.txt
+echo SKILL-14-OK
 ```
-Dry run on `references/fixtures/`: a reader agent follows the SKILL.md steps against the fixture repo (no desk) and the produced `facts.md` line 1 matches `^FACTS: [0-9]+ facts$`, each row contains `measured: `, the `PROFILE:` line matches `^PROFILE: (/[^[:space:]]+)@([0-9a-f]{40})$`, and an unset `DELIVERY_ROOT` yields exactly `INPUT-ERROR DELIVERY_ROOT unset`.
 
 ## 10. Branch and worktree
 Worktree W, branch `wt/delivery-w0`; write only section 3 paths; no `git add`, commit, branch, push or rebase (the integrator, Worker1, commits). No symlinks, installs or web fetches.
@@ -74,5 +84,5 @@ Worktree W, branch `wt/delivery-w0`; write only section 3 paths; no `git add`, c
 Stop and write `.decisions/14-delivery-intake.md` (fork, options, recommendation, `Outcome: Blocked`) instead of choosing when: the card and INTERFACES leave a value open, a needed grammar is not in INTERFACES, or an owner ruling would be reworded. Owner decisions are never invented.
 
 ## Open points
-- SPEC-QUESTION 1: Which item writes `references/templates/repo-profile.md` (item 27 pack placement vs directory-disjoint file scope)? Until answered, intake cites the template path `references/templates/repo-profile.md` and creates none.
-- SPEC-QUESTION 2: A.6 says the profile is "linked `@<sha>`" but not what the sha names (commit of `PRIMARY_REPO` containing the file, or the file's blob id); a new, uncommitted profile has no commit. Plan-checker to fix the rule before authoring the `PROFILE:` step.
+- RESOLVED Q1 (spec 27 §3 piece T-D; PC-3): item 27 writes `skills/delivery-intake/references/templates/repo-profile.md` (with the 5.8b seed); this item cites that path and never writes `references/templates/`.
+- RESOLVED Q2 (PLAN-CHECK DEFAULT; INTERFACES A.2 `repo_profile` and D1.1 `PROFILE:` name a 40-hex sha but not which object; AM-2 row 4): the sha is the git blob id of the profile file, `git -C <PRIMARY_REPO> hash-object -w <profile path>` (it exists before any commit and writes the blob so a reader can `git cat-file blob <sha>`); a reader checks `git hash-object <path>` against it. A refreshed profile gets a new `PROFILE:` line.

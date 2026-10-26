@@ -54,31 +54,35 @@ The COMMON block conventions (design §3.0), the tier name `execute` (not a mode
 - [ ] `SKILL.md` frontmatter: `name: delivery-shepherd`, `description` at most 1024 chars with "Use when", no `disable-model-invocation`.
 - [ ] Body has `## Trigger`, `## Steps` (numbered), `## Red flags` (table), `## Exit criteria`, and a final line `Provenance: pending pilot` (plus friction links: `brain-group-process-retro:153-158` for the open-prompt case, `caretaker-turn-timeout:12-19`).
 - [ ] Steps cover: Step 0 input validation (D1); gate on 3 or more live agents; per agent read `NEXT:` and compare to the plan; run `scope-check.sh`; `FREE-CANDIDATE` scan; append a flag line only on change; send the fixed nudge; spec check before redirecting a `DRIFT`; creep is a named defect and an adjacent defect is ticketed, never fixed; end with "one line or noop".
-- [ ] States explicitly that it never calls `TaskStop`, never frees a slot row, never edits worktrees, and that PROMPT-OPEN/STALLED/orphan sweep belong to the lead's tick (C7), with the SPEC-QUESTION below resolved or left marked.
+- [ ] States explicitly that it never calls `TaskStop`, never frees a slot row, never edits worktrees, and that PROMPT-OPEN/STALLED/orphan sweep belong to the lead's tick (C7), per RESOLVED Q1 below.
 - [ ] The `claude -p` lead turn-close rule is stated as "not a stall" (C7).
 - [ ] Token regexes and paths match INTERFACES exactly (checked by script below).
 - [ ] No cost metrics anywhere (B-4); no personal-project terms.
 
-SPEC-QUESTION 1: card 7 and the owner's item text list `PROMPT-OPEN`, orphan sweep and `STALLED` as shepherd flags; frozen INTERFACES C7 and D2.2 row 7 assign them to the `delivery-run` watchdog half and list only `DRIFT`, `CREEP`, `FREE-CANDIDATE` for this skill. This spec follows INTERFACES (frozen, authoritative). The plan-checker decides whether to amend INTERFACES (change control D7, consumers `delivery-run`, `delivery-shepherd`: Rung 1) or the card. Until then the skill's reference file carries the full C7 table with a "raised by" column so a reader sees all five flags and who owns each.
+RESOLVED Q1 (INTERFACES C7 flag table "Raised by" and "Merged tick", D2.2 row 7, frozen and first in authority; PC-5): this skill raises only `DRIFT`, `CREEP` and `FREE-CANDIDATE`; `STALLED`, `PROMPT-OPEN`, the bus-down check and the orphan sweep after a `TaskStop` belong to the `delivery-run` watchdog half, which runs on every tick, also below 3 live agents, so stalls are flagged at least as often as card 7 asks (owner D10 intent kept: flags and redirects only, the lead decides `TaskStop`). Card 7's flag list is design errata (AM-2 row 16), not an INTERFACES change. Both halves append to `shepherd/ticks.md` as single-line appends (AM-2 row 11). `references/flags-and-nudges.md` carries the full C7 table with its "Raised by" column. Owner confirm item OQ-3 (non-blocking).
 
 ## 9. Verification commands
 ```bash
-W=$HOME/projects/agent-hq-worktrees/delivery-w0; S=$W/skills/delivery-shepherd
-test -f $S/SKILL.md && test -f $S/references/flags-and-nudges.md
+set -eu; W=$HOME/projects/agent-hq-worktrees/delivery-w0; S=$W/skills/delivery-shepherd
+test -f $S/SKILL.md; test -f $S/references/flags-and-nudges.md
 head -5 $S/SKILL.md | grep -q '^name: delivery-shepherd$'
-grep -q 'Use when' $S/SKILL.md; ! grep -q 'disable-model-invocation' $S/SKILL.md
-for h in '## Trigger' '## Steps' '## Red flags' '## Exit criteria'; do grep -q "^$h" $S/SKILL.md || echo MISSING $h; done
+grep -q 'Use when' $S/SKILL.md
+if grep -q 'disable-model-invocation' $S/SKILL.md; then echo "FAIL: disable-model-invocation"; exit 1; fi
+for h in '## Trigger' '## Steps' '## Red flags' '## Exit criteria'; do grep -q "^$h" $S/SKILL.md || { echo "MISSING $h"; exit 1; }; done
+grep -qE '^version: 0\.1\.0$' $S/SKILL.md
+[ "$(wc -w < $S/SKILL.md)" -lt 3500 ]
+bash $W/tools/check-doc-length.sh $W >/dev/null
 grep -q 'Provenance: pending pilot' $S/SKILL.md
-for t in DRIFT CREEP FREE-CANDIDATE 'scope-check.sh' 'shepherd/ticks.md' 'NUDGE'; do grep -q -- "$t" $S/SKILL.md $S/references/flags-and-nudges.md || echo MISSING $t; done
-! grep -n -E '\bps -|pgrep' $S/SKILL.md   # no ps (measured); TaskStop appears only as the lead's action (reviewer reads)
-[ $(wc -w < $S/SKILL.md) -lt 3500 ]
-bash $W/tools/check-doc-length.sh $W
-! grep -rn -i -E 'touri|ofw|runfrist|jetblue|notion|/Users/[a-z]+|\$[0-9]|cost' $S
+for t in DRIFT CREEP FREE-CANDIDATE 'scope-check.sh' 'shepherd/ticks.md' 'NUDGE' 'Raised by'; do grep -q -- "$t" $S/SKILL.md $S/references/flags-and-nudges.md || { echo "MISSING $t"; exit 1; }; done
+if grep -n -E '\bps -|pgrep' $S/SKILL.md; then echo "FAIL: ps"; exit 1; fi
+if grep -rn -i -E 'touri|ofw|runfrist|jetblue|notion|/Users/[a-z]+|\$[0-9]|cost' $S; then echo "FAIL: forbidden match"; exit 1; fi
+if find $S -type l | grep -q .; then echo symlink; exit 1; fi
+echo SKILL-23-OK
 ```
-Verifier re-runs these plus the Rung 1 trio.
+**Done condition:** the block exits 0 and its last stdout line is `SKILL-23-OK`; the verifier also confirms `TaskStop` appears only as the lead's action, then the Rung 1 trio.
 
 ## 10. Branch and worktree
 Work in `~/projects/agent-hq-worktrees/delivery-w0` (branch `wt/delivery-w0`); no git add/commit/branch/push. Tier: execute. Review rung: Rung 1 trio (reviewer, fixer, `fix-verifier`; D7 stop after round 3, then the owner). File scope dirs: `skills/delivery-shepherd/` only.
 
 ## 11. Decision Gate reminder and amendment note
-Write `.decisions/23.md` and stop (do not guess) on: a flag name or regex differing between card 7 and C7 beyond SPEC-QUESTION 1; a need to arm a cron; any need to touch a file outside scope. AM-1 (1.1.0): port guard, A.5.2 and the A.5.1 `port` row. The shepherd claims and binds no port. Its touch points: (a) it reads `catalog.sh list --live` and may see `port` rows; it never releases them (release is cleanup's, A.5.1); (b) the advisory PreToolUse port hook can leave a pending `ask` that holds an agent, which is the PROMPT-OPEN case the lead's watchdog flags (C7), so `references/flags-and-nudges.md` notes it in one line. `security-audit` (A.5.3, persona `security-auditor`): not used here; a live `security-auditor` agent counts toward the 3-agent gate like any other. Re-read INTERFACES before finishing; record the version checked.
+Write `.decisions/23.md` and stop (do not guess) on: a flag name or regex differing between card 7 and C7 beyond the split of RESOLVED Q1; a need to arm a cron; any need to touch a file outside scope. AM-1 (1.1.0): port guard, A.5.2 and the A.5.1 `port` row. The shepherd claims and binds no port. Its touch points: (a) it reads `catalog.sh list --live` and may see `port` rows; it never releases them (release is cleanup's, A.5.1); (b) the advisory PreToolUse port hook can leave a pending `ask` that holds an agent, which is the PROMPT-OPEN case the lead's watchdog flags (C7), so `references/flags-and-nudges.md` notes it in one line. `security-audit` (A.5.3, persona `security-auditor`): not used here; a live `security-auditor` agent counts toward the 3-agent gate like any other. Re-read INTERFACES before finishing; record the version checked.

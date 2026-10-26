@@ -2,14 +2,14 @@
 
 - Work item: 11 (part-06 §7 row 9-13; card: part-02 §2.3 `fix-verifier` row). Tier: `execute` (part-06 §7). The skill's own run tier stays `verify`, never the author (part-01 tiers row).
 - Review rung: Rung 1 trio by the UNMODIFIED installed skills (M29), max 3 rounds then the owner (D7). The trio's `fix-verifier` run uses `FILE_SET` = this item's In-scope files. Prose skill, no script.
-- Branch: the separate EXTEND branch (M29), same branch as items 10, 12, 13, own directory. SPEC-QUESTION Q11-1: branch name and base are not named in the design; the integrator names them.
+- Branch: the separate EXTEND branch (M29), same branch as items 10, 12, 13, own directory. RESOLVED (PC-1, plan-check): branch `ext/delivery-extends` in worktree `~/projects/agent-hq-worktrees/delivery-extends`, created by the integrator (Worker1) from `wt/delivery-w0` after the plan-check commit (so it holds the W0 item 8 ports); items 9-13 share it on directory-disjoint paths; the branch is reviewed separately and never used to review the family (M29).
 - Dependencies: INTERFACES D2.3 (frozen row `fix-verifier`). None on items 10, 12, 13.
 - Split: none.
 
 ## 1. Objective
 Add a `FILE_SET` input to `skills/fix-verifier/` so that any change outside the failing file set is reported as `ISSUES_FOUND`.
 
-**Done condition (one, machine-checkable):** the §9 block prints `OK-input OK-check OK-fixture OK-noregress`, prints no `MISSING` line, the sanitization grep and the out-of-scope `git diff --stat` print nothing, and `tools/check-doc-length.sh .` exits 0.
+**Done condition (one, machine-checkable):** with the fixture results saved by a non-author verifier (§9), the §9 block exits 0 and its last stdout line is `EXT-11-OK`.
 
 ## 2. Context Package
 - Card (part-02 §2.3): "Add `file_set` input: flag any change outside the failing file set as `ISSUES_FOUND` (M24). The v1 `class_sweep` proposal is dropped: D54 and D58 are advisory, not rules (D6)." Source M24, D6; no owner ask.
@@ -45,8 +45,8 @@ Existing input contract and path-canonicalization rules apply unchanged: `FILE_S
 ## 7. Known Risky Values
 | Value | Correct | Wrong | Source |
 |---|---|---|---|
-| Severity of an out-of-set change | Blocking or Medium (SPEC-QUESTION Q11-2: card says only "`ISSUES_FOUND`"; Advisory cannot produce it under the verdict rule, so the integrator picks Blocking or Medium and records why) | Advisory | SKILL.md verdict rule |
-| `check` id for the new finding | SPEC-QUESTION Q11-3: the enum is `"0".."5"`; either extend Check 3 (Fix Completeness) or add `"6"` and widen the enum; the card does not say | inventing an id silently | SKILL.md finding object |
+| Severity of an out-of-set change | Medium (RESOLVED Q11-2, PLAN-CHECK DEFAULT: the lowest severity that yields `ISSUES_FOUND` under the verdict rule, Rule 12) | Advisory | SKILL.md verdict rule |
+| `check` id for the new finding | `"3"` (RESOLVED Q11-3, PLAN-CHECK DEFAULT: Check 3 Fix Completeness gains a file-set scope sub-check; the `"0".."5"` enum is not widened) | inventing an id silently | SKILL.md finding object |
 | Path form | `FILE_SET` repo-relative; `changed_files` absolute | comparing mixed forms | D2.3 vs Input Contract |
 | Absent `FILE_SET` | no new finding; behaviour identical to today | treating absence as an empty set (would flag every change) | D2.3 |
 | Empty `FILE_SET=` (set, no entries) | `INPUT-ERROR FILE_SET format` | silently the same as absent | D1 |
@@ -59,32 +59,34 @@ Existing input contract and path-canonicalization rules apply unchanged: `FILE_S
 - [ ] With `FILE_SET` absent, output is identical to the unmodified skill for the same input (no regression).
 - [ ] A path-traversal entry or an empty list is `INPUT-ERROR`, not a verdict.
 - [ ] Red flags row: "the extra file edit was needed for the fix, treat it as inside the set" maps to "report it; the lead widens `FILE_SET` or the fixer reverts"; Exit criteria row added; Provenance line cites M24 and D6 and states `class_sweep` is dropped.
-- [ ] `version:` in frontmatter (Q11-4: baseline value and bump rule are not specified; the integrator sets them). Five anatomy sections still present; `SKILL.md` under 500 lines or the overflow moved to `references/`.
+- [ ] `version: 1.1.0` (RESOLVED, PC-1: the unversioned base at `c1ba30e` or the item 8 port counts as 1.0.0; an EXTEND is a minor bump) (RESOLVED Q11-4). Five anatomy sections still present; `SKILL.md` under 500 lines or the overflow moved to `references/`.
 
 ## 9. Verification Commands
 ```bash
-cd ~/projects/agent-hq-worktrees/delivery-w0   # on the EXTEND branch
-S=skills/fix-verifier
-grep -q 'FILE_SET' $S/SKILL.md && grep -q 'INPUT-ERROR FILE_SET' $S/SKILL.md && echo OK-input
-grep -n -i 'outside.*FILE_SET\|FILE_SET.*outside' $S/SKILL.md | grep -q . && echo OK-check
-grep -q 'class_sweep' $S/SKILL.md && grep -n 'class_sweep' $S/SKILL.md   # allowed only in the Provenance "dropped" sentence
-# fixture (verifier builds it under $TMPDIR; dispatch one fix-verifier on each case and compare):
-#   case A FILE_SET=a.md, changed_files={a.md,b.md}  -> ISSUES_FOUND naming b.md
-#   case B FILE_SET=a.md,b.md, same changes          -> no finding from the new check
-#   case C FILE_SET unset                             -> output identical to the installed skill on the same input
-#   case D FILE_SET=../x                              -> INPUT-ERROR FILE_SET path, no verdict
-echo OK-fixture    # printed by the verifier only after A-D match
-git diff -- $S | grep -E '^-[^-]' | grep -v -E 'version|description' | wc -l   # removed lines other than frontmatter: expected 0 or only reworded Input Contract rows; list and justify
-echo OK-noregress  # printed by the verifier only after case C matches and no existing check text was removed
-for h in '## Trigger' '## Steps' '## Red flags' '## Exit criteria' '## Provenance'; do grep -q "^$h" $S/SKILL.md || echo MISSING $h; done
-head -12 $S/SKILL.md | grep -E '^version:'
-grep -rn -E '/Users/[a-z]+|brainAlpha|brainBeta|brainGamma|hermesAuth|Xavier|touri|ofw|runfrist|jetblue|Notion' $S   # nothing
-bash tools/check-doc-length.sh . ; git diff --stat -- . ':!skills/fix-verifier'   # second: empty
+set -eu; W=~/projects/agent-hq-worktrees/delivery-extends; cd "$W"; B=$(git merge-base HEAD wt/delivery-w0); S=skills/fix-verifier; R=${FIXTURE_DIR:?the non-author verifier sets FIXTURE_DIR to its fixture result directory}
+grep -q 'FILE_SET' $S/SKILL.md; grep -q 'INPUT-ERROR FILE_SET' $S/SKILL.md
+grep -n -i 'outside.*FILE_SET\|FILE_SET.*outside' $S/SKILL.md | grep -q .
+test "$(grep -c 'class_sweep' $S/SKILL.md)" -le 1          # only the Provenance "dropped" sentence
+# fixture: the verifier builds it under $TMPDIR, dispatches fix-verifier once per case and saves each raw JSON output as $R/<case>.out
+#   A: FILE_SET=a.md, changed_files {a.md,b.md}; B: FILE_SET=a.md,b.md, same changes; C: FILE_SET unset (also run on the
+#   unmodified installed skill, saved as $R/C.base.out); D: FILE_SET=../x (the output is the INPUT-ERROR line)
+jq -e '.verdict=="ISSUES_FOUND" and any(.findings[]; (.file|tostring|test("b\\.md")) and .check=="3" and .severity=="Medium")' $R/A.out >/dev/null
+jq -e '[.findings[] | select((.description|tostring|test("FILE_SET|file set";"i")))] | length==0' $R/B.out >/dev/null
+test "$(jq -r .verdict $R/C.out)" = "$(jq -r .verdict $R/C.base.out)"
+test "$(jq '.findings|length' $R/C.out)" = "$(jq '.findings|length' $R/C.base.out)"
+grep -qx 'INPUT-ERROR FILE_SET path' $R/D.out
+test "$(git diff $B -- $S/SKILL.md | grep -E '^-[^-]' | grep -vcE '^-(version|description)')" -eq 0   # no existing line removed
+for h in '## Trigger' '## Steps' '## Red flags' '## Exit criteria' '## Provenance'; do grep -q "^$h" $S/SKILL.md || { echo "MISSING $h"; exit 1; }; done
+head -12 $S/SKILL.md | grep -qE '^version: 1\.1\.0$'
+bash tools/check-doc-length.sh . >/dev/null
+if grep -rnE '/Users/[a-z]+|brainAlpha|brainBeta|brainGamma|hermesAuth|Xavier|touri|ofw|runfrist|jetblue|Notion' $S; then echo "FAIL: forbidden match"; exit 1; fi
+if git status --porcelain | grep -vE '^.. (skills/(wave-execution|pr-review|fix-verifier|doc-reviewer|feature-change)/|architecture/wave-execution\.md)'; then echo "FAIL: change outside the EXTEND scopes"; exit 1; fi
+echo EXT-11-OK
 ```
-The two `echo OK-*` lines are gates the verifier prints only after it ran the fixture and diff review by hand; they are not self-satisfying (the verifier is never the author, M-rules).
+The verifier is never the author (M-rules); the four fixture outputs are the evidence, kept in `$TMPDIR` and cited in the Rung 1 record.
 
 ## 10. Branch and worktree
-Separate EXTEND branch (Q11-1); no add, commit, rebase or push by the author (build-common).
+Branch `ext/delivery-extends` (PC-1); no add, commit, rebase or push by the author (build-common).
 
 ## 11. Decision Gate Reminder
 Write `.decisions/11-fix-verifier.md` and stop if: the severity (Q11-2) or the check id (Q11-3) cannot be chosen from the existing enums without widening one; `class_sweep` or a D54/D58 rule seems needed; the verifier would have to run a shell command; the unmodified behaviour changes with `FILE_SET` absent.

@@ -28,7 +28,7 @@ Write the `delivery-desk` skill (run by the desk session, D3) and its machine-re
 - `references/schemas.json`
 - `references/*.md` for depth that does not fit the body (suggested: `verbs.md` per-verb notes and requester table, `checks.md` the 12-step order, `human-gates.md` B8). Each stays about 500 lines or less.
 
-**Out of scope:** `tools/delivery/*` (items 5-7: `desk-req.sh` etc.); any `INTERFACES.md` or ADR edit (a gap is a SPEC-QUESTION or STUCK, never a silent change); templates (item 27); persona briefs (item 27b, `desk` brief); any other skill; Zephyr Cloud reads (not desk verbs, B4 "Not verbs").
+**Out of scope:** `tools/delivery/*` (items 5-7: `desk-req.sh` etc.); any `INTERFACES.md` or ADR edit (a gap is a `.decisions/26.md` fork or STUCK, never a silent change); templates (item 27); persona briefs (item 27b, `desk` brief); any other skill; Zephyr Cloud reads (not desk verbs, B4 "Not verbs").
 
 **Do NOT create:** tests or scripts under the skill (none are assigned; "a script without mapped tests" is a build stop condition); symlinks; a bot-account or approved-account list (R2-4); any approve, trigger-prod, pipeline-edit, force or raw-flag path (M27, D23); a `DESK` copy of the A.7 rule.
 
@@ -111,15 +111,15 @@ assert {c:j['reason_codes'][c]['class'] for c in codes}==codes
 print('DESK-SCHEMAS-OK')
 PY
 ```
-(Layout assumed by check 3: top-level keys `verbs` and `reason_codes`; see SPEC-QUESTION 1. `jira-create`'s `parent` is optional in `required` but present in `properties`.)
+(Layout assumed by check 3: top-level keys `verbs` and `reason_codes`; RESOLVED Q1. `jira-create`'s `parent` is optional in `required` but present in `properties`.)
 
 **Done condition (one, machine-checkable):** checks 1 to 3 print no `MISSING`/`VIOLATION`/`NO-USE-WHEN`/`RULE-MISSING`, exit 0, and the last line printed is `DESK-SCHEMAS-OK`; then the `review-7-panel` record is 0 Blocking / 0 Medium or a D7 stop is handed to the owner.
 
 ## 10. Branch
 Work only in worktree `delivery-w0` (`~/projects/agent-hq-worktrees/delivery-w0`, branch `wt/delivery-w0`); no `git add`, commit, branch, push or rebase (the integrator, Worker1, commits).
 
-## 11. Decision Gate Reminder, SPEC-QUESTIONs and re-check
+## 11. Decision Gate Reminder, plan-check resolutions and re-check
 If part B, ADR 0055 and design prose conflict, or a field is missing, write `.decisions/26.md` (fork, options, recommendation, `Outcome: Blocked`) and stop. Do not reword an owner ruling (N10, N11, Q3, OP1-OP10).
-- `SPEC-QUESTION 1:` B6 says `additionalProperties: false` but INTERFACES does not fix the `schemas.json` layout or JSON Schema draft. Proposed default for the plan-checker: draft-07 objects, top keys `verbs` (each `request` and `result` as an object schema with `required` and `additionalProperties: false`), `reason_codes` (`class`, `trigger`), `envelope`, `regexes`. Check 3 depends on it.
-- `SPEC-QUESTION 2:` the human gate lines and `REGISTER-SENDER` are not `DESK` verbs; confirm they live in `SKILL.md` prose (and `schemas.json` `regexes`), not in `verbs`.
+- RESOLVED Q1 (PLAN-CHECK DEFAULT; INTERFACES B6 fixes the field table and `additionalProperties: false` but not the layout; AM-2 row 15): JSON Schema draft-07; top-level keys `verbs` (per verb `request` and `result`, each an object schema with `required` and `additionalProperties: false`), `reason_codes` (per code `class`, `trigger`), `envelope`, `regexes`. Check 3 stands as written.
+- RESOLVED Q2 (INTERFACES B4 closed verb table; B1 registration line; B8 human lines): `REGISTER-SENDER`/`REGISTERED`, `GATE`, `ANSWER` and `REBIND` are not verbs; they live in `SKILL.md` prose and in `schemas.json` `regexes`, never in `verbs`.
 - AM-1 (1.1.0) re-check done at writing: it lists no part B section, so no desk verb, schema field, reason code or check changes. The port guard (`tools/port-check.sh`, catalog `port` rows, hook) binds launches by leads and lanes, not desk actions; `security-audit` runs in the lead (vendored via an earlier desk INSTALL), not through a verb. The author adds no port or audit behaviour to the desk. Re-read INTERFACES `Amendments` just before finishing; a later amendment touching part B means update this spec and the skill, or mark STUCK.

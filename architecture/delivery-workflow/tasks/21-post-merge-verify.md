@@ -29,7 +29,7 @@ Directories written: `skills/post-merge-verify/` only.
 | E2E rows | via `nl-run-e2e`; auto-healed diffs reviewed, never accepted blind; `SOURCE_BUG` always escalates to the human; mapped reasons `source-bug`, `env-bug` | part-03 §3.6, part-d D2.2 note |
 | Consumer simulation | after one serial pack | card 12 |
 | Hand-test rows | the human's, never executed by an agent (D17) | card 12 |
-| Test-result reporting | desk step; `dry_run` first; never send `folder` on a PUT to an existing case; conductor-only verb via `CONDUCTOR-REQUEST` | card 12; part-b B4; SPEC-QUESTION 1 |
+| Test-result reporting | not this skill's step: each row's result is an evidence line in `postmerge-<sha>.md`; `release-track` writes the `test-report-push` payload `bodies/test-report-<step_id>.json` and requests the verb through `CONDUCTOR-REQUEST` (RESOLVED Q1) | part-d D2.2 rows 12-13; part-b B4 |
 | New units | `<row-id>` matches the test-plan row id | part-d D2.2 row 12 |
 
 ## 5. Inherited module API
@@ -59,19 +59,21 @@ Anatomy per `tools/skill-authoring.md` §2-§5. Provenance: NLTA guides (auto-he
 
 ## 9. Verification commands
 ```bash
-S=skills/post-merge-verify/SKILL.md
-test -f "$S" && head -1 "$S" | grep -qx -- '---'
-grep -E '^name: post-merge-verify$' "$S"; grep -E '^version: ' "$S"
-awk '/^description:/{ if (length($0) > 1036) print "DESC-TOO-LONG" }' "$S"
-grep -E '^description:.*Use when' "$S"
-! grep -E '^disable-model-invocation: *true' "$S"
-for s in Trigger Steps 'Red flags' 'Exit criteria' Provenance; do grep -qx "## $s" "$S" || echo MISSING "$s"; done
+set -eu; W=~/projects/agent-hq-worktrees/delivery-w0; cd "$W"; D=skills/post-merge-verify; S=$D/SKILL.md
+test -f "$S"; head -1 "$S" | grep -qx -- '---'
+grep -qE '^name: post-merge-verify$' "$S"; grep -qE '^version: 0\.1\.0$' "$S"
+d=$(grep -E '^description:' "$S"); [ "${#d}" -le 1036 ]; printf '%s' "$d" | grep -q 'Use when'
+if grep -qE '^disable-model-invocation' "$S"; then echo "FAIL: disable-model-invocation"; exit 1; fi
+for s in Trigger Steps 'Red flags' 'Exit criteria' Provenance; do grep -qx "## $s" "$S" || { echo "MISSING $s"; exit 1; }; done
 test "$(wc -w < "$S")" -le 3500
-for t in 'INPUT-ERROR' 'POSTMERGE:' 'new-units.md' 'ci-status-main' 'SOURCE_BUG' 'nl-run-e2e' 'lane-lease' 'port-check' 'gating' 'informational' 'dry-run'; do grep -q -- "$t" "$S" skills/post-merge-verify/references/*.md || echo ABSENT "$t"; done
-! grep -riE '/Users/[a-z]+|brainAlpha|brainBeta|brainGamma|hermesAuth|Xavier|touri|ofw|runfrist|jetblue|notion' skills/post-merge-verify
-bash tools/check-doc-length.sh skills/post-merge-verify
+for t in 'INPUT-ERROR' 'POSTMERGE:' 'new-units.md' 'ci-status-main' 'SOURCE_BUG' 'nl-run-e2e' 'lane-lease' 'port-check' 'gating' 'informational' 'release-track' '<run-id>-pm'; do grep -rq --exclude-dir=templates -- "$t" "$D" || { echo "ABSENT $t"; exit 1; }; done
+if grep -riE --exclude-dir=templates '/Users/[a-z]+|brainAlpha|brainBeta|brainGamma|hermesAuth|Xavier|touri|ofw|runfrist|jetblue|notion' "$D"; then echo "FAIL: forbidden match"; exit 1; fi
+if grep -riE --exclude-dir=templates 'token cost|dollar|\$[0-9]|cost metric' "$D"; then echo "FAIL: cost text"; exit 1; fi
+if find "$D" -type l | grep -q .; then echo symlink; exit 1; fi
+bash tools/check-doc-length.sh "$D" >/dev/null
+echo SKILL-21-OK
 ```
-Done condition: no `MISSING`, `ABSENT` or `DESC-TOO-LONG` line, no failing command, and the review trio returns CLEAN.
+**Done condition:** the block exits 0 and its last stdout line is `SKILL-21-OK`, and the review trio returns CLEAN.
 
 ## 10. Branch
 No branch for the author; Worker1 integrates on `wt/delivery-w0`. No commit.
@@ -82,10 +84,10 @@ Stop and write `.decisions/21.md` if: AM-1 changes the worktree or port rule; a 
 ## Metadata
 - Tier: execute (author); runtime: execute runners, verify for the verdict (card 12).
 - Review rung: Rung 1 trio, up to 3 rounds then the owner (D7).
-- Dependencies: INTERFACES 1.1.0 (landed; hard); items 5 (`catalog.sh`), 16 (`resource-catalog`), 27 (test-plan template) soft; consumed by item 28 `delivery-run` mode `post-merge` and by item 25 `release-track`.
+- Dependencies: INTERFACES 1.1.0 (landed; hard); items 5 (`catalog.sh`), 18 (`resource-catalog`), 27 (test-plan template) soft; consumed by item 28 `delivery-run` mode `post-merge` and by item 25 `release-track`.
 - Not a split item.
 
-## SPEC-QUESTIONs
-1. Card 12 says test-result reporting is a desk step of this skill; part-d D2.2 row 13 makes `release-track` the writer of the `test-report-push` payload and requester through `CONDUCTOR-REQUEST`, and row 12 lists no payload output. Which skill owns the report step? Default if unanswered: this skill records the results in `postmerge-<sha>.md` and leaves the payload to `release-track`.
-2. Whether `PM_SHA` main worktree location is `<worktree_base>/<run-id>-pm` (part-a A.2 example pattern) is inferred from the sub-task pattern; confirm.
-3. The failure-policy column values (retry count, quarantine) are not enumerated in INTERFACES; the skill must quote the row's own text and never invent a policy.
+## Plan-check resolutions (2026-10-26; report `reviews/plan-check-w1-specs.md`)
+1. RESOLVED (INTERFACES D2.2 row 13: `release-track` is "writer of the `test-report-push` payload ... and requester of that verb"; row 12 lists no payload; PC-6): `release-track` owns the report step; this skill records per-row results in `postmerge-<sha>.md` only. Card 12's "test-result reporting is a desk step" is design errata (AM-2 row 16).
+2. RESOLVED (INTERFACES A.6 R4-J17 "the sub-task worktree is `<worktree_base>/<run-id>-<subtask>`" with `pm` a `<subtask>` value, A.1): the detached main worktree is `<worktree_base>/<run-id>-pm`, catalog kind `worktree`, `WORKTREE_BASE` passed inline (T05 Q2).
+3. RESOLVED (PLAN-CHECK DEFAULT; design §5.4 makes the failure policy a test-plan column): the skill quotes each row's own failure-policy text and applies it literally; an empty or unclear policy means no retry and the row fails.

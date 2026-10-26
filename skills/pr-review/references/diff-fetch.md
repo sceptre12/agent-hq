@@ -2,7 +2,7 @@
 
 Dispatch a `mechanical`-tier sub-agent (tier resolved by `tools/model-routing.md`) to run the script for the mode. `DIFF_PATH` is an input, set by Step 1:
 standalone `/tmp/pr-review-${SESSION_SUFFIX}.diff` (`bus-start-standalone.md`), inside a run
-`$RUN_HOME/review/$SUBTASK/pr-review-$SESSION_SUFFIX/diff.diff` (`bus-start-run.md`). Step 0 has already
+`$RUN_HOME/review/$SUBTASK/$REVIEW_ID/diff.diff`, `$REVIEW_ID` = `pr-review-<uuid8>` (`bus-start-run.md` names). Step 0 has already
 validated the inputs; the checks below repeat them before any shell interpolation.
 
 ## pr mode

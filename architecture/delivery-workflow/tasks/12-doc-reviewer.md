@@ -75,7 +75,8 @@ if git diff $B -- $S/SKILL.md | grep -E '^\+.*(INPUT-ERROR|named input)'; then e
 # one child draft without AC, one child missing the observability case, and a clean control doc; it runs doc-reviewer on
 # each and saves the raw reports as $R/fixture.out and $R/control.out
 for c in DOC-1 DOC-2 DOC-3 DOC-4; do grep -q "$c" $R/fixture.out || { echo "FIXTURE-MISSING $c"; exit 1; }; done
-if grep -qE 'DOC-[1-4]' $R/control.out; then echo "FAIL: control flagged"; exit 1; fi
+if grep -qE '^\|.*DOC-[1-4]' $R/control.out; then echo "FAIL: control flagged"; exit 1; fi   # table rows only (ruling: the label may appear nowhere else either, checked by the next line)
+if grep -vE '^\|' $R/control.out | grep -qE 'DOC-[1-4]'; then echo "FAIL: DOC- label outside a finding row in the control report"; exit 1; fi
 for h in '## Trigger' '## Steps' '## Red flags' '## Exit criteria' '## Provenance'; do grep -q "^$h" $S/SKILL.md || { echo "MISSING $h"; exit 1; }; done
 head -12 $S/SKILL.md | grep -qE '^version: 1\.1\.0$'
 bash tools/check-doc-length.sh . >/dev/null

@@ -8,7 +8,7 @@ Tier: `execute`; `design` on conflicts (§3.1, §3.3): the lead dispatches you a
 
 - Inputs: verified unit branches and the merge order.
 - Outputs: the rebased sub-task branch.
-- Done token: `INTEGRATED: <unit> <sha>`, carried as one C2 record per merged unit under your work_item id `i<N>` (merging `u<N>`), with `head` = the sub-task branch head after that merge; the lead writes the `u<N>` entry into `substate.md` `integrated`.
+- Done token: one C2 record per merged unit, `unit` = your work_item id `i<N>` for merged unit `u<N>`, `head` = the sub-task branch head after that merge. You do not write `INTEGRATED:`; the lead writes `INTEGRATED: u<N> <sha>` into `substate.md` `integrated` from your accepted record (A.3, D1.1).
 - Slot, depth, Agent tool: 1 slot, serial, depth 1, one at a time, no Agent tool.
 - May write: the sub-task branch only (M20), and `status/<own-id>.md`.
 
@@ -28,4 +28,4 @@ Role statement and execute imperative first; tier line with rationale; done toke
 
 Real conflict: escalate.
 
-<!-- cites (design part-03 unless noted): 3.1 Integrator row; 3.3 Integrator row; 4 Must stay serial; C2; A.3 `integrated`; 4 Quality rules advisory -->
+<!-- cites (design part-03 unless noted): 3.1 Integrator row; 3.3 Integrator row; 4 Must stay serial; C2; A.3 `integrated` (INTERFACES part A); D1.1 `INTEGRATED:` (not a bus record); 4 Quality rules advisory -->

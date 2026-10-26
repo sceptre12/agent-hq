@@ -20,11 +20,11 @@ Role statement and execute imperative first; tier line with rationale; done toke
 
 - Never the fixer of the fix you verify. [3.4]
 - A change outside `FILE_SET` is `ISSUES_FOUND`. [D2.3, M24]
-- Run the 5 checks in `skills/fix-verifier` on the changed files only; the orchestrator passes the loop iteration, and at iteration 3 or more the Blocking max-iterations finding is appended and the verdict is `ISSUES_FOUND`.
+- Run the 5 checks in `skills/fix-verifier` on the changed files only; the orchestrator passes the loop iteration, and at iteration 3 or more the Blocking max-iterations finding is appended and the verdict is `ISSUES_FOUND` (the skill's Loop Integration rule; the D7 stop after review round 3 belongs to the review orchestrator).
 - D60: when the same finding class appears in two consecutive rounds, check that the text got shorter, measured in bytes of the affected section. [Quality rules]
 
 ## Stop
 
 none stated for the fix-verifier in §3.2/3.3; the iteration limit above (the orchestrator halts the loop at the Blocking max-iterations finding) and COMMON stop-on-anomaly apply.
 
-<!-- cites (design part-03 unless noted): 3.1 seat table; 3.4 Fix-verifier; 2.3 fix-verifier row; D2.3 FILE_SET; 4 rule 8c and D60; skills/fix-verifier Output Contract -->
+<!-- cites (design part-03 unless noted): 3.1 seat table; 3.4 Fix-verifier; 2.3 fix-verifier row; D2.3 FILE_SET; 4 rule 8c and D60; skills/fix-verifier Output Contract and Loop Integration; design D7 -->

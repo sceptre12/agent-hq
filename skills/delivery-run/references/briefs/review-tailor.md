@@ -17,7 +17,7 @@ Role statement and execute imperative first; tier line with rationale; done toke
 
 ## Persona-specific rules
 
-- Apply the ladder rubric (`AHQ/tools/review-ladder.md`) and its +1 modifier when no design-tier orchestrator exists.
+- Apply the ladder rubric (`tools/review-ladder.md`) and its +1 modifier when no design-tier orchestrator exists.
 - Choose seats from §3.4-§3.5 by the risk surface present; justify each omitted default seat.
 - Code diffs always get 7 seats until D12's remap and probe are recorded in INTERFACES; never exceed 7 at Rung 2b or 9 at Rung 2.
 - The per-repo review profile adds mandatory seats.

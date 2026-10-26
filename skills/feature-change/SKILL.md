@@ -137,7 +137,6 @@ arrival duty is surface-only (report the output, never fix or stop on the lead's
 - [ ] team: `catalog.tsv` holds this unit's `branch` row (and its `worktree` row unless Wave 0 added it) in state `live`,
   unless the unit stopped before the add (key absent, catalog exit, failed add: rows `fail`ed or never registered).
 - [ ] team: `status/<agent-id>.md` holds one line matching `^NEXT: (u[0-9]+)\.([0-9]+) .+$` once the worktree exists.
-- [ ] team: `gate-runs/<head>.md` path and line 1 cited, or the record is not `PASS`.
 - [ ] team: exactly one record posted (`status:"sent"`) or written to `.verdict` (none after an `INPUT-ERROR`), with a
   C2 verdict/reason pair and `head` per the failure table's `head` rule (the worktree's `HEAD` once it exists).
 - [ ] team: no ticket, integrate, cleanup, push or ledger work done (`git -C <REPO> worktree list` still shows any worktree made).

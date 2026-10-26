@@ -1,0 +1,4 @@
+N1 FIXED interfaces/part-b-desk.md:36,62 + INTERFACES.md:111 `.inflight` is a directory made by `mkdir` (atomic claim) with file `<id>.inflight/target` holding `<verb> <target>`, written right after the mkdir (B3 step 9); scan reads `desk/*.inflight/target`
+N2 FIXED interfaces/part-a-state.md:40 added `RUN_HOME/pm/outbox/<seq>.conductor-request` to the A.1 file-writer row, writers "pm lead, conductor (rename to `.sent-<id>`/`.refused`)"
+N3 FIXED interfaces/part-d-enums-topics.md:81 D2.2 row 13 `release-track` outputs now list `CONDUCTOR-REQUEST` lines in `pm/outbox/<seq>.conductor-request` (part C5.1)
+PR5-C4 FIXED interfaces/part-a-state.md:210 lease acquire now `catalog.sh register lane-lease <handle> <unit|-> <correlation_id> <source> <subtask|run> <owner_agent>`, the full INTERFACES.md:33 argument list

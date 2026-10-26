@@ -29,6 +29,11 @@ tools/code-gate/scope.conf	tools/code-gate/test_run-mapped-tests.sh
 tools/code-gate/scope.conf	tools/code-gate/test_scope.sh
 tools/code-gate/test-map.tsv	tools/code-gate/test_run-mapped-tests.sh
 tools/code-gate/test-map.tsv	tools/code-gate/test_scope.sh
+tools/delivery/catalog-audit.sh	tools/delivery/test_catalog.sh
+tools/delivery/catalog.sh	tools/delivery/test_catalog.sh
+tools/delivery/desk-req-schema.sh	tools/delivery/test_desk-req.sh
+tools/delivery/desk-req.sh	tools/delivery/test_desk-req.sh
+tools/delivery/scope-check.sh	tools/delivery/test_scope-check.sh
 tools/git-hooks/pre-commit	tools/git-hooks/test_pre-commit.sh
 tools/git-hooks/pre-push	tools/code-gate/test_pre-push.sh
 tools/git-hooks/session-end-push-check.sh	tools/git-hooks/test_session-end-push-check.sh

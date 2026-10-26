@@ -227,9 +227,11 @@ The synthesizer reads all bus messages and produces the Phase B report.
 In local-diff mode the orchestrator then writes `RECORD_PATH` with `references/review-record.md`:
 line 1 `CODE-GATE-REVIEW: PASS|FAIL head=<HEAD_SHA> blocking=<b> medium=<m>` (PASS only when both are 0),
 line 2 `Reviewed-By: <seat-id> <session> <TASK-id>` (A.6 3-token form, INTERFACES 1.9.0 AM-9; from `SEAT_ID`, `MEMBER_SESSION_NAME`,
-`TASK_ID`, none empty), a blank line, then the Phase B report, which the orchestrator first saves to
-`$(dirname "$RECORD_PATH")/phase-b-<HEAD_SHA>.md` (never `/tmp` in a run). `B`/`M` are the report's
-Blocking/Medium counts. The skill never writes `Verified-By:`.
+`TASK_ID`, none empty), line 3 an empty placeholder, line 4 blank, then the Phase B report, which the
+orchestrator first saves to `$(dirname "$RECORD_PATH")/phase-b-<HEAD_SHA>.md` (never `/tmp` in a run).
+`B`/`M` are the report's Blocking/Medium counts. Line 3 is left empty for the verifying seat (A.6); the
+report starts at line 5. The verifying seat replaces line 3 in place, never appends. The skill never
+writes `Verified-By:`.
 
 ### Step 9 — Cleanup
 

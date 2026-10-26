@@ -105,7 +105,7 @@ bash tools/check-doc-length.sh . | tail -1 | grep -q '^check-doc-length.sh: 0 bl
 [ "$(wc -w < $S/SKILL.md)" -le 3800 ] || echo BODY-OVER-BUDGET
 # 2 scope: templates untouched, nothing else under the skill
 git status --porcelain -- $R/templates | grep -q . && echo TEMPLATES-TOUCHED
-find $S -type f ! -path "$R/templates/*" | sort | diff - <(printf '%s\n' $S/SKILL.md $R/{launcher,provenance,resume,stages,stops-and-posts,tick-relay}.md | sort) >/dev/null || echo EXTRA-OR-MISSING-FILE
+exp=$(mktemp "${TMPDIR:-/tmp}/exp29.XXXXXX"); { echo "$S/SKILL.md"; for f in launcher provenance resume stages stops-and-posts tick-relay; do echo "$R/$f.md"; done; } | sort > "$exp"; find $S -type f ! -path "$R/templates/*" | sort | diff - "$exp" >/dev/null || echo EXTRA-OR-MISSING-FILE; rm -f "$exp"
 # 3 rules present (union of SKILL.md and references)
 for t in H0.ok H1.ok H1.changes H1.reject 'H-e2e' 'H-pr' 'H-prod' REGISTER-SENDER REGISTERED register.consumed register.refused '.desk.relayed' CONDUCTOR-REQUEST '.sending-' 'RELEASE pm' INVALIDATE MERGED 'merge-<sha>.md' 'CLEANUP DONE' 'CYCLE DONE' 'stage: done' 'stage: stopped' port-refused d7-round3 spawn-cap 'env -i' 'CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS=30' disallowedTools zephyr.execute_tool security_sensitive interfaces_version orchestrator_tier 'TICKET-EVENT' 'INBOX <subtask>' 'capture/' REBIND '.desk.refused' 'escalations/' review_record; do cat $S/SKILL.md $R/*.md | grep -qF -- "$t" || echo RULE-MISSING "$t"; done
 # 4 closed sets copied exactly from INTERFACES

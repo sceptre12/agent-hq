@@ -24,7 +24,7 @@
 | 23-25 | Pilot drafts: `delivery-shepherd`, `ci-fix-loop`, `release-track` (`Provenance: pending pilot`) | W1 | execute | 3 agents, 0.75 h |
 | 26 | `delivery-desk` (+ `references/schemas.json`) | W1 | design | 1 agent, 3 h, starts at the 3b ratification (owner wait) |
 | 27 | Template pack (12 files, §5.0 (part-04-templates.md)-5.11) | W1 | execute | 4 agents, 0.75 h |
-| 27b | Persona briefs `references/briefs/<persona>.md` in the owning skills, each carrying the COMMON block (M2) | W1 | execute | 4 agents, 0.5 h |
+| 27b | Persona briefs in one root `skills/delivery-run/references/briefs/<persona>.md`, each carrying the COMMON block (M2; INTERFACES C1.2, PC-3; erratum E24) | W1 | execute | 4 agents, 0.5 h |
 | 28-29 | `delivery-run`, `delivery-pipeline` | W2 | design | each split `SKILL.md` and `references/` (2 agents) 1.5 h plus 0.5 h integration, after INTERFACES and item 9 |
 | 30 | Rung 1 loops for 20 prose items (reviewer, fixer, verifier; 0.8 h per round, up to 3 rounds) | W3 | design orchestrator, verify seats | one trio per item as it lands, all 20 concurrently when slots allow |
 | 31 | `review-7-panel` loops for 5 heavy items (`INTERFACES.md` in W0, the four heavy skills in W3; about 0.75 h per round including fixer and verifier, up to 3 rounds) | W0, W3 | 7 seats + orchestrator + synthesizer + fixer + verifier + gate checker (12 slots per bus) | up to 4 buses at once, derived from what the sessions can host under the 50 cap: 12 slots per bus, each session cap of 25 hosts 2 buses, Worker1 and Worker2 each orchestrate 2, so 4 x 12 = 48 <= 50; a ceiling consequence, not a self-imposed serial limit (S12, G17; the earlier 2-bus cap is retired, M5) |
@@ -63,6 +63,66 @@ Estimate basis (wall-clock only): execute-tier author 0.75-1 h per skill; design
 **Parallelism note (Rule 7):** of 37 items, 29 are safely parallel (disjoint directories, frozen INTERFACES); 8 are serial or capped (items 5, 6 and 7 counted one each under the counting rule): item 2 (freeze), items 5-7 integration, item 31 (bus count derived from the 50 cap), item 32 (serial integration), item 33 (after 30-32), item 26 (owner gate). Splits inside an item (items 2, 2b, 8, 9, 27, 27b, 28-29) are by directory and each ends in one integration step. Peak 50 between t4.5 and t8.5; the cap binds there and queues Rung 1 trios, which is why the range is 10-14 h.
 
 **Stop conditions for the build:** INTERFACES not frozen before W1; a skill without provenance or `pending pilot` tag; a classifier block; a script without mapped tests; a body over budget without moving depth to `references/`; any symlink from `agent-hq` created before the move; a W1 item dispatched without its 2b task spec; the build ledger above 50; a split whose pieces share a file.
+
+### Build record (W0-W3, 2026-10-26)
+
+Everything below was built and reviewed on 2026-10-26 on branch `wt/delivery-w0` (W0-W3 docs and skills) and `ext/delivery-extends` (items 9-13). The two code PRs merged to `main`. File paths in the table are relative to `architecture/delivery-workflow/`. "Open" is B/M/L at the end of the loop, as the record states it. A D7 stop means the loop was still open after round 3 (D7).
+
+| Item | What was built | Commit or PR | Rung | Rounds | Open at end (B/M/L) | D7 stop | Record |
+|---|---|---|---|---|---|---|---|
+| 1, 4 | §6.1 re-measure; nested-spawn probes (`measurements-2026-10-26.md`) | 558abb7 | none | - | no review record | - | - |
+| 8, 8b | ports of `review-7-panel`, `feature-change`, `port-claim`, `sim-lease`; sources copied verbatim | 558abb7 | none | - | no review record | - | - |
+| 2 | `INTERFACES.md` + parts A-D, frozen at 1.0.0 | 9339272 | 2b | 4 (round 4 an owner one-off extension) | r3 0/28/20; r4 0/24/19, all 24 M fixed, verify 0/0/7, FROZEN | yes (after r3) | `reviews/interfaces-2b.md` |
+| 2b | W1 task specs (5-27b); W2 specs (28, 29) | a7492ec, 991fba2; e46c972, bf7df62 | plan-check | 1 | PLAN-CHECK PASS (94 questions); PASS | no | `reviews/plan-check-w1-specs.md`, `reviews/plan-check-w2-specs.md` |
+| 3 | ADR 0054 (ADR 0023 amendment), accepted | 558abb7 | 1 | 3 | 0/0/3 (advisory) | no | `reviews/adr-0054-rung1.md` |
+| 3b | ADR 0055 (`DESK` verb), accepted | 558abb7 | 1 | 3 | 0/1/1 | yes | `reviews/adr-0055-rung1.md` |
+| PR #9 | port guard (`port-check.sh`, precheck hook, registries); `wt/port-guard`, merge 42a5198 | 600ba03 | 3 | 3 | r1 0/6/8, r2 0/4/7, r3 PASS 0/0/5 | no | `reviews/pr9-port-guard-pr-review{,-r2,-r3}.md` |
+| AM-1 | `security-audit` vendored (desk ledger row) | 581355f | none | - | no review record | - | - |
+| 5-7 (PR #10) | `catalog.sh`, `scope-check.sh`, `desk-req.sh` + tests; `wt/delivery-scripts`, merge 4ee64a0 | ac9df4c | 3 | 2 | r1 FAIL 0/4/11; r2 PASS 0/0/5 | no | `reviews/pr10-delivery-scripts-pr-review{,-r2}.md` |
+| 9 | `wave-execution` EXTEND | 297a8dc (ext) | 1 | 3 | 0/0/0 | no | `reviews/09-wave-execution-rung1.md` |
+| 10 | `pr-review` EXTEND | 2678052, 7137f88 (ext) | 1 | 3 | 1/0/Lows listed (count not stated); post-D7 0/0 | yes | `reviews/10-pr-review-rung1.md` |
+| 11 | `fix-verifier` EXTEND | 44f50b7 (ext) | 1 | 3 | 0/0/4 | no | `reviews/11-fix-verifier-rung1.md` |
+| 12 | `doc-reviewer` EXTEND | 23f24ad (ext) | 1 | 3 | 0/0/3 | no | `reviews/12-doc-reviewer-rung1.md` |
+| 13 | `feature-change` EXTEND | 526f82b (ext) | 1 | 2 | 0/0/7 | no | `reviews/13-feature-change-rung1.md` |
+| 14 | `delivery-intake` | bf7df62, 6077dfc | 1 | 3 | 0/1/5; post-D7 CLEAN | yes | `reviews/14-delivery-intake-rung1.md` |
+| 15 | `delivery-architecture` | 8f9d3e3, 71a4684 | 2b | 3 | 0/2/15; post-D7 CLEAN | yes | `reviews/15-delivery-architecture-2b.md` |
+| 16 | `review-tailor` | 6cf5eec | 1 | 3 | 0/0/3 | no | `reviews/16-review-tailor-rung1.md` |
+| 17 | `delivery-dispatch-plan` (0.2.0) | a2df47d, ea0e80d | 1 | 3 | 0/4/10; post-D7 CLEAN | yes | `reviews/17-delivery-dispatch-plan-rung1.md` |
+| 18 | `resource-catalog` + `port-claim` amendment | 176f137 | 1 | 3 | 0/0/3 | no | `reviews/18-resource-catalog-rung1.md` |
+| 19 | `delivery-cleanup` | 5fee2b3, f306b55 | 1 | 3 | 1/4/2; post-D7 CLEAN, fixture 10/10 | yes | `reviews/19-delivery-cleanup-rung1.md` |
+| 20 | `pre-pr-gate` | bf7df62 | 1 | 3 | 0/0/1 | no | `reviews/20-pre-pr-gate-rung1.md` |
+| 21 | `post-merge-verify` | a2df47d, ea0e80d | 1 | 3 | 0/8/7; post-D7 verify 0/1/3, all four fixed, not re-verified | yes | `reviews/21-post-merge-verify-rung1.md` |
+| 22 | `ticket-clerk` | b9b487c | 1 | 3 | 0/0/9 | no | `reviews/22-ticket-clerk-rung1.md` |
+| 23-25 | `delivery-shepherd`; `ci-fix-loop`; `release-track` (pilot drafts) | 7aaea78; dc626c0; 9d43029, 6077dfc | 1 | 3; 1; 3 | 0/0/2; 0/0/4; 0/3/2, post-D7 CLEAN 0/0/4 | no; no; yes | `reviews/23-delivery-shepherd-rung1.md`, `reviews/24-ci-fix-loop-rung1.md`, `reviews/25-release-track-rung1.md` |
+| 26 | `delivery-desk` + `references/schemas.json` | 9a91460 | 2b | 3 | 0/3/11 (r3-M1, M2 fixed and verified, not re-panelled) | yes | `reviews/26-delivery-desk-2b.md` |
+| 27, 27b | template pack (12 files); 32 persona briefs | 569139c, 668af1c; f68f6f2, 58b54bb | 1 | 1; 1 | 0/0/4; 0/0/12 | no | `reviews/27-template-pack-rung1.md`, `reviews/27b-persona-briefs-rung1.md` |
+| 28 | `delivery-run` | 2c10079, 8535fb4, fa5f579 | 2b | 3 | 0/12/13; post-D7 CLEAN 0/0 | yes | `reviews/28-delivery-run-2b.md` |
+| 29 | `delivery-pipeline` | 2c10079, 92a75bd | 2b | 3 | r3 0/15/5; 14 FIX M applied, verify CLEAN 0/0/4, not re-panelled | yes | `reviews/29-delivery-pipeline-2b.md` |
+
+INTERFACES went from 1.0.0 to 1.5.0 by five amendments, all 2026-10-26: AM-1 944e098 (port guard, security-audit), AM-2 f68f6f2 (W1 plan-check), AM-3 a83bc8b (owner OQ-1..3), AM-4 d121866, AM-5 322c13f. The Amendments table in `INTERFACES.md` names the owner, through the item 33 packet, as approver of each.
+
+**D7 stops and the owner's rulings** (`owner-decisions.md` = `architecture/delivery-workflow-sources/owner-decisions.md`):
+- `INTERFACES.md`: one more 7-seat round allowed as a one-off (`owner-decisions.md:79`); round 4 met the freeze rule.
+- ADR 0055: open points OP1-OP10 "Accept all" (`owner-decisions.md:62-72`), ratified once the fix-verifier confirmed them (`:76`).
+- Item 10: B2 (review-bus directory collision) was closed by lead decision 10-B2, not by an owner ruling.
+- Items 14, 17, 21: the records say "owner-authorized" post-D7 fixes (item 14: OQ-14-1 "answered yes by the owner"). `owner-decisions.md` has no line for them.
+- Item 15: "Accept all": STAKES/CONTENTION/NOVELTY header, no fixer after a round-3 miss, epic at least 2b (`owner-decisions.md:95`).
+- Item 19: "Accept all": ignored-file clones kept and flagged, plus a functional fixture check (`owner-decisions.md:93`).
+- Item 25: "Accept all": P4-1..3 fixed in one pass; OQ-1..3 as recommended (`owner-decisions.md:92`).
+- Item 26: "Accept verified state": the round-3 Mediums accepted without a fourth round; desk double-reads `PREPR: PASS` (`owner-decisions.md:94`).
+- Item 28: "Accept all": the 12 recorded fixes plus S4a and S4b (`owner-decisions.md:97`).
+- Item 29: "Accept": round-3 fixes accepted without a fourth round, `pm` lead in the detached post-merge worktree, desk honours `H-destructive`, `stale-session` refusal, `RESUME` gate (`owner-decisions.md:98`). O-1 (29-5) and O-2 (29-6) in "Owner items from the item 29 panel" are still pending owner items. `:98` matches only O-1's `stale-session` default; it says nothing about the rest of 29-5 or about 29-6.
+
+**Lead decisions for the owner to review in the item 33 packet** (no owner ruling yet):
+- RT-Q2: a high-blast-radius code diff stays at Rung 3; the one-way decision behind it gets its own `KIND=plan` review at Rung 4 (AM-4 row 16; part D1.1 `RUNG:`). RT-Q1 (seat set stays fixed) has the same anchor.
+- 10-B2: an in-run review bus lives at `RUN_HOME/review/<subtask>/<review-id>/bus/` (AM-5; A.1, D2.3, D5).
+- PR10-M4: `catalog-audit.sh` exit 5 = `lsof` missing or failing, no verdict (AM-5; script table in `INTERFACES.md`, A.5).
+- The desk's double read of `PREPR` (checklist line 1 and `substate.md` must agree) (AM-5; B9). This is also part of the owner's item 26 ruling (`owner-decisions.md:94`).
+- 19-F6: a repo with no remote gets local-only branch deletion and no desk `fetch` (AM-5; A.8 "A.5.1 cleanup").
+- Desk defaults: remote `origin`, `--repo` from the origin URL, one request at a time, and "later push" = exactly one open PR (AM-5; B9).
+- 29-1..29-39 and 28-CV1..CV19 conductor and lead conventions, adopted (AM-5; A.8, B9, C8). O-1 and O-2 are held back.
+- AM-4 rows: 24-Q2 first push vs later push (B4, A.3); 11-Q11-R1 `INPUT-ERROR` is not a round (D1, D2.3); 12 DOC rules; 27b fixer model-step and explorer tier (D2.1); 23 shepherd rules (C2, C7, D4); 9 wave-level gate unit (C1); 22 ticket parent rules (B4, D3); 13 gate agent runs unit gates (A.7); 20 `pre-pr-gate` Q1-Q9; W2-1..W2-10 plan-check rows.
+
 ## 7b. Grounding in learnings (B-3)
 
 Each stage and caretaker below names the recorded learnings behind it (ids as in `hermes-learnings-digest.md`; `RLM` = `review-loop-mechanics`, `RG` = `router-grounding-20261022`) with the incident in one line. No project names; the digest holds the file:line cites.

@@ -8,7 +8,8 @@ Purpose: the local draft of one Jira ticket, written before H1 and published aft
 - The file opens with YAML front matter and nothing before it.
 - `slug`: `^[a-z0-9][a-z0-9-]*$`, never `index`, equal to the file stem (INTERFACES A.1).
 - `issuetype`: one of `Epic`, `Spike`, `Story`, `Task`, `Subtask` (INTERFACES D2.1, "ticket issue type"). Spikes come first in the dependency order and are timeboxed.
-- `parent`: the parent ticket slug, or `-` for the epic (the `-` absence token, INTERFACES A.6 `tickets.tsv`).
+- `parent`: the parent ticket slug, or `-` for the epic (the `-` absence token, INTERFACES A.6 `tickets.tsv`). It reaches the desk as the top-level `parent` of `jira-create`, never as a `fields` entry; `summary` and `issuetype` are required, every other allowlisted field optional. Changing `parent` or `issuetype` after creation is a draft defect the clerk reports, not an update (INTERFACES B4 `jira-create`, AM-4 22).
+- A sub-task draft with no child unit draft is a Blocking DOC-4 finding (INTERFACES D2.3 `doc-reviewer`, AM-4 12).
 - Jira `fields` that reach the desk are the closed set `summary, description, issuetype, parent, labels, priority, components` (INTERFACES B4). Everything below the front matter is the `description`.
 - Statuses are the canonical set in INTERFACES D3 (`Backlog`, `In Progress`, `In Review`, `Blocked`, `Verified`, `Done`); a draft never sets one.
 - Acceptance criteria are Gherkin and also seed the `.feature` files (design 3.6). Keep one scenario per behaviour.
@@ -138,6 +139,6 @@ Append to every child that will be built:
 ````
 
 ## Lifecycle
-1. Local drafts only until the human writes `H1.ok` (INTERFACES A.2.1).
-2. After `H1.ok`, `ticket-clerk` publishes in dependency order through `jira-create` and records each row in `RUN_HOME/tickets.tsv` (`slug key parent status utc`).
+1. Local drafts only until the desk writes `H1.<run-id>.ok` on the human's `GATE` line (INTERFACES A.2.1, AM-5 26).
+2. After `H1.ok`, `ticket-clerk` publishes in dependency order through `jira-create` and records each row in `RUN_HOME/tickets.tsv` (`slug key parent status utc`); a terminal `REJECTED` or a no-reply is reported once and the clerk moves past it (AM-4 22).
 3. `H1.changes` returns the drafts to `delivery-architecture`; `H1.reject` stops the run.

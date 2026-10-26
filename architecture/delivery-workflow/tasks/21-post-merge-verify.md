@@ -1,6 +1,6 @@
 # Task Spec 21: `post-merge-verify` (NEW skill, stage 6)
 
-Spec of record for W1 item 21 (design part-06 §7 row "14-22"; card 12 in part-02 §2.2 item 12). Authority: `INTERFACES.md` 1.1.0 (FROZEN; amendment AM-1: port guard). Anchors are `interfaces/part-X` sections.
+Spec of record for W1 item 21 (design part-06 §7 row "14-22"; card 12 in part-02 §2.2 item 12). Authority: `INTERFACES.md` 1.5.0 (FROZEN; amendment AM-1: port guard; AM-5 21: `H-destructive`, `POSTMERGE: STOP`, `verdict` inbox, D2.2 row 12). Anchors are `interfaces/part-X` sections.
 
 ## 1. Objective
 Author `skills/post-merge-verify/SKILL.md` (plus `references/*.md`) so the `pm` lead runs `test-plan.md` post-merge rows against a detached worktree of main at `PM_SHA` and ends with one `POSTMERGE:` token and, on failure, `pm/new-units.md`.
@@ -8,7 +8,7 @@ Author `skills/post-merge-verify/SKILL.md` (plus `references/*.md`) so the `pm` 
 ## 2. Context package
 - Card 12; test plan shape part-04 §5.4 (post-merge rows: id, what it proves, command, lane, expected, evidence owner, cold-run, order or seed, gating or informational, failure policy; human hand-test rows; consumer-simulation rows; test-management reporting row; explicitly-not-tested list). E2E rules part-03 §3.6 steps 6 and 8 (auto-healed diffs reviewed, `SOURCE_BUG` escalates).
 - Host: the `pm` lead inside `delivery-run` mode `post-merge`, no seed, no waves, no bus (part-a A.2 "Stages 6-7 host"); `PM_SHA` is the `merge_sha` of the last sub-task merge.
-- Produced: `RUN_HOME/postmerge-<sha>.md` line 1 `POSTMERGE: PASS|FAIL [rows]` regex `^POSTMERGE: (PASS|FAIL)( [A-Za-z0-9.,-]+)?$` (part-d D1.1; PASS = every gating row passed; rows = failed gating row ids); `RUN_HOME/pm/new-units.md`, one line per failed gating row `<row-id> <one line>` regex `^[A-Za-z0-9.-]+ .+$` (part-d D2.2 row 12); desk `ci-status-main` (`{repo, merge_sha}`, part-b B4) for the merge-pipeline execution (profile `merge_pipeline.stages[]`).
+- Produced: `RUN_HOME/postmerge-<sha>.md` line 1 `POSTMERGE: PASS|FAIL [rows]` regex `^POSTMERGE: (PASS|FAIL)( [A-Za-z0-9.,-]+)?$` (part-d D1.1; PASS = every gating row passed; rows = failed gating row ids), or the third value `POSTMERGE: STOP <reason>` (`^POSTMERGE: (PASS|FAIL|STOP [a-z0-9-]+)$`): the run pauses on a row the human must decide or a destructive row lacking `RUN_HOME/gates/H-destructive.<row-id>.<run-id>.ok`; the human's answer arrives as a desk-written inbox `VERDICT <subtask> <row-id> <text>` (amended: AM-5 21; D8, A.2.1, C8); `RUN_HOME/pm/new-units.md`, one line per failed gating row `<row-id> <one line>` regex `^[A-Za-z0-9.-]+ .+$` (part-d D2.2 row 12); desk `ci-status-main` (`{repo, merge_sha}`, part-b B4) for the merge-pipeline execution (profile `merge_pipeline.stages[]`).
 - Consumed: `test-plan.md` in `PLANS_DIR`; catalog leases `lane/<name>` (part-a A.5); `substate.md` fields `pm_sha`, `postmerge_record` (part-a A.2). The conductor maps `PASS` to `Verified` (D3) and, on `FAIL`, reads `new-units.md` and re-invokes `delivery-dispatch-plan` with `NEW_UNITS` (part-a A.2).
 - Successor: `release-track` (card 13) reads `postmerge-<sha>.md` as `POSTMERGE_RECORD`.
 
@@ -21,7 +21,7 @@ Directories written: `skills/post-merge-verify/` only.
 ## 4. Contracts
 | Contract | Value | Authority |
 |---|---|---|
-| Step 0 inputs | `RUN_HOME`, `PM_SHA`, `PLANS_DIR`; `DELIVERY_ROOT` env; `INPUT-ERROR <field> <reason>` one line per failing field then stop | part-d D1, D2.2 row 12 |
+| Step 0 inputs | `RUN_HOME`, `PM_SHA`, `PLANS_DIR`, `REPO_PROFILE` (@sha; reads `commands.install`, `commands.pack`, `repo.consumer_repos[]`, A.2.2; amended: AM-5 21); `DELIVERY_ROOT` env; `INPUT-ERROR <field> <reason>` one line per failing field then stop | part-d D1, D2.2 row 12 |
 | Token | `POSTMERGE:` line 1 of `postmerge-<sha>.md`, `<sha>` = `PM_SHA` | part-d D1.1 |
 | Verdict rule | PASS only if every `gating` row passed; `informational` failures are recorded, never fail the token | part-d D2.1 (post-merge row), part-04 §5.4 |
 | Worktree | detached worktree of main at `PM_SHA`, registered in the catalog (`worktree` kind) before start, released at the end; every bound port (lanes, dev servers) follows part-a A.5.2: `tools/port-check.sh --claim` via `port-claim`, then `catalog.sh register port`, launch, `catalog.sh start`; collision refuses the launch, never auto-pick, a lane maps to C2 reason `lane-unavailable`; release is cleanup's | part-a A.5, A.5.2 |
@@ -84,7 +84,7 @@ Stop and write `.decisions/21.md` if: AM-1 changes the worktree or port rule; a 
 ## Metadata
 - Tier: execute (author); runtime: execute runners, verify for the verdict (card 12).
 - Review rung: Rung 1 trio, up to 3 rounds then the owner (D7).
-- Dependencies: INTERFACES 1.1.0 (landed; hard); items 5 (`catalog.sh`), 18 (`resource-catalog`), 27 (test-plan template) soft; consumed by item 28 `delivery-run` mode `post-merge` and by item 25 `release-track`.
+- Dependencies: INTERFACES 1.5.0 (landed; hard); items 5 (`catalog.sh`), 18 (`resource-catalog`), 27 (test-plan template) soft; consumed by item 28 `delivery-run` mode `post-merge` and by item 25 `release-track`.
 - Not a split item.
 
 ## Plan-check resolutions (2026-10-26; report `reviews/plan-check-w1-specs.md`)

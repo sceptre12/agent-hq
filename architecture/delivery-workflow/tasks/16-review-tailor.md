@@ -1,6 +1,6 @@
 # Task 16: `review-tailor` (NEW skill, stages 2, 3, 4b)
 
-- **Header:** item 16 (part-06 §7); wave W1; authoring tier `execute` (§7 row 14-22); runtime tier `verify`, `design` on one-way doors (card 4; persona Review tailor, part-03 line 36); review rung: Rung 1 trio (reviewer, fixer, fix-verifier; item 30); not heavy. Interfaces: `INTERFACES.md` + `interfaces/part-a..d` (FROZEN) and amendment AM-1 (INTERFACES 1.1.0: `SECURITY_AUDIT` input, D2.2 row 4).
+- **Header:** item 16 (part-06 §7); wave W1; authoring tier `execute` (§7 row 14-22); runtime tier `verify`, `design` on one-way doors (card 4; persona Review tailor, part-03 line 36); review rung: Rung 1 trio (reviewer, fixer, fix-verifier; item 30); not heavy. Interfaces: `INTERFACES.md` + `interfaces/part-a..d` (FROZEN, INTERFACES 1.5.0) and amendment AM-1 (INTERFACES 1.1.0: `SECURITY_AUDIT` input, D2.2 row 4); AM-3 errata (g) `ORCHESTRATOR_TIER`; AM-4 16 (RT-Q1, RT-Q2 in D1.1 `RUNG:`).
 - **Dependencies:** INTERFACES frozen; reads `tools/review-ladder.md`; seat pool from part-03 §3.4-3.5; consumers (called by name, no file dependency): `delivery-architecture` (task 15), `delivery-dispatch-plan` (item 17), `pre-pr-gate` (item 20) and the `pr-review` EXTEND (`ROLES`, part D2.3). `security-audit` (`skills/security-audit`) is referenced, not edited.
 - **Split:** none (1 agent).
 
@@ -21,7 +21,7 @@ Write `skills/review-tailor/SKILL.md` (card 4, part-02 §2.2): given artifacts, 
 ## 4. Contracts table (cite anchors; do not restate)
 | Contract | Anchor | Role |
 |---|---|---|
-| Inputs `RUN_HOME`, `SLUG`, `ARTIFACTS` (comma-separated paths), `KIND`, `STAKES`, `CONTENTION`, `NOVELTY`, `SECURITY_AUDIT` as `NAME=value`; `DELIVERY_ROOT` env | part D2.2 row 4; D1 | Step 0; `INPUT-ERROR <NAME> <reason>` per failing field, then stop |
+| Inputs `RUN_HOME`, `SLUG`, `ARTIFACTS` (comma-separated paths), `KIND`, `STAKES`, `CONTENTION`, `NOVELTY`, `SECURITY_AUDIT`, `ORCHESTRATOR_TIER` (from `state.md` `orchestrator_tier`, A.2; the +1 rung modifier applies when it is not `design`; E31, AM-3 errata (g)) as `NAME=value`; `DELIVERY_ROOT` env | part D2.2 row 4; D1 | Step 0; `INPUT-ERROR <NAME> <reason>` per failing field, then stop |
 | Enums `SECURITY_AUDIT` `guidance\|full` (D2.1; required, RESOLVED Q2); `KIND` `doc\|plan\|diff`; `STAKES` `reversible\|one-way`; `CONTENTION` `none\|contested`; `NOVELTY` `known\|novel`; `rung` `0\|1\|2\|2b\|3\|4` | part D2.1 | validate; bad value is `INPUT-ERROR <NAME> enum` |
 | `SLUG` form `<subtask\|run>-<kind>-<n>`, minted by the caller | part A.1 `<slug>`; D2.2 row 4 | validate with `format`; never mint |
 | Output file `RUN_HOME/review-tailor-<SLUG>.md`: line 1 `RUNG: <rung> seats: <n>`, lines 2+ seat table `seat-id<TAB>role<TAB>reason`; written by this skill itself | part D1.1 (`^RUNG: (0\|1\|2\|2b\|3\|4) seats: [0-9]+$`); A.6 | sole writer, atomic (A.1); `pr-review` `ROLES` derives from the seat ids |
@@ -43,8 +43,10 @@ Callers pass the inputs and read line 1 plus the seat table. The mechanism it na
 1. **D12 is off.** For `KIND=diff` the record always has `seats: 7` and the seven seat ids of `pr-review` Step 4, whatever the risk surface. The skill contains no branch that yields fewer. Turning it on needs the remap and the 3-seat probe recorded in `INTERFACES.md` (D12, part D2.3 `pr-review` row "seat count 7 until the D12 remap and probe are recorded here"); that is an INTERFACES amendment with consumer re-check (M21), not an edit of this skill alone.
 2. Caps: at most 7 seats at Rung 2b, at most 9 at Rung 2. `RUNG:` seat count equals the number of seat rows.
 3. Rung values are exactly the D1.1 set; `2b` is lowercase b.
-4. The G48 pre-round check is a mechanical-tier (Haiku) agent step, a rule, not advisory (D6).
+4. The G48 pre-round check is a mechanical-tier (Haiku) agent step, a rule, not advisory (G48 adopted by owner rule B-3, `architecture/delivery-workflow-sources/owner-decisions.md:50`; integrator note, `reviews/16-review-tailor-rung1.md` "Integrator notes").
 5. Advisory-only rules (D44, D54, D58, D61, D66) are not written as rules (D6).
+6. Fixed-count rungs (amended: AM-4 16, D1.1 `RUNG:`; E31): a profile-mandatory seat outside a fixed-count rung's seat set is noted in the `mechanism:` line and the seat set stays fixed (D12, RT-Q1); a high-blast-radius code diff stays at Rung 3 and the one-way decision behind it is reviewed separately as `KIND=plan` at Rung 4 (RT-Q2).
+7. A `review-7-panel` round is 10 dispatches (7 seats, synthesizer, fixer, fix-verifier), not 9 (E31); the `dispatch:` line counts 10.
 
 ## 8. Acceptance criteria
 1. Frontmatter: `name: review-tailor`, `version: 0.1.0`, description under 1024 chars starting from the card trigger and containing "Use when"; states its place on the ladder per `tools/review-ladder.md` §5 (it chooses a rung, it is not one); model-invocable.
@@ -53,7 +55,7 @@ Callers pass the inputs and read line 1 plus the seat table. The mechanism it na
 4. Red flags include: "high stakes" without a nameable risk; starting high to be safe; fewer than 7 seats on a code diff; a seat added with no "finds what the others cannot"; injecting a mid-round finding; reusing last time's rung.
 5. Exit criteria include: line 1 matches the D1.1 regex; seat count equals row count; every omitted default seat has a stated reason; the plan names G48 and D57.
 6. Security (AM-1): the Security seat row in the seat table names its mode, the `SECURITY_AUDIT` value (`guidance`: diff-scoped, no files, no agents). Under `full` the plan adds a line for the full-mode run: output `RUN_HOME/<subtask>/security-audit/run-<N>/` (A.5.3), its agents (persona `security-auditor`) counted in the dispatch count against the ledger, and `validate-findings.cjs` as a `pre-pr-gate` row. This skill never chooses `full`; it only echoes the input.
-7. Per-repo review profile: mandatory seats and Blocking rules are read from the profile (part-04 §5.8 "review profile"); the key is proposed as `review_profile.*` (RESOLVED Q3, AM-2 row 5).
+7. Per-repo review profile: mandatory seats and Blocking rules are read from the profile keys A.2.2 `review_profile.mandatory_seats[]` and `review_profile.blocking_rules[]` (RESOLVED Q3, AM-2 row 5).
 8. No cost figures; no web.
 
 ## 9. Verification commands (W = `~/projects/agent-hq-worktrees/delivery-w0`)
@@ -93,6 +95,6 @@ Write `.decisions/16-review-tailor.md` (fork, options, recommendation, `Outcome:
 ## Open points
 - RESOLVED Q1 (PLAN-CHECK DEFAULT; AM-2 row 9): seat counts per rung: Rung 0 `seats: 0` (no rows), Rung 1 `seats: 1` (the one reviewer), Rung 2 the simulated members (at most 9), Rung 2b at most 7, Rung 3 exactly 7 (D12), Rung 4 the `panel-review` roster (11).
 - RESOLVED Q2 (PLAN-CHECK DEFAULT, AM-2 row 9; INTERFACES D2.2 transport "every caller passes them"): the seat table is lines 2 up to the first blank line (`seat-id<TAB>role<TAB>reason`, the D1.1 form `pr-review` `ROLES` derives from); after the blank line come four `key: value` lines `mechanism:`, `tiers:`, `budget:`, `dispatch:` (the card 4 items). `SECURITY_AUDIT` is required like every NEW-skill input (`INPUT-ERROR SECURITY_AUDIT missing`); callers pass `state.md` `security_audit`.
-- RESOLVED Q3 (PLAN-CHECK DEFAULT; INTERFACES A.2.2 has no key; AM-2 row 5): read the profile keys `review_profile.mandatory_seats[]` and `review_profile.blocking_rules[]`; absent keys mean no mandatory seats (never an `INPUT-ERROR`, since A.2.2 does not list them yet).
+- RESOLVED Q3 (PLAN-CHECK DEFAULT; AM-2 row 5 added the keys to INTERFACES A.2.2, `interfaces/part-a-state.md` A.2.2 `review_profile.*` row): read the profile keys `review_profile.mandatory_seats[]` and `review_profile.blocking_rules[]`; absent keys mean no mandatory seats, not an `INPUT-ERROR` (A.2.2 "absent = none").
 - RESOLVED Q4 (INTERFACES D2.3 `pr-review` `ROLES` = seat ids; D1.1): `KIND=diff` uses the seven `pr-review` agent ids; `doc` and `plan` use the §3.4-3.5 lens seats.
 - RESOLVED Q5 (INTERFACES D2.3 `pr-review` row "seat count 7 until the D12 remap and probe are recorded here"): no runtime detection; the skill is fixed at 7 for code and the switch is a later INTERFACES amendment with a skill change.

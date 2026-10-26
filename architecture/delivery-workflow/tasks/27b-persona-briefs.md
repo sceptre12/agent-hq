@@ -1,7 +1,7 @@
 # Task Spec — 27b: persona briefs `references/briefs/<persona>.md`, split 4 ways
 
 > Item 27b of design §7 (`part-06-build-plan-and-sources.md:27`; changelog M2). Read `build-common.md` first; it is binding.
-> Spec status: written at W0 item 2b. INTERFACES version read: `1.1.0` (AM-1 adds persona `security-auditor`: 32 tokens).
+> Spec status: written at W0 item 2b. INTERFACES version read: `1.5.0` (AM-1 adds persona `security-auditor`: 32 brief tokens; AM-4 W2-2 adds `wave-controller`, a slot row with no brief file; AM-3 to AM-5 brief content in §4c).
 
 | Field | Value |
 |---|---|
@@ -46,7 +46,7 @@ Session personas (`conductor`, `lead`, `desk`) are sessions, not dispatched work
 ## 4. Contracts
 | Contract | Field / value | Authority |
 |---|---|---|
-| Persona token | D2.1 closed set (32) = file stem | part D D2.1 |
+| Persona token | D2.1 closed set = file stem, 32 brief files; `wave-controller` is in D2.1 but has a slot row only and no brief file (amended: AM-4 W2-2) | part D D2.1 |
 | `Brief:` path | `skills/delivery-run/references/briefs/<persona>.md` | part C C1.2 |
 | Done record | `UNIT-VERDICT` JSON `{unit, verdict PASS\|ROLLED\|ESCALATE, head, reason}` posted on the topic in `bus.endpoint`; fallback `status/<own-id>.verdict` | §5.0, C2, B1 |
 | `HUSKY=0` | inline, per command, after `GATE-PASS`; linked to A.7, in the COMMON block only | A.7, §3.0 |
@@ -57,6 +57,12 @@ Session personas (`conductor`, `lead`, `desk`) are sessions, not dispatched work
 - `security-auditor` (tier `verify`, slot row with `unit` `-`, A.4; hunters and verifiers of the vendored `skills/security-audit`, full audit mode only): writes only under `RUN_HOME/<subtask>/security-audit/run-<N>/agents/<own-id>/` (A.5.3); target code runs with no network; starts only with a free slot. Done token and stop rule: take them from `skills/security-audit/SKILL.md` and `PROVENANCE.md` (read, do not copy); if absent write `none stated` and cite A.5.3 (RESOLVED Q4).
 - `review-seat` (security seat) and `validator`: guidance mode loads `skills/security-audit` diff-scoped, no files, no agents (D2.1 `security_audit`); under `full` the `pre-pr-gate` gate row runs `validate-findings.cjs`.
 - Port guard (A.5.2): personas that bind a port (`lead` for the sub-task bus, `lane-runner`, `review-orchestrator` for the per-review bus, `implementer` and `e2e-writer` when they start a dev server) get one persona-specific rule: claim with `tools/port-check.sh` before launch, register a `port` catalog row, never auto-pick; on a refusal exactly one retry at candidate + 10, claimed before bind, then stop the line and report to the lead (INTERFACES 1.3.0 AM-3 / owner OQ-2).
+
+## 4c. AM-3 to AM-5 content (reconciled at item 33; each line names its amendment row)
+- `fixer`: design tier; a failure escalates one model step per ADR 0014 T1, never a third top-model attempt, not "one tier up" (amended: AM-4 27b, D2.1 `tier`, E25). `explorer`: mechanical tier by default, execute tier for multi-step derivations (amended: AM-4 27b, D2.1 `persona`).
+- `lead`: `bus.endpoint` fields include `session_id` and `topic` (D5); the sub-task bus candidate is `ports.bus_base + 20·2N`; on the spawn cap "write `stop_reason: spawn-cap`, remove the lock and exit" (C5.3) (amended: AM-4 W2-10, E34).
+- `cleanup-executor`: the file-count basis is `.git` included (amended: AM-5 19, A.5.1).
+- `review-orchestrator`: the in-run review bus lives under `RUN_HOME/review/<subtask>/<review-id>/bus/` with a fresh session `pr-review-<uuid8>` (amended: AM-5 10-B2, A.1, D5, E42).
 
 ## 5. Inherited module API
 None to import. Tools available to the author: `grep`, `python3 -I` (stdlib).

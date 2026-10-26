@@ -1,16 +1,16 @@
 # Task Spec: T05 `catalog.sh` (W1 item 5, resource catalog script)
 
-> Written 2026-10-26 (W0 item 2b) from design `part-06` §7 row 5-7, card 8 (`part-02` §2.2), `part-04` §5.6, INTERFACES 1.1.0 (AM-1; Script interfaces, A.1, A.3 Break, A.5, A.5.1, A.5.2), `part-05` §6.1 row 3 and the runtime matrix (M14).
+> Written 2026-10-26 (W0 item 2b) from design `part-06` §7 row 5-7, card 8 (`part-02` §2.2), `part-04` §5.6, INTERFACES 1.5.0 (AM-1..AM-5; Script interfaces, A.1, A.3 Break, A.5, A.5.1, A.5.2), `part-05` §6.1 row 3 and the runtime matrix (M14).
 > Author: one execute-tier agent, about 2 h with its tests; integrate serially (0.3 h). Not split. Review path: code gate (PR to `agent-hq`, `pr-review` 7 seats, mapped hermetic tests), not Rung 1.
 
 **Done condition (one, machine-checkable):** the command block in section 9 exits 0 and its last stdout line is `SCRIPT-05-OK`.
-**Tier:** execute. **Rung:** code gate. **Depends on:** INTERFACES 1.1.0; nothing else to build. Consumers: item 18 (`resource-catalog`), 19 (`delivery-cleanup`), 23 (shepherd `list --live`), 20 (`pre-pr-gate`). `tools/port-check.sh` (PR #9) is called by the caller, not by this script.
+**Tier:** execute. **Rung:** code gate. **Depends on:** INTERFACES 1.5.0; nothing else to build. Consumers: item 18 (`resource-catalog`), 19 (`delivery-cleanup`), 23 (shepherd `list --live`), 20 (`pre-pr-gate`). `tools/port-check.sh` (PR #9) is called by the caller, not by this script.
 
 ## 1. Objective
 Write `tools/delivery/catalog.sh`, the only appender of `RUN_HOME/catalog.tsv`, with the call forms, stdout and exit codes of the INTERFACES Script interfaces table, running under `/bin/bash` 3.2 on a BSD userland with no `flock`.
 
 ## 2. Context package
-- CLI (Script interfaces): env `RUN_HOME` required, absolute, last segment the run-id (unset: exit 2); `register <kind> <handle> <unit|-> <correlation_id> <source> <subtask|run> <owner_agent>`; `start|release|fail <kind> <handle>`; `keep <kind> <handle> <reason>`; `list --live [--subtask <st>]`; `audit`. stdout: the `row_id` for the five writers, the rows for `list`, `MATCH<TAB><row_id>` / `GHOST<TAB><row_id>` / `SQUATTER<TAB>-<TAB><kind>:<handle>` for `audit`. Exit 0 ok; 2 usage or rejected row; 3 lane-lease held; 4 lock timeout.
+- CLI (Script interfaces): env `RUN_HOME` required, absolute, last segment the run-id (unset: exit 2); `register <kind> <handle> <unit|-> <correlation_id> <source> <subtask|run> <owner_agent>`; `start|release|fail <kind> <handle>`; `keep <kind> <handle> <reason>`; `list --live [--subtask <st>]`; `audit`. stdout: the `row_id` for the five writers, the rows for `list`, `MATCH<TAB><row_id>` / `GHOST<TAB><row_id>` / `SQUATTER<TAB>-<TAB><kind>:<handle>` for `audit`. Exit 0 ok; 2 usage or rejected row; 3 lane-lease held; 4 lock timeout; 5 `lsof` missing or failing, no verdict (`audit` only; callers handle it) (amended: AM-5 PR10-M4).
 - Row (A.5): 12 TAB fields `ts, run_id, subtask, row_id, correlation_id, kind, handle, owner_agent, unit, state, keep_reason, source`. `row_id` = `<yyyymmddThhmmssZ>-<owner_agent>-<n>`, `n` = row count + 1 read and appended under `mkdir RUN_HOME/catalog.lock`. Supersede key `kind`+`handle`; latest row is the state. Rejected: a control character, a row over 400 bytes, a path-kind handle whose realpath is not under `RUN_HOME` or the registered `worktree_base` (read from the optional env `WORKTREE_BASE`, RESOLVED Q2).
 - Lifecycle: `register` writes `planned`; `start` `live`; `release` `released`; `fail` `failed`; `keep` `kept` with the reason (else column 11 is `-`). `start/release/fail/keep` copy columns 3, 5, 8, 9, 12 from the latest row of the pair (A:230 reading, finding s3-9 L). `lane-lease` `register` is compare-and-append under the lock: exit 3 when the latest row is `planned` or `live`, else it writes `live` directly.
 - Lock: `mkdir` lock with an `owner` file `<pid> <ISO UTC>` written by temp file plus `mv`; stale when the pid fails `kill -0`, or `owner` is missing or unparsable and the directory is older than 120 s; break = `mv <lock> <lock>.broken-<pid>-<utc>`, re-read `owner` in the renamed directory, on mismatch rename back only if `<lock>` does not exist and start over, else `mkdir`, then remove the renamed directory; retry every 1 s, exit 4 after 60 s (A.3 Break, R4-J10).
@@ -26,7 +26,7 @@ Write `tools/delivery/catalog.sh`, the only appender of `RUN_HOME/catalog.tsv`, 
 ## 4. Contracts
 | Contract | Field / value | Authority |
 |---|---|---|
-| Script interfaces | call forms, stdout, exit codes 0/2/3/4 above | INTERFACES §Script interfaces |
+| Script interfaces | call forms, stdout, exit codes 0/2/3/4/5 above (5: AM-5) | INTERFACES §Script interfaces |
 | Regexes | `unit` `^([ui][0-9]+\|-)$`; subtask `^(st[0-9]+\|pm\|run)$`; owner `agent_id` `^[a-z0-9-]+$`; audit lines `^(MATCH\|GHOST)\t[0-9]{8}T[0-9]{6}Z-[a-z0-9-]+-[0-9]+$` and `^SQUATTER\t-\t[a-z0-9-]+:.+$` | A.1, A.5, Script interfaces |
 | Handle grammar | path kinds (`tmpdir file clone bus`) abs path; `branch` `<repo>#<ref>@<base>`; `tag` `<repo>#<ref>@-`; `worktree` `<abs-path>#<repo>@<base>`; `process` pid; `port` int; `pm2-app container image workspace db` `^[A-Za-z0-9._/:-]+$`; `cron bgtask` tool id; `lane-lease` `gate-runner/<n>` or `lane/<name>` | A.5 |
 | correlation_id | `<JIRA-KEY>` \| `PR-<n>` \| `run` | A.5 col 5 |
@@ -58,10 +58,10 @@ None: `catalog.sh` is a leaf script. External commands only: `git`, `kill`, `lso
 
 ## 8. Acceptance criteria
 - [ ] Every call form, stdout shape and exit code in section 2 behaves as stated; `RUN_HOME` unset, relative, or with a last segment outside `[a-z0-9-]+` exits 2.
-- [ ] Rejections exit 2 and append nothing: unknown kind, bad `unit`/`correlation_id`/`subtask`/`owner_agent`/`source`, control character (TAB, newline, DEL) in any argument, handle outside both roots, `..` segment, relative path, symlink escaping `RUN_HOME`, port outside 1-65535, bad `branch`/`tag`/`worktree`/`lane-lease` grammar, row over the cap (a row of exactly 400 bytes passes, 401 fails), `keep` with an empty reason, a transition on a pair with no row.
+- [ ] Rejections exit 2 and append nothing: unknown kind, bad `unit`/`correlation_id`/`subtask`/`owner_agent`/`source`, control character (TAB, newline, DEL) in any argument, handle outside both roots, `..` segment, relative path, symlink escaping `RUN_HOME`, port outside 1-65535, a handle starting with `-`, an int field written `-0` or in exponent form (amended: AM-5 PR10-R2, A.5 lead rows), bad `branch`/`tag`/`worktree`/`lane-lease` grammar, row over the cap (a row of exactly 400 bytes passes, 401 fails), `keep` with an empty reason, a transition on a pair with no row.
 - [ ] `WORKTREE_BASE` (optional env): a path-kind handle under it is accepted; unset, only `RUN_HOME` is a root; a relative or whitespace value exits 2 (RESOLVED Q2).
 - [ ] `start|release|fail|keep` copy columns 3, 5, 8, 9, 12; `release` and `fail` write `-` in column 11.
-- [ ] `list --live` prints the latest row of every pair whose state is `live`, in first-seen order, optionally filtered by `--subtask`; no catalog is rc 0 and empty.
+- [ ] `list --live` prints, for every `kind`+`handle` pair whose latest row is `planned` or `live`, that latest row only, in first-seen order (amended: AM-4 row 20, E39; I script table), optionally filtered by `--subtask`; no catalog is rc 0 and empty.
 - [ ] Lane-lease: first acquire writes `live`; a second exits 3 with no row; re-acquire after `release` works; different handles are independent.
 - [ ] 10 concurrent registers yield 10 whole 12-field rows with `n` = 1..10 exactly once; the lock directory is gone afterwards.
 - [ ] Lock: a live holder makes a waiter exit 4; a dead-pid lock and a 120 s-old ownerless lock are broken (no `.broken-*` directory left); a fresh ownerless lock is not broken.

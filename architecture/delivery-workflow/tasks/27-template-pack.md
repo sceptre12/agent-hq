@@ -1,7 +1,7 @@
 # Task Spec — 27: template pack (12 files, design §5.0 to §5.11), split 4 ways
 
 > Item 27 of design §7 (`part-06-build-plan-and-sources.md:26`). Read `build-common.md` first; it is binding. Templates are documents, not skills: no SKILL.md here.
-> Spec status: written at W0 item 2b. INTERFACES version read: `1.1.0` (AM-1 port guard and security-audit applied below).
+> Spec status: written at W0 item 2b. INTERFACES version read: `1.5.0` (AM-1 port guard and security-audit applied below; AM-3 to AM-5 rows reconciled in section 4, tagged "amended").
 
 | Field | Value |
 |---|---|
@@ -36,15 +36,15 @@ Ownership rationale: the writer column of A.6 (conductor writes `state.md`, retr
 ## 4. Contracts
 | Contract | Field / value | Authority |
 |---|---|---|
-| `state.md` | one YAML doc; `interfaces_version`, `skill_versions: name: <version>@<sha256>`, gates as pointers only (a verdict is never an agent-written field, M30) | A.2, §5.0 |
+| `state.md` | one YAML doc; `interfaces_version`, `skill_versions: name: <version>@<sha256>`, gates as pointers only (a verdict is never an agent-written field, M30); per sub-task `launched_utc`, `relaunch_phase`, `reentered`, `reentered_utc` and run-level `h1_handled` (amended: AM-5 29-13/14/17/25, A.2 new fields) | A.2, §5.0 |
 | `substate.md` | header fields, `live: <n>/30 (derived)`, slot row 9 fields in §5.0 order, machine row `session= pid= live_count= build= utc=` | A.3, A.4 |
 | `catalog.tsv` | 12 columns, 17 kinds (INTERFACES 1.3.0 A.5 row 6, AM-3 errata (b)), states `planned\|live\|released\|failed\|kept`, 400-byte row, no executable column | A.5, A.5.1 |
-| `repo-profile.md` | YAML, dotted keys nested, `"yes"`/`"no"` quoted, sole authority (D22), `release_tags.*`, `e2e.*`, sensitive-path deny list, lane profile | A.2.2, §5.8 |
+| `repo-profile.md` | YAML, dotted keys nested, `"yes"`/`"no"` quoted, sole authority (D22), `release_tags.*`, `e2e.*` (`e2e.harness` `nlta\|none`), lane profile; key names as A.2.2: `sensitive_paths[]`, `ports.bus_base`, `ports.lane_base`, `zephyr.execute_tool` (not `sensitive_path_deny_list[]`, `lane_profile.ports`, `zephyr.execute_tool_name`; E36, AM-4 14), `default_branch` (AM-4 20), `lanes[].db.cleanup_cmd`, `commands.install`, `commands.pack`, `repo.consumer_repos[]` (AM-5 17, 19, 21) | A.2.2, §5.8 |
 | Tickets and `.tasks` | 11-section unit spec (§5.3b); scope globs live in `## 3` as `- <glob>` lines (scope-check reads them) | part C1.2 |
 | Release plan | step table, first column `step_id` `^[a-z0-9-]+$`, owner `agent\|human` | A.6 |
-| Checklist | every §5.7 row plus a `GATE-PASS` row; `PASS` only if each row has evidence; row ids `C1`-`C23` = the §5.7 rows in their written order, `C24` version bump (card 10 step 2b), `C25` dist scan (2c), `C26` security-audit `validate-findings.cjs` (under `full` only); `PREPR: STOP <ids>` names these ids (PC-8) | §5.7, A.7, D1.1 |
+| Checklist | every §5.7 row plus a `GATE-PASS` row; `PASS` only if each row has evidence; row ids `C1`-`C23` = the §5.7 rows in their written order, `C24` version bump (card 10 step 2b), `C25` dist scan (2c), `C26` security-audit `validate-findings.cjs` (under `full` only); `PREPR: STOP <ids>` names these ids (PC-8); a third failing round is `PREPR: STOP`, never `ESCALATE` (not a D1 token), and row C21 cites A.5.1's per-kind cleanup table (E35, AM-4 20); line 1 is validator-written and the desk reads it beside `substate.md` `prepr` (amended: AM-5 26) | §5.7, A.7, D1.1, B9 |
 | Ticket drafts | `ticket.md` opens with YAML front matter `slug`, `issuetype`, `parent` (`-` for the epic) (PC-11) | A.6, D2.1 |
-| Dispatch-plan port table | one row per bind per sub-task: `subtask`, `role` (`bus`, `review-bus`, `lane/<name>`), `base_key` (`ports.bus_base` or `ports.lane_base`), `k`, `candidate`; a candidate is claimed at launch per A.5.2, never promised free; one claimed retry at candidate + 10, then stop (PC-4; INTERFACES 1.3.0 AM-3 / owner OQ-2) | A.5.2, spec 17 Q4 |
+| Dispatch-plan port table | one row per bind per sub-task: `subtask`, `role` (`bus`, `review-bus`, `lane/<name>`), `base_key` (`ports.bus_base` or `ports.lane_base`), `k`, `candidate` = `<base> + 20·k` with `k` the per-bind index (`st<N>` bus `2N`, review bus `2N + 1`, lanes by consecutive bind index; never `10*k` or "lane index", E37, amended: AM-4 W2-3); a candidate is claimed at launch per A.5.2, never promised free; one claimed retry at candidate + 10, then stop (PC-4; INTERFACES 1.3.0 AM-3 / owner OQ-2) | A.5.2, spec 17 Q4 |
 | Planes | exact §5.11 table; RUN vs repo `plans/<epic>/`; adds the AM-1 rows `security-audit/run-<N>/` (RUN `<subtask>/`) and `skills/security-audit/` (vendored) | A.1, D6 |
 | AM-1 `state.md` | field `security_audit: guidance\|full`, default `guidance` | A.2 |
 | AM-1 `architecture.md` | exactly one required header line `security_sensitive: yes\|no` (`yes` sets `security_audit: full`); `yes` for auth, secrets, money, personal data, the e2e mock or auth-bypass gate, network-facing input parsing, or a new third-party dependency, and when unsure (INTERFACES 1.3.0 AM-3 / owner OQ-1; errata (a)) | A.2, A.6 |
@@ -64,7 +64,7 @@ Frozen INTERFACES parts A to D. Nothing to install.
 |---|---|---|---|
 | `catalog.tsv` columns | 12, no `verify_cmd` | 13 with a command column | A.5 |
 | Task spec sections | 11, six pre-flight checks | 10 or an added section | §5.3b |
-| Gate file names | `H0.ok`, `H1.ok\|.changes\|.reject`, `H-e2e.<subtask>.ok`, `H-prod.<step_id>.ok` | `H-pr` as a file | A.2.1 |
+| Gate file names | `H0.<run-id>.ok`, `H1.<run-id>.ok\|.changes\|.reject`, `H-e2e.<subtask>.<run-id>.ok`, `H-prod.<step_id>.<run-id>.ok`, `grant.<subtask>.<n>.<run-id>.ok`, `H-destructive.<row-id>.<run-id>.ok` (gate-file names carry the run id; amended: AM-5 26, A.2.1) | `H-pr` as a file | A.2.1 |
 | Review record | 3 lines, `CODE-GATE-REVIEW: PASS head=<sha> blocking=0 medium=0` | 2 lines | A.6 |
 | sha | 40-hex everywhere | abbreviated | A.1 |
 | Plane for `release-plan.md` v1, `retro.md` | RUN | `plans/<epic>/` | A.6 |

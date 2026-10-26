@@ -2,7 +2,7 @@
 
 > Item 26 of design §7 (`part-06-build-plan-and-sources.md:25`). Heavy item. Read `build-common.md` first; it is binding.
 > Branch/worktree: no branch work by the author (`delivery-w0` worktree; the integrator commits).
-> Spec status: written at W0 item 2b. INTERFACES version read: `1.1.0` (AM-1 landed; re-checked, part B unchanged by it, see §11).
+> Spec status: written at W0 item 2b. INTERFACES version read: `1.5.0` (AM-1 landed and re-checked, part B unchanged by it, see §11; AM-4 and AM-5 part B changes reconciled in section 4, tagged "amended"; integrator note, `reviews/26-delivery-desk-2b.md`).
 
 | Field | Value |
 |---|---|
@@ -42,7 +42,10 @@ Write the `delivery-desk` skill (run by the desk session, D3) and its machine-re
 | Reason codes | 10, with class: terminal `sender schema hash repo policy`; curable `marker order stale-session gate-missing action-failed`; check-to-code pairings; fresh id on a curable resend, never resend a terminal, never another channel | B2.1; OP5 B, OP10 A |
 | Check order | 12 steps, first failure wins; replay answered before copy and hash; no `.out` for `sender`; `.inflight` directory plus `target` line and the fresh-id duplicate guard | B2 idempotency, B3 |
 | `HUSKY=0` (N10) | every desk `push` and `pr-create` carries `HUSKY=0` as an inline per-command assignment, never exported; `--no-verify` never; the `GATE-PASS` record `gate-runs/<expect_head>.md` still gates every push and PR creation | A.7; `owner-decisions.md:80` |
-| `tag-push` (N11) | behaviour per repo profile: `release_tags.used`, `.pattern`, `.approval`; no profile entry, `used: "no"`, pattern mismatch or malformed entry = `REJECTED policy`; `approval: human` needs `H-prod.<step_id>.ok` else `gate-missing`; `step_id` field | B4; `owner-decisions.md:81-84` |
+| `tag-push` (N11) | behaviour per repo profile: `release_tags.used`, `.pattern`, `.approval`; no profile entry, `used: "no"`, pattern mismatch or malformed entry = `REJECTED policy`; `approval: human` needs `H-prod.<step_id>.<run-id>.ok` (amended: AM-5 26) else `gate-missing`; `step_id` field | B4; `owner-decisions.md:81-84` |
+| Push, fetch, merge base (amended: AM-4 24-Q2, W2-4, W2-7, 20; AM-5 26) | `push`: the first push of a PR needs `GATE-PASS` and `PREPR: PASS` for `expect_head`; a later push (exactly one open PR for the head's branch) needs the `GATE-PASS` record plus `RUN_HOME/ci/<pr>.md` naming that head or `PREPR: PASS` for it; later pushes only fast-forward; `fetch` requesters are `delivery-run` and `delivery-cleanup`, a refused relay is `<id>.desk.refused`; `pr-create`/`pr-merge` base is the profile `default_branch`; defaults remote `origin`, `--repo` from the origin URL, one request at a time | B4, B9 |
+| `PREPR` read (amended: AM-5 26) | the desk reads `PREPR: PASS` from `RUN_HOME/review/<subtask>/checklist-<subtask>.md` line 1 (validator-written) and cross-checks `substate.md` `prepr`; both must agree, else `REJECTED marker` | B9; `owner-decisions.md` "delivery-desk D7 stop" |
+| Reason codes and gate lines (amended: AM-4, AM-5 26, 21, 29) | `test-report-push` first call with `dry_run: false` is `policy`; `jira-create` with a missing `parent` is `schema`; B8 gains `GATE grant.<subtask>.<n> ok <text>`, `GATE H-destructive.<row-id> ok <text>` and `GATE RESUME.<subtask> ok <text>`; every gate-file name carries the run id (A.2.1) | B9, B8, A.2.1 |
 | Markers re-derived | head, gate run, review record 0B/0M plus distinct `Verified-By`, H-pr read-back (human login, not author, not `[bot]`, `commit_id == headRefOid`), CI aggregate, order, `merge_reach`, content-merged for `branch-delete` | B5 |
 | Result files | envelope and per-verb fields, `additionalProperties: false` on `DONE`, envelope only on `REJECTED`; `.out` atomic at 0600, also for `REJECTED` except `sender` | B6 |
 | Redaction, human gate lines | scan before use, a hit is `policy`; `GATE`, `ANSWER`, `REBIND` regexes and the gate x verdict matrix | B7, B8 |

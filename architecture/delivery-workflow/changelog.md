@@ -6,7 +6,7 @@ Every panel finding (B, M, A), every §8 revision-list line, and every owner dec
 
 | # | Finding (short) | Where in v2 | How |
 |---|---|---|---|
-| B1 | GITOP/GITDONE unauthenticated free-form channel | §6.3, §2.2 card 15, §0 line 2 | Replaced by `delivery-desk`: request file at 0600, closed per-verb JSON schema (no flags, no force), sender id bound to the registered lead/conductor, idempotency key = id, desk re-derives every marker, `DONE`/`REJECTED` with reason codes, atomic 0600 result files, per-request account lock, logging. CI watching = `ci-status`/`ci-logs` verbs on the tick. Transport is the new `DESK` verb added to permission-tiers-02 §2 by ADR amendment (T1). |
+| B1 | GITOP/GITDONE unauthenticated free-form channel | §6.3, §2.2 card 15, §0 line 2 | Replaced by `delivery-desk`: request file at 0600, closed per-verb JSON schema (no flags, no force), sender id bound to the registered lead/conductor, idempotency key = id, desk re-derives every marker, `DONE`/`REJECTED` with reason codes, atomic 0600 result files, logging (no per-request account lock: no accounts, R2-4; INTERFACES B3; erratum E6). CI watching = `ci-status`/`ci-logs` verbs on the tick. Transport is the new `DESK` verb added to permission-tiers-02 §2 by ADR amendment (T1). |
 | B2 | Permission-tiers amendment and decision 13 unscheduled | §6.3, §7 item 3b and waves W0/M/P0-P1 | The amendment is now scheduled: W0 item 3b (ADR adding `DESK`), owner ratification gates W1 item 26 (`delivery-desk`); interim fallback: the human runs the desk verbs by hand from the request file. Pilot target (D13) is <pilot-app> after the move, scheduled as P1. |
 | B3 | Circular provenance rule | §2 intro (b), §2.2 cards 7/11/13, §7 items 23-25, P1-P2 | D14: the three skills ship as pilot drafts with `Provenance: pending pilot`, used in P1, closed in P2. Wave labels corrected: W3 is review, P1 is the pilot. |
 | B4 | `ROLES` subset strands RACI | §2.3 pr-review (a), §2.2 card 4, §7 item 4, P0, §8 item 2 | Redefined as a RACI remap (absorbing seat or N/A per omitted check, derived Consulted lists, hard gate timeout), enabled only after the 3-seat probe (D12). Until then 7 seats everywhere for code. |
@@ -19,7 +19,7 @@ Every panel finding (B, M, A), every §8 revision-list line, and every owner dec
 | M6 | `disable-model-invocation` contradiction | §2 intro (a), §2.2 common note | D16: nowhere in the family; authoring-checklist exemption recorded; §8 item 4b. Panel's "entry skill only" superseded by D16. |
 | M7 | Role-name collision | §3.5 | XC roles are lenses; the severity classifier seat gets a distinct name from the `pr-review` agent id. |
 | M8 | Completion-signal conflict; ADR 0023 not in gate | §2.3 wave-execution, §2.2 card 6, §7 items 3 and 9 | ADR 0023 amendment is YES (owner); `delivery-run` builds on extended `wave-execution`; `UNIT-VERDICT` is a bus post, the sole completion signal; status files are heartbeat only. Panel's "drop the extension" alternative superseded by the owner's ADR 0023 yes. |
-| M9 | Topic-template drift | §5.0 | `pr-check-N-closed` literal; conductor topic table; conductor and lead registered consumers. |
+| M9 | Topic-template drift | §5.0 | `pr-check-N-closed` literal; topic table with no conductor topic (conductor messages are inbox files, INTERFACES C5, D4; erratum E7); lead registered consumers. |
 | M10 | No Verified-By; no durable record carrier | §2.2 card 10 steps 11 and record path, §6.3 `pr-merge` | Verified-By seat distinct from Reviewed-By; record under `RUN_HOME/review/<subtask>/`; desk re-derives record 0B/0M at the path; delta-verify trigger in §4. |
 | M11 | Two cron consumers | §4 Merged tick | One merged prompt, `run_in_background`, stall action is a superset of the CLAUDE.md rule; tick lag measured in P1. |
 | M12 | Shared-host resources not namespaced | §4 Namespacing | run-id and sub-task in every pm2 app, data_dir, temp dir, worktree; port-claim register; `pm2 jlist` check; D4 resolved the literal 30. |
@@ -44,7 +44,7 @@ Every panel finding (B, M, A), every §8 revision-list line, and every owner dec
 | M31 | MVP re-cut | §0 line 10, §7 items 23-25 | Owner chose FULL BREADTH with the three pilot drafts at draft quality (D14, MVP ruling). |
 | A1 | Evidence labels; undefined terms | §0 Evidence labels, §0.1 Profiles, §6.1 (command, date, profile per row) | Applied. |
 | A2 | Control-plane files writable by all | §3.0, §3.1 Writes column, §2.2 card 7 | Each agent writes only `status/<own-id>.md`; fixed-template nudges; verifier re-runs the done command. |
-| A3 | `HUSKY=0` skips scanners | §1 stage 5, §3.0, §5.7 | D21: allowed in the create-pr flow only after per-commit affected lint+test+typecheck passes are recorded; secret/SAST pre-check stays in pre-pr-gate. |
+| A3 | `HUSKY=0` skips scanners | §1 stage 5, §3.0, §5.7 | D21: allowed in the create-pr flow only after the affected lint+test+typecheck pass is recorded (once per push or batch since R2-3; erratum E1); secret/SAST pre-check stays in pre-pr-gate. |
 | A4 | read_messages 50 vs 200 | §2.2 card 10 step 6, §2.3 pr-review (c) | `limit 200`, `peek:true` on every conductor read. |
 | A5 | UI e2e lane runtime | §5.3 lane table, §5.8 lane resource profile | Per-lane ports and browser pre-stage via desk INSTALL; device lanes human-run; every port cataloged. |
 | A6 | Home-vs-work symmetry asserted | §6.5 | Distribution row: copy agent-hq, symlink at install (D24); `version:` in frontmatter recorded in state.md. |
@@ -55,7 +55,7 @@ Every panel finding (B, M, A), every §8 revision-list line, and every owner dec
 | Revision-list line | v2 |
 |---|---|
 | [B1] closed per-verb argv schema, sender binding, idempotency, desk re-derivation | §6.3 |
-| [B1] reply set, CI watching as executor-sent verb on the tick, atomic 0600 results, account lock | §6.3 |
+| [B1] reply set, CI watching as executor-sent verb on the tick, atomic 0600 results, no account lock (R2-4; erratum E6) | §6.3 |
 | [B5] lead sole writer, per-agent rows, pid+UTC stale-lock rule | §4 Slot ledger |
 | [B5] seat table; Sonnet-only conductor statement | §3.1 |
 | [B2] schedule the amendment; decisions 3 and 13 as gates; interim fallback | §7 item 3b (W0, gates item 26), §6.3 fallback, §7 P1 (D13) |
@@ -72,12 +72,12 @@ Every panel finding (B, M, A), every §8 revision-list line, and every owner dec
 | [M6] disable-model-invocation on entry skill only | Superseded by D16 (none) |
 | [M22] per-skill inputs/outputs, enums, INPUT-ERROR | §2 intro, §7 item 2 |
 | [M10] Verified-By and durable record path | §2.2 card 10 |
-| [M9] `pr-check-N-closed`; conductor topic table | §5.0 |
+| [M9] `pr-check-N-closed`; topic table, no conductor topic (erratum E7) | §5.0 |
 | [M24] split diagnoser and fixer | §2.2 card 11 |
 | [M25] scope-check preventive; dependency-edit bans | §2.2 card 10, §3.0, §5.8 |
 | [M27] strip approve/trigger-prod; irreversible verbs | §6.3, §2.1b |
 | [M28] redaction gate; no secrets row | §2.2 card 10, §5.7 |
-| [A3] HUSKY=0 after recorded hook pass | §1 stage 5, §3.0 (D21 form: per-commit affected gates) |
+| [A3] HUSKY=0 after recorded hook pass | §1 stage 5, §3.0 (D21 form: affected gates once per push or batch, R2-3; erratum E1) |
 | [M30] citations out of SKILL.md | §0.5 intro, §3.6 |
 | [M16] shared-file owner table, overlap, merge order | §2.2 card 5, §5.3, §4 |
 | [M2] 14 of 14 -> 13 of 14; slot-ledger.sh | §7 (counts derived; slot-ledger.sh dropped) |
@@ -131,7 +131,7 @@ Every panel finding (B, M, A), every §8 revision-list line, and every owner dec
 | D18 sign-off = executing human; no role map | §1 gates, §5.2 item 13, §9 | Role map from ways-of-working not used. |
 | D19 learnings via the Hermes port in agent-hq | §1 stage 8, §5.11, §6.1 row 11, §6.2 | Door recipe; capture queue until the owner turns it on. |
 | D20 always full width, no ramp-up | §4 Numbers, §2.2 card 6 | Applied; XC playbook ramp overridden, serial Wave 0 contracts kept as a dependency. |
-| D21 work-only; HUSKY=0 allowed with per-commit affected gates | §0 framing, §1 stage 5, §3.0, §5.7, §2.3 feature-change | Applied; `GATE-PASS` record per commit. |
+| D21 work-only; HUSKY=0 allowed with per-commit affected gates | §0 framing, §1 stage 5, §3.0, §5.7, §2.3 feature-change | Applied; `GATE-PASS` record once per push or batch (R2-3; INTERFACES A.7; erratum E1). |
 | D22 repo-profile sole authority | §5.8, §5.3 | Applied. |
 | D23 ci-fix-loop never edits pipeline definitions | §2.2 card 11, §1 stop-the-line | Applied. |
 | D24 symlinks per ADR 0009 at install | §6.5 | Applied at the owner's install step only. |
@@ -198,9 +198,9 @@ Every round-2 id maps to a v2 section; "line" cites are the first words of the e
 | M16 review-record contract | §5.0 "Review record contract"; §2.2 card 10 step 11 | `CODE-GATE-REVIEW: PASS head=... blocking=0 medium=0` adopted as written by pr-review; `Verified-By: <seat> head=<sha>` appended. |
 | M17 waves mapping | §2.3 wave-execution row; §7 items 2 and 3 | Unit-table to `waves/` mapping in INTERFACES.md; amended preflight rules in the ADR 0023 amendment; plan-check runs them before round 1. |
 | M18 fixer disjointness | §4 rule 8c; §2.2 card 10 step 7; §2.2 card 6 | One fixer per worktree at a time or disjoint file sets with serial integration; `file_set` per fixer. |
-| M19 cross-sub-task sequencing | §4 rule 8b; §1 stage 3; §5.3; §2.2 cards 1 and 6 | Dependency-free with disjoint globs or strictly ordered; `RELEASE`/`INVALIDATE` conductor messages via inbox files and topic; successor starts after predecessor `merge_sha`. |
+| M19 cross-sub-task sequencing | §4 rule 8b; §1 stage 3; §5.3; §2.2 cards 1 and 6 | Dependency-free with disjoint globs or strictly ordered; `RELEASE`/`INVALIDATE` conductor messages via inbox files only, no conductor topic (INTERFACES C5, C6; erratum E7); successor starts after predecessor `merge_sha`. |
 | M20 seat table | §3.1 new rows; lead row; §2.2 card 6 | All personas rowed; Integrator is the single writer of the sub-task branch; lead writes state only. |
-| M21 claude-p control channel | §2.2 card 6 "Control channel"; §5.0 `inbox/`; §7 item 2 | Inbox files plus conductor topic for claude-p leads; resume invocation defined. |
+| M21 claude-p control channel | §2.2 card 6 "Control channel"; §5.0 `inbox/`; §7 item 2 | Inbox files only, no conductor topic (§5.0; INTERFACES C5, D4; erratum E7); resume invocation defined. |
 | M22 plan-plane artifacts | §1 stage 3; §5.3; §5.8b "Plan-plane PR"; §7 P0 | Sub-task 0 plan PR first in merge order; globs in the owner table; acceptability confirmed at P0. |
 | M23 NLTA not unattended | §3.6 step 3 "In-skill prompts"; §7 P0 | Stage 1 plan folded into the batched checkpoint; `nl-run-e2e` args from the unit spec; non-interactive run measured at P0; plugin-internal npx noted. |
 | M24 Tier 1 location | §3.6 step 8; §5.8b Testing row; §1 stages 5b and 6; §6.3 `ci-status-main` | E2E is step 1 of the merge pipeline (post-merge); PR-time Tier 1 unmeasured; desk reads the merge-pipeline execution in 5b and 6 with the response defined. |

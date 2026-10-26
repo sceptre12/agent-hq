@@ -30,7 +30,7 @@ outside the `spec_root` hash: `max_concurrent` (integer >= 1, the caller's free
 slots; absent = unbounded), `invocation` (`^[0-9]+$`), `tier_override`
 (`<work_item>=<tier>`, repeatable: raises that work_item agent's tier for this
 invocation only; recorded as `tier` in its dispatch record line). Optional bundle fields: `session_id`, `output_topic`,
-`bus_endpoint`; optional per-work_item fields: `persona`, `lane`, `depends_on`,
+`bus_endpoint`, `gates_command`; optional per-work_item fields: `persona`, `lane`, `depends_on`,
 `done_condition` (`spec-format.md`). A bundle that declares none of them runs
 exactly as version 1.0.0 did.
 
@@ -139,7 +139,10 @@ Establish this before doing anything else — it decides every dispatch call bel
         reworded. The agent passes the work_item only when `command` exits 0,
         its last stdout line equals `token`, and the `exit_criteria` hold for
         that work_item's output. Which output it reads is the
-        caller's brief. A barrier wave passes only when **every** gate agent
+        caller's brief. With a bundle `gates_command`, the gate agent that
+        gates a work_item also runs it on that work_item's posted head,
+        holding a lane lease like a worker, and is the single writer of
+        `gate-runs/<head>.md` (INTERFACES 1.8.0 AM-8 V14; `references/frontier-mode.md`). A barrier wave passes only when **every** gate agent
         passes (no majority).
       If a work_item declared an `output_schema`, validate its post against it
       here; a malformed post makes that agent's completion incomplete (a gate
@@ -214,6 +217,12 @@ Match the idiom of `skills/loop-controller/SKILL.md`:
   record under the agent's id.
 - `persona` and `lane` are names only: the brief carries `persona`; leasing a
   lane's real resources is the caller's.
+- Depth in a delivery run (INTERFACES 1.8.0 AM-8 V3): the engine (this skill)
+  runs in the lead session; work_item (unit), gate and fix agents are depth 1;
+  a unit may dispatch its reviewer at depth 2; a depth-2 agent dispatches nothing.
+- A dependency on a blocker's integration is an edge to that blocker's Integrator
+  work_item in the same wave; across waves, wave order is the dependency
+  (INTERFACES 1.8.0 AM-8 V13; `references/frontier-mode.md`).
 
 ## Prohibited Side Channels
 

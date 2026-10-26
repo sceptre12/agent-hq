@@ -27,4 +27,6 @@ The D2.3 `pr-review` inputs (INTERFACES 1.5.0, AM-5 10-B2) are `ROLES`, `SEAT_ID
 `BUS_PORT`, `SECURITY_AUDIT`, `PR_REVIEW_MODE`, `STACK_BASE`, `STACK_HEAD` and `RECORD_PATH`; `RUN_ID` and
 `SUBTASK` are the in-run identity of the review-bus path `RUN_HOME/review/<subtask>/<review-id>/bus/`
 (A.1, D5), and `BUS_PORT` is required when `RUN_HOME` is set, optional standalone (D2.3). The other rows
-are dispatch-prompt fields validated here. Record line 2 is never written with an empty field.
+are dispatch-prompt fields validated here. In a run their producer is `pre-pr-gate` step 11, which passes
+`REPO_DIR`, `SEAT_ID` (the orchestrator's own seat id), `MEMBER_SESSION_NAME` and `TASK_ID` (D2.3 producer;
+INTERFACES 1.8.0 AM-8 V15). Record line 2 is never written with an empty field.

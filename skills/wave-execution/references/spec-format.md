@@ -26,7 +26,7 @@ spec_root/
 Waves MUST be numbered contiguously starting at 1 — no gaps, no duplicates. In
 Option A, `## Wave N` headers must appear in ascending numeric order; in Option B,
 filenames must sort into that same order. In both options the bundle-level fields
-(`dispatch_budget`, `session_id`, `output_topic`, `bus_endpoint`) live in the optional
+(`dispatch_budget`, `session_id`, `output_topic`, `bus_endpoint`, `gates_command`) live in the optional
 `bundle.md` at the `spec_root` root, the bundle header; a bundle without them needs no
 `bundle.md`.
 
@@ -136,7 +136,10 @@ cannot name an item generated at runtime.
 
 No passed gate is reopened within an invocation, so a failed or escalated work_item never has a
 live dependent: non-release is the cancellation. The checkpoint records per-work_item gate
-passes; the checkpoint alone decides on resume which work_items have passed.
+passes; the checkpoint alone decides on resume which work_items have passed. A dependency across
+waves is expressed by wave order, never an edge; in a delivery run a dependent that needs a blocker
+integrated declares `depends_on` on the blocker's Integrator work_item in its own wave (INTERFACES
+1.8.0 AM-8 V13; `frontier-mode.md`).
 
 ## Bundle-level and invocation values (optional — ADR 0054 A0, A6, A7, A9)
 
@@ -149,6 +152,7 @@ them:
 | `session_id` | `^[a-z0-9-]+$` | Replaces the minted `wave-exec-<date>-<uuid>` and is the same value on every invocation, resume included, so every `{SESSION_ID}-*` topic is stable. Absent = minted per invocation as today. Two bundles differing only in `session_id` hash differently and keep two checkpoints. |
 | `output_topic` | one literal topic, no placeholder | The one topic for completions and gate verdicts of every wave; overrides per-wave `output_topic`. `{SESSION_ID}-fix-loop-output` and `{SESSION_ID}-escalation` are unchanged. Absent = per-wave values work as before. |
 | `bus_endpoint` | `$DELIVERY_ROOT`-relative path `<run-id>/<subtask>/bus.endpoint` (never absolute: the bundle is committed and hashed) | Attach to the caller-owned bus the file names. The file holds `key=value` lines `port, data_dir, pm2_app, pid, session_id, topic`; the port is read only from `$data_dir/port`, and `session_id=` and `topic=` must equal the bundle's; a mismatch or a missing key halts the run before any dispatch. Declared without a bundle `session_id` or `output_topic`, or invoked without `invocation`, it halts before any dispatch with the one line `BUNDLE-ERROR <field>` (INTERFACES 1.5.0 C1.1). The skill skips its own bus bootstrap (step 4) and `cleanup()` (step 8); the identity preflight, `start_session` (step 5) and the final result post still run. When declared, the skill also appends a dispatch record (`dirname(<resolved bus_endpoint>)/dispatch/<invocation>.jsonl`, one JSON line per agent before it is dispatched). Absent = today's bootstrap and teardown. No preflight rule. |
+| `gates_command` | one non-empty line: the repo's gate command (in a delivery run copied from the repo profile `gates.command`) | The gate agent that gates a work_item runs it on that work_item's posted head, holding a lane lease like a worker, and is the single writer of `gate-runs/<head>.md`; the controller never runs it (`frontier-mode.md` § `gates_command` gate run; INTERFACES 1.8.0 AM-8 V14). Validated inline (non-empty, one line), not by a numbered rule. Absent = no gate command run. |
 
 **Invocation arguments — not spec fields.** They are passed by the caller on each invocation,
 never written in `spec_root`, so they never change the content hash and a resume still finds

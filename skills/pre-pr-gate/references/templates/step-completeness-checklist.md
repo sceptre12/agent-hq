@@ -26,7 +26,7 @@ Fill the evidence cell with a path, a command and its exit status, or a sha. `n/
 |---|---|---|---|
 | C1 | Ticket linked and status correct | ticket key, `tickets.tsv` row, Jira status | PASS/FAIL |
 | C2 | Child coverage: every child ticket of the sub-task has a unit and a commit | child keys -> unit ids -> shas | |
-| C3 | Branch rebased onto the base, and plan-check verdict PASS (INTERFACES 1.8.0 AM-8 V9: the completeness validator reads `RUN_HOME/<subtask>/gate/plan-check.md`) | base sha, `git merge-base --is-ancestor` exit, head sha (40-hex); `gate/plan-check.md` line 1 `PLAN-CHECK: clean` | |
+| C3 | Branch rebased onto the base AND plan-check verdict PASS, both (INTERFACES 1.8.0 AM-8 V9: the completeness validator reads `RUN_HOME/<subtask>/gate/plan-check.md`; INTERFACES 1.9.0 AM-9 G2/7: a non-clean plan-check before round 1 feeds the round-1 fixer and does not block by itself) | base sha, `git merge-base --is-ancestor` exit, head sha (40-hex); `gate/plan-check.md` line 1 `PLAN-CHECK: clean` | |
 | C4 | Each acceptance criterion has a test | AC id -> test path | |
 | C5 | Each e2e row exists, its Gherkin checkpoint is recorded and its spec ran | test-plan row -> spec path -> run output path | |
 | C6 | `GATES` (profile `gates.command`) exit 0 | command, exit status, runner id | |

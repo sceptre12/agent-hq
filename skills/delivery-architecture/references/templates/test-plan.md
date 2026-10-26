@@ -2,7 +2,7 @@
 
 Purpose: how the epic is proven, before merge and after. Path `plans/<epic>/test-plan.md` (v0, written at stage 2). `post-merge-verify` runs the post-merge rows and records results in `RUN_HOME/postmerge-<sha>.md`.
 
-**Writer / Reader:** writer `delivery-architecture` (v0, INTERFACES A.6), except §A3: its e2e rows and the batched `.feature` list are written by `delivery-dispatch-plan` at stage 3 from v0 (INTERFACES 1.8.0 AM-8 V12); readers `delivery-dispatch-plan` (e2e per unit), `pre-pr-gate`, `post-merge-verify`, `release-track`, the human at H-e2e.
+**Writer / Reader:** writer `delivery-architecture` (v0, INTERFACES A.6), except §A3: its e2e rows and the batched `.feature` list are written by `delivery-dispatch-plan` at stage 3 from v0 (INTERFACES 1.8.0 AM-8 V12), while the values of its later columns live in the A.3 `substate.md` `e2e_*` fields of the e2e-writer and the lane-runner (INTERFACES 1.9.0 AM-9 G2/53); readers `delivery-dispatch-plan` (e2e per unit), `pre-pr-gate`, `post-merge-verify`, `release-track`, the human at H-e2e.
 
 ## Rules
 - Strategy line and phase order come from the repo profile (`repo-profile.md`, INTERFACES A.2.2); link it as `@<40-hex sha>`, never copy it.
@@ -30,9 +30,9 @@ Phase order: <from the profile, e.g. unit, integration, e2e, post-merge>
 | standardization-precheck | repo conventions satisfied | <profile command> | clean |
 
 ### A3. e2e rows (omit when every unit is `none`; writer `delivery-dispatch-plan`, stage 3, AM-8 V12)
-| sub-task | unit slug | .feature path | Gherkin checkpoint date | generated spec path | nl-run-e2e result | auto-healed diffs reviewed (yes|no) |
+| sub-task | unit slug | .feature path | Gherkin checkpoint date | generated spec path | nl-run-e2e result | auto-healed diffs reviewed (reviewed|none) |
 |---|---|---|---|---|---|---|
-At stage 3 the writer fills sub-task, unit slug and `.feature` path; the later columns stay `-` until their run. Gherkin checkpoint date is `YYYY-MM-DD`; the human signs H-e2e per sub-task (INTERFACES A.2.1).
+At stage 3 the writer fills sub-task, unit slug and `.feature` path; the later columns stay `-` in this file: their values are the A.3 `substate.md` fields `e2e_gherkin_utc` and `e2e_spec_path` (written by the e2e-writer after `H-e2e.<subtask>.<run-id>.ok`) and `e2e_run_result` and `e2e_heal_review` (written by the lane-runner after `nl-run-e2e`) (INTERFACES 1.9.0 AM-9 G2/53). Gherkin checkpoint date is `YYYY-MM-DD`; the human signs H-e2e per sub-task (INTERFACES A.2.1).
 
 #### Batched `.feature` list per sub-task (H-e2e)
 One block per sub-task with e2e rows, written by `delivery-dispatch-plan` at stage 3 (AM-8 V12); the desk's H-e2e `ref=` is the sha256 of this list for that sub-task (INTERFACES A.2.1), so change it only before H-e2e.

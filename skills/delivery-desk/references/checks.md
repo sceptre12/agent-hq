@@ -96,7 +96,7 @@ from it.
 - Scan the file once, and use the bytes that were scanned (read it into the desk's own memory or
   a desk-owned copy under `desk-inbox/`), so a file changed after the scan is never sent (same
   reasoning as M29 copy and hash; author default).
-- Log lines (`desk-log/`) and a `.out` `detail` are masked before they are stored: each pattern-file hit is replaced by `[REDACTED]` and the line is kept (B7, INTERFACES 1.8.0 AM-8 V7). Masking applies to logs only; a request body or attached file with a hit is refused `policy` (above), never masked and sent.
+- Log lines (`desk-log/`), `ci-logs` output and a `.out` `detail` are masked before they are stored: each pattern-file hit is replaced by `[REDACTED]` and the line is kept (B7, INTERFACES 1.8.0 AM-8 V7; CI logs masked, not refused, INTERFACES 1.9.0 AM-9). Masking applies to logs only; a request body or attached file with a hit is refused `policy` (above), never masked and sent.
 
 ## Markers (check 8, B5)
 

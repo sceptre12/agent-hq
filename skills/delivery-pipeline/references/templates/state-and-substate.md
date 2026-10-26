@@ -3,7 +3,7 @@
 Fill-in skeletons for the two run-state files and the two single-line records that sit beside them (slot row, machine ledger row). Every field name, enum and regex below is copied from `INTERFACES.md` 1.7.0 (AM-6 and AM-7 applied); if this file and INTERFACES differ, INTERFACES wins and this file is the defect. Regex dialect: POSIX ERE.
 
 - **Writer / Reader (`state.md`):** writer the conductor (`delivery-pipeline`) only. Readers: conductor at resume, `delivery-run` Step 0 (`interfaces_version` only), `delivery-desk` (gate pointers, `plans_dir`, `repo_profile` pinned `@<sha>`), the human.
-- **Writer / Reader (`substate.md`):** writer the sub-task lead only. Readers: conductor (never the bus), shepherd tick, lead at resume. Two writers on one `substate.md` is stop-the-line `S6`.
+- **Writer / Reader (`substate.md`):** writer the sub-task lead only, except that the desk clears `stop_reason` when it writes `RESUME.<subtask>.<run-id>.ok` (the S6 carve-out, INTERFACES 1.9.0 AM-9 G1/42). Readers: conductor (never the bus), shepherd tick, lead at resume. Two writers on one `substate.md` is otherwise stop-the-line `S6`.
 - **Writer / Reader (slot row):** the lead writes, renames `.row` to `.stale` or `.freed`; the shepherd never writes rows (it flags `FREE-CANDIDATE <agent>`).
 - **Plane:** all of these are RUN (`RUN_HOME` = `$DELIVERY_ROOT/<run-id>`, never `/tmp` or `$TMPDIR`; INTERFACES A.1, D6).
 - **Atomic write (A.1):** write a temp file in the same directory, then `mv` into place. One YAML document per file, no front matter.
@@ -54,6 +54,7 @@ subtasks:
     reentered: false                  # true|false; set with reentered_utc at a back-edge, kept
     reentered_utc:                    # ISO UTC of the back-edge, else empty
     pm_sha:                           # post-merge re-entry st<N> only: the pm_sha it was added for, in the same write (A.8, 29-36)
+    stop_reason:                      # conductor-detected stops only (stale-session, ledger refusal, relay refusal), A.3 enum; else empty (INTERFACES 1.9.0 AM-9)
 h1_handled:                           # <H1 file name> <utc>: the H1.* file already handled (A.8, 29-17)
 skill_versions:
   delivery-pipeline: <version>@<sha256 of installed SKILL.md>
@@ -76,6 +77,7 @@ machine_ledger_row: <abs path>        # $DELIVERY_ROOT/machine/<session>.row of 
 | `security_audit` | the conductor sets `full` only on an explicit operator request or when `architecture.md` carries the header line `security_sensitive: yes`; it is passed on as the input `SECURITY_AUDIT` (D2.2, D2.3). Guidance mode writes no file and launches no agent. AM-1 |
 | `subtasks[].launched_utc`, `relaunch_phase` | written with `session` (and `state: released` when released at launch) in one `state.md` write, after every fail-closed check and the worktree add, before the exec (A.8, 29-13); a lead with no `substate.lock` newer than `launched_utc` and no `register.consumed` 10 minutes after it, and no live `homes/<session>/pid`, is a startup failure (one-relaunch rule) |
 | `subtasks[].reentered`, `reentered_utc` | set together at a back-edge, which also clears `merge_sha` in the same write, before any `INVALIDATE` file (C8) |
+| `subtasks[].stop_reason` | written by the conductor for the stops it detects (`stale-session` from a `RUN_HOME/pm/outbox/stop-<utc>.md` file, a ledger refusal, a relay refusal), A.3 enum; the lead's own stops stay in `substate.md`; emptied in the same write that moves the sub-task out of `stopped` on `RESUME.<subtask>.<run-id>.ok` (INTERFACES 1.9.0 AM-9 G1/6, G1/42) |
 | `h1_handled` | an `H1.*` file is handled once, keyed on its `utc=` (A.8, 29-17) |
 | `primary_repo` | recorded before `plans_dir` is created; in a multi-repo epic the primary profile governs and links the others (`linked_profiles[]`, A.2.2) |
 
@@ -88,7 +90,7 @@ machine_ledger_row: <abs path>        # $DELIVERY_ROOT/machine/<session>.row of 
 | `phase: building` read in the lead's `substate.md` | `building` | `substate.md` |
 | `pr-create` `.out` | `pr-open` (`pr` set) | desk result |
 | `pr-merge` `.out` | `merged` (`merge_sha` set) | desk result |
-| `stop_reason` in `stop-the-line:*\|d7-round3\|human\|port-refused\|stale-session` (`stale-session` is written by the conductor from a `STOP stale-session` post and is also a human step, INTERFACES 1.8.0 AM-8 V1; `spawn-cap` keeps the state and triggers a C5.3 relaunch; `invalidate` keeps it until the fresh `RELEASE`) | `stopped` | `substate.md` |
+| `stop_reason` in `stop-the-line:*\|d7-round3\|human\|port-refused\|stale-session` (`stale-session` is recorded by the conductor in `state.md` `subtasks[].stop_reason` from a `pm/outbox/stop-<utc>.md` file and is also a human step, INTERFACES 1.9.0 AM-9 G1/6; `spawn-cap` keeps the state and triggers a C5.3 relaunch; `invalidate` keeps it until the fresh `RELEASE`) | `stopped` | `substate.md`, or `state.md` `subtasks[].stop_reason` for a conductor-detected stop |
 | `RUN_HOME/gates/RESUME.<subtask>.<run-id>.ok` (desk-written, owner action) | leaves `stopped`: the only exit | A.8, B9 |
 | `CLEANUP DONE <subtask>` | `cleaned` (for `pm` only once `release_record` line 1 is terminal and `cleanup-<run-id>-pm.md` is newer than the current `pm` `launched_utc`) | cleanup record |
 | back-edge: sub-task re-enters stage 4 | `pr-open` or `merged` to `building`; `merge_sha` cleared in the same write when `INVALIDATE ... predecessor-reentered` goes to successors | part C6 |
@@ -162,6 +164,10 @@ postmerge:                            # PASS|FAIL, pm lead only
 pm_sha:                               # pm lead only: merge_sha of the last sub-task merge
 postmerge_record:                     # pm lead only: abs path of postmerge-<sha>.md
 release_record:                       # pm lead only: abs path of release-<sha>.md
+e2e_gherkin_utc:                      # ISO UTC or empty; e2e-writer after H-e2e (AM-9 G2/53)
+e2e_spec_path:                        # abs path or empty; e2e-writer after H-e2e
+e2e_run_result:                       # PASS|FAIL or empty; lane-runner after nl-run-e2e
+e2e_heal_review:                      # reviewed|none or empty; lane-runner after nl-run-e2e
 ```
 
 ### 2.1 Field rules
@@ -169,11 +175,12 @@ release_record:                       # pm lead only: abs path of release-<sha>.
 | Field | Rule |
 |---|---|
 | `live` | always `<n>/30` and always derived; the literal `(derived)` marks that nobody types the number |
-| `stop_reason` | `stop-the-line:<row>` (regex `^stop-the-line:[A-Z]+[0-9]+[a-z]?$`) \| `d7-round3` \| `invalidate` \| `spawn-cap` \| `human` \| `port-refused` \| `stale-session`. `port-refused`: a lead-owned port claim refused after its one +10 retry, or `port-check.sh` exit 3 (AM-4). `stale-session`: a second `pm` lead finds a fresh `substate.lock` and posts `STOP stale-session`; the conductor writes this value and maps `pm` to `stopped` (INTERFACES 1.8.0 AM-8 V1). Writer: the lead (the conductor for `stale-session`); the desk clears it when it writes `RESUME.<subtask>.<run-id>.ok` (AM-8 V2). `ci-fix-loop`'s `CI: HUMAN d7-round3` maps to `d7-round3`; an unnamed stop is `human` (A.8, 28-CV2) |
+| `stop_reason` | `stop-the-line:<row>` (regex `^stop-the-line:[A-Z]+[0-9]+[a-z]?$`) \| `d7-round3` \| `invalidate` \| `spawn-cap` \| `human` \| `port-refused` \| `stale-session`. `port-refused`: a lead-owned port claim refused after its one +10 retry, or `port-check.sh` exit 3 (AM-4). `stale-session`: a second `pm` lead finds a fresh `substate.lock` and writes `STOP stale-session` to `pm/outbox/stop-<utc>.md`; the conductor records this value in `state.md` `subtasks[]` (not here) and maps `pm` to `stopped` (INTERFACES 1.9.0 AM-9 G1/6). Writer: the lead for the stops it detects; the conductor for conductor-detected stops (`stale-session`, ledger refusal, relay refusal), in `state.md` (G1/42); the desk clears it when it writes `RESUME.<subtask>.<run-id>.ok` (AM-8 V2). `ci-fix-loop`'s `CI: HUMAN d7-round3` maps to `d7-round3`; an unnamed stop is `human` (A.8, 28-CV2) |
 | `tick_utc` | rewritten on every tick; no move within 12 minutes of a `claude -p` lead's first invocation reads as "the cron does not fire" (C1.1 fallback) |
 | stop-the-line row ids | closed: `S1` classifier or harness block; `S2` failed gate; `S3` authoring on main; `S4` spawn without a free slot; `S5` verifier authored the code; `S6` two writers on one `substate.md`; `S7` unrecorded production write; `G1` build or publish from the main checkout; `G3` release step before its simulation; `G4` hooks skipped without a recorded pass; `G5` fix commits left unpushed; `D23` pipeline-definition edit by an agent; `S8` sub-task bus down after two failed restarts |
 | `phase` | the conductor maps it to `subtasks[].state` (Part 1.2); the lead sets `building` before its first `wave-execution` invocation (A.8, 28-CV18) |
 | `prepr`, `integrated`, `ci`, `postmerge` | lead-to-conductor transport of the `PREPR`, `INTEGRATED`, `CI`, `POSTMERGE` tokens (D1); `pr-create` only after `prepr: PASS` for `head`; the conductor sends `pr-merge` only after it reads `pr` set and `ci: GREEN <head>` |
+| `e2e_gherkin_utc`, `e2e_spec_path`, `e2e_run_result`, `e2e_heal_review` | written by the e2e-writer (the first two, after `H-e2e.<subtask>.<run-id>.ok`) and the lane-runner (the last two, after `nl-run-e2e`), A.3 writer carve-out (INTERFACES 1.9.0 AM-9 G2/53) |
 | `integrated` | one entry per accepted Integrator C2 record: `u<N> <head>` where the record `unit` is `i<N>` |
 | `invocation` | passed as the caller input `invocation` of `wave-execution` (C1.1) |
 

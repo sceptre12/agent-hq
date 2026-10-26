@@ -39,7 +39,7 @@ is answered in the session with what failed; nothing is written.
 | `H-pr` | none | nothing: external evidence only (the approving review, B5) | `pr-merge` refuses without the read-back |
 | `grant.<subtask>.<n>` | ok | `RUN_HOME/gates/grant.<subtask>.<n>.<rid>.ok` (A.2.1, AM-4 20 Q1; B9) | none at the desk; a `pre-pr-gate` sensitive-path hit passes only with a desk `INSTALLED` row for that path or this file |
 | `H-destructive.<row-id>` | ok | `RUN_HOME/gates/H-destructive.<row-id>.<rid>.ok` (A.2.1 AM-5 21; B9) | the desk honours the line and writes the file; `post-merge-verify` refuses the row without it (`POSTMERGE: STOP`, D1.1) |
-| `RESUME.<subtask>` | ok | `RUN_HOME/gates/RESUME.<subtask>.<rid>.ok` (A.8, O-4; B9) | the desk clears `stop_reason` in `RUN_HOME/<subtask>/substate.md` (temp file, `mv`) when it writes this file; the sub-task returns to its pre-stop phase and the conductor moves it on only with this file (owner action; INTERFACES 1.6.0 AM-6 (f)) |
+| `RESUME.<subtask>` | ok | `RUN_HOME/gates/RESUME.<subtask>.<rid>.ok` (A.8, O-4; B9) | the desk clears `stop_reason` in `RUN_HOME/<subtask>/substate.md` (temp file, `mv`) when it writes this file (the S6 carve-out, INTERFACES 1.9.0 AM-9 G1/42; a conductor-detected `state.md` `subtasks[].stop_reason` is emptied by the conductor on this file); the sub-task returns to its pre-stop phase and the conductor moves it on only with this file (owner action; INTERFACES 1.6.0 AM-6 (f)) |
 
 Any other gate-verdict pair is refused in the session and nothing is written.
 

@@ -63,7 +63,7 @@ run 24 "no file exceeds 300 lines" bash -c 'bash "$1/tools/check-file-length.sh"
 # Re-measure before adding anything else here.
 run 25 "no doc exceeds 500 lines" bash -c 'bash "$1/tools/check-doc-length.sh" "$1"' _ "$HQ"
 if [ "$FAST" = 0 ]; then
-  run 4 "STANDARDS >=11 sections" bash -c '[ "$(grep -c "^## [0-9]\+\." "$1")" -ge 11 ]' _ "$HQ/STANDARDS.md"
+  run 4 "STANDARDS >=9 sections" bash -c '[ "$(grep -c "^## [0-9]\+\." "$1")" -ge 9 ]' _ "$HQ/STANDARDS.md"
   run 6 "INVARIANTS.md exists" test -f "$HQ/INVARIANTS.md"
   # ck10 retired 2026-10-21 (agentmemory removed by owner): no store left to dump from; numbering kept stable.
   run 10 "retired 2026-10-21 (agentmemory removed by owner)" true

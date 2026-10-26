@@ -13,4 +13,4 @@
 - **exit_criteria** (supplied verbatim to all 3 judges as the panel rubric):
   - Verifier reports zero findings across every doc in `fixed_docs`.
   - Markdown lint passes on every doc in `fixed_docs`.
-- **outputs:** none — terminal wave.
+- **outputs:** none (Wave 4 reads Wave 2's `fixed_docs` directly).

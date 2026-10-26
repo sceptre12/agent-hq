@@ -169,6 +169,13 @@ rm -f "$ROOT/bin/git"; ci; eq "rev-list/log-dies: same fixture, real git: rc 0" 
 mkgate; echo "# direct" >>tools/foo.sh; commit "ff code commit, no trailer"; BADT="$(git rev-parse HEAD)"; git update-ref refs/remotes/origin/main HEAD; git tag origin/main "$(git rev-parse HEAD~1)"
 ci; eq "tag-shadow: audit uses refs/remotes/origin/main, bad commit still found: rc 1" "$rc" 1; has "tag-shadow: bad commit named" "$out" "$BADT touches in-scope code"
 git tag -d origin/main >/dev/null
+# root-exempt (check 29/c, wt/inv29-root): the parentless root commit (repository bootstrap) carries scope.conf and in-scope
+# code yet is exempt; a LATER plain commit touching in-scope files is still audited and named, never the root.
+mkfix; ROOTC="$(git rev-parse HEAD)"; git update-ref refs/remotes/origin/main HEAD; ci
+eq "29 root: parentless root with scope.conf + in-scope code: rc 0" "$rc" 0; has "29 root: all code-gate checks OK" "$out" "check-invariants: 3/3 OK"
+echo "# later" >>tools/foo.sh; commit "plain code commit after the root"; LATER="$(git rev-parse HEAD)"; land
+eq "29 root: later plain code commit: rc 1" "$rc" 1; has "29 root: names the later commit" "$out" "$LATER touches in-scope code"
+hasnt "29 root: the root commit is not named" "$out" "$ROOTC"
 # agentmemory retired (owner removal 2026-10-21): with no ~/.agentmemory and no launchd job, checks 16/18 must not
 # FAIL or WARN about it, and the script must not name agentmemory in any output. Full-mode run, real checkout, empty HOME.
 FH="$ROOT/fakehome"; mkdir -p "$FH"

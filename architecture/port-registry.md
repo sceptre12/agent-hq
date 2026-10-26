@@ -5,7 +5,7 @@ every project under `~/projects/`, plus the check-before-bind skill that reads i
 about to bind a port discovers another project's claim *before* picking, instead of after.
 
 - **Scope:** host port bindings on this machine. Not a devops platform — see §6.
-- **Provenance:** ported from hq `architecture/port-registry.md`. Ported into agent-hq 2026-10-26 (delivery workflow, port guard). Personal-project blocks were removed whole, so some `§` references (§0, §2.2, §7.1, §7.3-§7.7) and numbered-list gaps remain from the source; references to `plans/`, `inbox/`, survey files and `raw-lsof.txt` point at hq-only records.
+- **Provenance:** ported from hq `architecture/port-registry.md`. Ported into agent-hq 2026-10-26 (delivery workflow, port guard). Personal-project blocks were removed whole; references to `plans/`, `inbox/`, survey files and `raw-lsof.txt` point at hq-only records.
 
 ## 1. Location and format
 
@@ -65,7 +65,7 @@ Nine tab-separated columns. Header line is a single `#`-prefixed row; readers us
 
 | # | Field | Why it earns its place | Why not more |
 |---|---|---|---|
-| 1 | `port` | The key. Single port (`9000`) or a declared range (`7777-7800`, `11100-11179`) — ranges are real claims here and dropping them would hide the two biggest ones. **Always numeric — `NNNN` or `NNNN-NNNN`, never a placeholder or sentinel (§2.2).** | — |
+| 1 | `port` | The key. Single port (`9000`) or a declared range (`7777-7800`, `11100-11179`) — ranges are real claims here and dropping them would hide the two biggest ones. **Always numeric — `NNNN` or `NNNN-NNNN`, never a placeholder or sentinel.** | — |
 | 2 | `bind` | `127.0.0.1` / `0.0.0.0` / `*`. Two services *do* collide on the same port regardless of bind address, but the bind address is what decides reachability, and it is free — `lsof` already prints it. | — |
 | 4 | `service` | Which process. Without it a row is an unactionable number. | — |
 | 5 | `project` | The owning project — the field that makes this *cross*-project rather than N per-project docs. | — |
@@ -87,11 +87,11 @@ worse than an absent one. Live PID lookup is one `lsof` away when actually neede
 - `unmerged` — **a claim that exists only in a branch or worktree that is not checked out anywhere
   on this machine.**
 - `UNVERIFIED` — asserted by a source but not confirmed against it, or a live listener whose owner is
-  unidentified (§7.7). Uppercase deliberately: a defect marker, not a steady state. It is what §7's
+  unidentified. Uppercase deliberately: a defect marker, not a steady state. It is what §7's
   seed rule ("anything unconfirmed is carried as `UNVERIFIED` rather than dropped or guessed")
-  produces; its earlier absence from this enum was the first symptom of the §2.2 gap. **The enum is
+  produces; **The enum is
   closed** — any other value is malformed and fails the whole registry closed (§5.3); no sentinel or
-  "not applicable" value exists, because no row needs one (§2.2).
+  "not applicable" value exists, because no row needs one.
 
 ## 3. Scope: host ports only, container-internal ports excluded
 
@@ -133,6 +133,10 @@ which appends exactly one line with `>>` (§1). Two properties matter:
 explicit `--force` (which records `note=forced`), so the ordinary path cannot register a claim
 that is already false at the moment it is written.
 
+### Use by the delivery workflow
+
+Every port a delivery run binds (lanes, dev servers, review buses) is claimed through `port-check` before launch: the run refuses on a collision and never auto-picks another port. The claimed port is recorded as a resource-catalog `port` row and released at cleanup. The PreToolUse hook catches launches made outside that path. At the move to the work machine, the operator fills `tools/ports.tsv` and `tools/app-ports.tsv` for that machine.
+
 ## 5. Staleness: how a wrong row gets caught
 
 The registry's failure mode is the incident's failure mode — a document asserting "no collision"
@@ -167,13 +171,13 @@ host to the host port.** Nothing observed from inside a container counts.
 ### 5.3 The checker script
 
 Yes, a script belongs in `tools/`. agent-hq conventions, to follow exactly (verified against
-`tools/sim-lease.sh:1-18` and `tools/check-invariants.sh:1-25`): `#!/usr/bin/env bash`,
+`tools/check-invariants.sh:1-25`): `#!/usr/bin/env bash`,
 `set -euo pipefail`, `script.sh [target]` argument shape, fails closed, and a heavy why-comment
 header explaining the reasoning — not just the usage. **Under 300 lines**, per
 `tools/check-file-length.sh` (`LIMIT=300`), which *does* cover `.sh`.
 
 **Row-level integrity fails closed exactly like file-level integrity.** Before answering anything the
-script validates every non-comment row — nine tab-separated fields, field 1 numeric (§2.2), field 6
+script validates every non-comment row — nine tab-separated fields, field 1 numeric, field 6
 one of §2.1's six values — and any violation prints the offending rows and exits `3`, as an
 unreadable registry does and for the same reason: a registry that cannot be parsed supports no
 verdict about any port, so "free" must not be an available answer. Deliberately *not* exit `1`,
@@ -193,25 +197,22 @@ fail closed if the registry reads as empty.
 Explicit non-goals, so the next agent does not grow this into a devops platform:
 
 1. **Not a runtime allocator.** It does not hand out ports, hold leases, or arbitrate. It records
-   and it reports. (`tools/sim-lease.sh` is the leasing pattern for a genuinely serial resource;
-   ports are not that, and this is not a second one.)
-4. **Not a monitor.** No daemon, no launchd job, no polling. `--audit` runs when a human or an
+   and it reports.
+2. **Not a monitor.** No daemon, no launchd job, no polling. `--audit` runs when a human or an
    agent runs it.
-5. **Not authoritative over container-internal ports** (§3), nor over remote/production ports —
+3. **Not authoritative over container-internal ports** (§3), nor over remote/production ports —
    this machine's host namespace only.
-6. **Not a conflict resolver.** On a hit it stops and reports; a human picks.
+4. **Not a conflict resolver.** On a hit it stops and reports; a human picks.
 
 ## 7. Seed data
 
 Rules for the seed: every row traces to a `file:line` or a live capture; anything unconfirmed is
 carried as `UNVERIFIED` rather than dropped or guessed.
 
-### 7.2 agent-hq / system — live
+### 7.1 agent-hq / system — live
 
 | port | bind | container | service | project | status | source | verified |
 |---|---|---|---|---|---|---|---|
-| 9000 | 127.0.0.1 | - | agent-topology MCP server | agent-hq | live | lsof (PID 68718 `node server.js`); `tools/agent-topology/config.js:81-82`; `~/.agent-topology/data/server.port` | 2026-09-04 |
-| 9000-9999 | 127.0.0.1 | - | agent-topology port range | agent-hq | reserved | `tools/agent-topology/config.js:81-82` | 2026-09-04 |
 | 7777-7800 | 127.0.0.1 | - | swarm-communication bus range | agent-hq | claimed | `architecture/swarm-communication-layer.md:81-82`; `swarm-communication-layer/.env.example:17-18` | 2026-09-04 |
 
 ## 8. Open questions and recommendations
@@ -219,15 +220,14 @@ carried as `UNVERIFIED` rather than dropped or guessed.
 1. **Does this warrant an ADR?** *Recommendation: yes — one ADR covering (a) the registry as
    agent-hq-owned cross-project state and (b) check-before-bind as standing practice.* It is a
    cross-cutting policy affecting every project, which is what `agent-hq/CLAUDE.md` reserves ADRs for.
-   **No number is claimed here.** The highest existing ADR is 0036 and the next free number is
-   contested shared state across concurrent agents; the owner should allocate it. If an ADR is
+   **No number is claimed here.** The owner allocates the ADR number. If an ADR is
    written, it is also the natural place to settle §1's `tools/ports.tsv` vs a `registry/` folder.
-6. **Range rows make the grep contract lossy.** `command grep -E '^9000\b'` will not match a row
+2. **Range rows make the grep contract lossy.** `command grep -E '^9000\b'` will not match a row
    whose port field is `9000-9999`. The check script must expand ranges explicitly (a numeric
    comparison, not a text match) — a build requirement, and the single most likely place for the
    script to be quietly wrong. Its verification step must test a range hit specifically.
-8. **No second machine.** The registry describes *this* host. `tools/second-machine-onboarding.md`
-   exists in agent-hq; whether ports.tsv should ever be machine-scoped is deferred until that matters.
+3. **No second machine.** The registry describes *this* host. `tools/second-machine-onboarding.md`
+   (not in agent-hq) covers onboarding a second machine; whether ports.tsv should ever be machine-scoped is deferred until that matters.
 
 ## Source lineage
 

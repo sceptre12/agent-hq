@@ -5,7 +5,7 @@
 SRC=${0:A:h}
 # CLEAN is derived from cprof.zsh's own _CPROF_TRACKED (minus PS1, which is not exported env) so there is one authority.
 _TRK=(${(f)"$(zsh -fc "source $SRC/cprof.zsh; print -l \${_CPROF_TRACKED:#PS1}" 2>/dev/null)"}); CLEAN=(); for _v in $_TRK; do CLEAN+=(-u $_v); done
-T=$(mktemp -d) || exit 1
+_tb=${TMPDIR:-/tmp}; T=$(mktemp -d "${_tb%/}/test_cprof.XXXXXX") || exit 1
 trap 'chmod -R u+rwx "$T" 2>/dev/null; rm -rf "$T"' EXIT
 mkdir -p $T/bin $T/home $T/root
 fails=0
@@ -82,7 +82,7 @@ REPO=${SRC:h:h}; HQ=$T/hq
 mkdir -p $HQ/config/tiers $HQ/tools/claude-profile
 cp -R $REPO/config/tiers/. $HQ/config/tiers/; cp -R $REPO/tools/claude-profile/templates $HQ/tools/claude-profile/
 print -r -- '{"theme":"dark","permissions":{"allow":["Read"],"deny":["Bash(rm -rf /)"]},"hooks":{"X":[1]},"sandbox":{"network":{"allowedDomains":["hq.example"]}}}' > $HQ/config/settings.json
-trun() { env $CLEAN HOME=$T/home CPROF_ROOT=$T/root CPROF_HQ_CONFIG=$HQ/config PATH=$T/bin:/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin \
+trun() { env $CLEAN CPROF_OWNER=testowner HOME=$T/home CPROF_ROOT=$T/root CPROF_HQ_CONFIG=$HQ/config PATH=$T/bin:/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin \
          zsh -fc "source $SRC/cprof.zsh; $1" 2>&1 <<<"${2:-tok}"; }
 S=$T/root/ex1/config/settings.json
 out=$(trun 'cprof new ex1 --tier executor')
@@ -96,7 +96,16 @@ fd=$(jq -c '.permissions.deny' $HQ/config/tiers/executor.json)
    && $(wc -l < $T/root/ex1/tier.src) -eq 3 && $(sed -n 2p $T/root/ex1/tier.src) == "$(shasum -a 256 < $HQ/config/tiers/executor.json | cut -d' ' -f1) ${HQ:A}/config/tiers/executor.json" ]] \
   && ok "t2 tier + tier.src (input hashes, rendered hash)" || bad "t2: $(<$T/root/ex1/tier.src)"
 W=$T/root/ex1/workspace/CLAUDE.md
-[[ -f $W ]] && grep -q 'You are `ex1`' $W && ! grep -q '<profile>' $W && [[ -f $T/root/ex1/token ]] && ok "t3 CLAUDE.md name substituted, token written" || bad "t3"
+[[ -f $W ]] && grep -q 'You are `ex1`' $W && ! grep -q '<profile>' $W && ! grep -q '<owner>' $W && grep -q 'accounts: `testowner`' $W && [[ -f $T/root/ex1/token ]] \
+  && ok "t3 CLAUDE.md name + owner substituted (no <profile>/<owner> left), token written" || bad "t3"
+# t3b: the renderer fails closed without CPROF_OWNER (unset, empty or malformed): no profile left behind, never a wildcard/empty default.
+trun_own() { local -a oe; [[ $1 == UNSET ]] && oe=(-u CPROF_OWNER) || oe=(CPROF_OWNER=$1); shift
+  env $CLEAN $oe HOME=$T/home CPROF_ROOT=$T/root CPROF_HQ_CONFIG=$HQ/config PATH=$T/bin:/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin \
+  zsh -fc "source $SRC/cprof.zsh; $1" 2>&1 <<<tok; }
+out=$(trun_own UNSET 'cprof new exno --tier executor; print RC=$?'); [[ $out == *"CPROF_OWNER is unset or empty"*"RC=1" && ! -e $T/root/exno ]] && ok "t3b CPROF_OWNER unset: render fails closed" || bad "t3b unset: $out"
+out=$(trun_own '' 'cprof new exno --tier executor; print RC=$?'); [[ $out == *"CPROF_OWNER is unset or empty"*"RC=1" && ! -e $T/root/exno ]] && ok "t3c CPROF_OWNER empty: render fails closed" || bad "t3c empty: $out"
+out=$(trun_own 'a/b;x' 'cprof new exno --tier executor; print RC=$?'); [[ $out == *"not a valid GitHub account name"*"RC=1" && ! -e $T/root/exno ]] && ok "t3d CPROF_OWNER malformed: render fails closed" || bad "t3d malformed: $out"
+out=$(trun_own UNSET 'cprof new dkno --tier desk; print RC=$?'); [[ $out == *"RC=0" && -f $T/root/dkno/workspace/CLAUDE.md ]] && ! grep -q '<profile>\|<owner>' $T/root/dkno/workspace/CLAUDE.md && ok "t3e desk template needs no owner: renders without CPROF_OWNER" || bad "t3e desk: $out"
 out=$(trun 'cprof new dk --tier desk'); S2=$T/root/dk/config/settings.json
 [[ $(jq -r '.sandbox.enabled // "none"' $S2) == none && $(jq -r '.sandbox.filesystem // "none"' $S2) == none && $(<$T/root/dk/tier) == desk && $(jq '.permissions.deny | length' $S2) -gt 1 ]] \
   && ok "t4 desk: no sandbox, tier file" || bad "t4: $out $(<$S2)"

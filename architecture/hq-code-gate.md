@@ -11,7 +11,7 @@ run its mapped tests, enforced by a git `pre-push` hook plus three invariants th
 - `core.hooksPath` is `tools/git-hooks`, a RELATIVE path (ADR 0007), and `extensions.worktreeConfig` is unset, so all
   worktrees share it and a worktree runs ITS OWN branch's copy of the hooks. A branch that adds `pre-push` gates its own push.
 - Before D1 there was no `pre-push` or `pre-merge-commit` hook. `--no-verify` and `-c core.hooksPath=` bypass hooks.
-- `origin` is `sceptre12/agent-hq` (private). hq had never had a PR. Branch protection returns 403 on this plan, so GitHub
+- `origin` is `sceptre12/agent-hq` (private). The hq source repo had never had a PR. Branch protection returns 403 on this plan, so GitHub
   cannot be the enforcement point and no GitHub-side merge is allowed.
 - Integration is a local `git merge wt/<slug>` then a push of `main` (Rule 6).
 - `pr-review` takes `REPO` + `PR_NUMBER` but never posts a PR comment and exits 0 offline, so the marker (§4) is posted by
@@ -75,10 +75,10 @@ A test file (`test_*`, `*.test.*`, or any map test column) runs itself when chan
   A grandfather list that cannot be read (git, grep rc >= 2 or sort failure) dies `cannot read grandfather list at <rev>`;
 - `GRANDFATHERED-TOUCHED` a grandfathered file changed with no mapped test, or mapped but still listed;
 - `TEST-FAILED`, `TEST-TIMEOUT` (default 120 s, `CODE_GATE_TIMEOUT`), `TEST-NOT-RUNNABLE` (not executable or no shebang).
-- `COUNT-MISMATCH` (as of PR #24, pending merge) the number of tests run differs from the de-duplicated mapped count; see below.
+- `COUNT-MISMATCH` (as of hq PR #24) the number of tests run differs from the de-duplicated mapped count; see below.
 Order: `DIFF-FAIL` fires at the first diff (before the map check), at the gate-config `--name-only` diff, and again at the per-file list; then the map check runs, then `GRANDFATHER-GROWTH`, then the per-file blocks. Before the first `STALE-MAP` line one
 `STALE-MAP-DIAG: rev=<rev> rows=<map rows> entries=<tree entries> ulimit_n=.. ulimit_u=..` line goes to stderr only, never the verdict.
-**As of PR #24 (sceptre12/agent-hq, head 1020fbf; pending merge, T-159; origin/main's `run-mapped-tests.sh` does not yet contain it):**
+**As of hq PR #24 (source repo sceptre12/hq, head 1020fbf):**
 - Runner contract: each mapped test runs with stdin from `/dev/null` (`( exec "./$t" ) </dev/null`), so a test that reads stdin cannot eat the test list.
 - Before the verdict the runner compares `n_run` with the de-duplicated mapped count `m`. If `n_run != m` it prints `CODE-GATE: BLOCK n_run=<k> mapped=<m>`
   and the block `COUNT-MISMATCH:n_run=<k>,mapped=<m>`, and the gate FAILs.

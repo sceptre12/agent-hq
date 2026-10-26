@@ -35,6 +35,7 @@ Code lives in `cprof-tiers.zsh` (sourced by `cprof.zsh`); needs `jq`. HQ config 
     cprof trust ls | baseline [--note "<text>"]
     cprof link <name>                                                       # code: cprof-link.zsh
 
+- `--tier executor` renders `<owner>` from `CPROF_OWNER` (a GitHub account name, `[A-Za-z0-9-]`); it fails closed if `CPROF_OWNER` is unset, empty or malformed.
 - `new --tier` renders `config/settings.json` = hq `settings.json` + `tiers/<tier>.json` + optional
   `tiers/overlays/<project>.json` + `claudeMdExcludes`. Scalars: later wins; `permissions.allow` and `hooks`: hq only;
   `permissions.deny`, `sandbox.network.allowedDomains`, `sandbox.filesystem.allowWrite`: set-union; `_tier/_source/_overlay/_note` dropped.

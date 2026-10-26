@@ -111,6 +111,15 @@ T_DEVICES="$SCRATCH_UDID,C543AEAE-714B-4AD5-B181-5D05123F1DF6" run
 case "$OUT" in *"VERDICT: NO-GO (PROD_SIM_DENY)"*) pass "prod UDID still denied" ;; *) fail "prod UDID not denied"; esac
 : >"$FX/lockdir/measurement.lock"; run; rm -f "$FX/lockdir/measurement.lock"
 case "$OUT" in *"VERDICT: NO-GO (MEASURE_LOCK)"*) pass "measurement lock still blocks" ;; *) fail "lock not detected"; esac
+# no message may point at a script missing from the repo (the lock note once named tools/measurement-lock.sh, which never existed)
+: >"$FX/lockdir/measurement.lock"; run; rm -f "$FX/lockdir/measurement.lock"
+_missing=""; for _ref in $(printf '%s\n' "$OUT" "$(cat "$SRC")" | command grep -oE 'tools/[A-Za-z0-9_./-]+\.sh' | sort -u); do
+  [ -e "$SCRIPT_DIR/../$_ref" ] || _missing="$_missing $_ref"; done
+if [ -z "$_missing" ]; then pass "output and script reference only scripts that exist"; else fail "references missing script(s):$_missing"; fi
+case "$OUT" in *"removing the lockfile: rm -- "*) pass "lock note names the real release step" ;; *) fail "lock note lacks the release step"; esac
+# lock lines are echoed sanitized: no ESC or CR from a hostile lockfile reaches the operator's terminal
+printf 'owner=me\033[31mRED\rSPOOF\n' >"$FX/lockdir/measurement.lock"; run; rm -f "$FX/lockdir/measurement.lock"
+case "$OUT" in *$'\033'*|*$'\r'*) fail "lock line echoed raw control characters" ;; *"MEASURE_LOCK: owner=me"*) pass "lock lines echoed with control characters stripped" ;; *) fail "lock line not echoed"; esac
 T_JAVA_HOME="" run
 case "$OUT" in *"VERDICT: NO-GO (JAVA)"*) pass "unset JAVA_HOME still NO-GO" ;; *) fail "JAVA_HOME check broken"; esac
 run --quiet

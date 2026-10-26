@@ -1,0 +1,10 @@
+# Pre-round check r1: delivery-pipeline (2026-10-26)
+Artefact: skills/delivery-pipeline/SKILL.md + references/{stages,tick-relay,launcher,resume,stops-and-posts,provenance}.md; companion tasks/29-delivery-pipeline.md. Skill files identical at 2c10079 and 728aad4 (git diff empty; worktree clean for the skill). Checker: fresh Haiku, read-only, no dispatch.
+C1 FAIL skills/delivery-pipeline/references/provenance.md:9 `:42-44` (scope-control retro) does not resolve: learnings/workflow-orchestration/SKILL.md:42-44 is an unrelated publish-gate rule and the retro title is absent from that file. PASS: SKILL.md:73, :16, :20-21 (Hermes files), RLM:79 (review-loop-mechanics:79), patterns:140 (x-context-docs/_shared/patterns.md:140).
+C2 FAIL SKILL.md:10 and references/stages.md:52 name INTERFACES sections, owner rulings (D7, OQ-1) and an owner decision with no path:line-range pointer or verbatim quote; same pattern at SKILL.md:58, stages.md:9, launcher.md:3, provenance.md:19-23.
+C3 n/a (round 1).
+C4 FAIL [spec outside fixer scope] spec tasks/29-delivery-pipeline.md:5,11,21,76,135 pin INTERFACES 1.3.0; skill SKILL.md:13,16,58 and stages.md:3,38 use 1.4.0. Also: provenance.md:35-47 defines 29-1..29-12, absent from the spec (spec uses Q1-Q5, PC-W2-9/10). Also: spec §1 lists "acceptance" and separate cleanup and capture stages; skill stages are 1-8 with no acceptance stage and cleanup+capture both in stage 8.
+C5 FAIL SKILL.md:19 and :39 (cap 200, seat count 31); references/launcher.md:26-27 (sum+31<=200; at most 2 build=1 rows); tick-relay.md:48 (5-minute poll, one re-send, 5 more minutes); stops-and-posts.md:71 (plan-plane commit, human step). None carries default, question, proposed or owner to decide.
+C6 PASS largest file tasks/29-delivery-pipeline.md 144 lines; largest skill file stages.md 110 lines; no file at or over 1000; brief sets no line cap.
+C7 FAIL brief pins HEAD 9a91460, but git HEAD is 728aad4 (9a91460 is its ancestor); skill-file pin 2c10079 is also an ancestor with no skill diff to HEAD. Record must pin one head sha, matching the brief.
+preround: 5 fails

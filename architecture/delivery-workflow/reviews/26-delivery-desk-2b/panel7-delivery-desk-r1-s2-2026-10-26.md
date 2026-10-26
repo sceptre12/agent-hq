@@ -1,0 +1,7 @@
+id | sev | artifact file:line | defect | source file:line | fix
+s2-1 | M | skills/delivery-desk/SKILL.md:141-143,195 (vs :70-71) | approve/trigger-prod/pipeline-edit named as verbs "refused as policy"; an unknown verb fails check 5 as schema first | interfaces/part-b-desk.md:41,73 | say such a DESK line is REJECTED schema; keep policy for in-schema never-granted requests
+s2-2 | M | skills/delivery-desk/references/schemas.json:9,134,169 (vs SKILL.md:79-81, checks.md:37,48) | branch regex in the request schema makes a bad branch fail check 5 as schema; spec says repo at step 6 | part-b-desk.md:61,73,106 | drop the pattern from definitions.branch, or state the regex runs before schema validation
+s2-3 | M | skills/delivery-desk/references/schemas.json:10,19 (verbs.md:88,135) | git_ref/tag accept a leading "-" (raw flag reaches git fetch/tag/push); desk-req-schema.sh rejects it, so sender and desk disagree | tools/delivery/desk-req-schema.sh:23-24; ADR 0055 section 4 | use ^[A-Za-z0-9._/][A-Za-z0-9._/-]*$ and put -- before ref/tag in git commands
+s2-4 | L | skills/delivery-desk/SKILL.md:90-91 | any later 404 mapped to stale-session, outside check 7 and over action-failed/marker | part-b-desk.md:65,73 | limit the auth probe to check 7; later report marker/action-failed with detail
+s2-5 | L | skills/delivery-desk/references/checks.md:51 (SKILL.md:81-82) | record_path root <subtask> not tied to fields.subtask for pr-merge (id subtask is run) | part-b-desk.md:89,106 | add "for pr-merge the fields.subtask segment"
+totals 0/3/2

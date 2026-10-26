@@ -1,0 +1,4 @@
+{
+  "statuses": ["placed", "paid", "packed", "shipped", "delivered", "cancelled"],
+  "fields": ["order_id", "status", "placed_utc", "customer_email", "total_minor_units"]
+}

@@ -1,0 +1,14 @@
+{
+  "name": "demo-widgets",
+  "version": "1.4.0",
+  "private": true,
+  "packageManager": "pnpm@9.15.3",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "rm -rf dist"
+  }
+}

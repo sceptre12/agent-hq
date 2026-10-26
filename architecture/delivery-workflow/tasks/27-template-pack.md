@@ -1,0 +1,121 @@
+# Task Spec — 27: template pack (12 files, design §5.0 to §5.11), split 4 ways
+
+> Item 27 of design §7 (`part-06-build-plan-and-sources.md:26`). Read `build-common.md` first; it is binding. Templates are documents, not skills: no SKILL.md here.
+> Spec status: written at W0 item 2b. INTERFACES version read: `1.5.0` (AM-1 port guard and security-audit applied below; AM-3 to AM-5 rows reconciled in section 4, tagged "amended").
+
+| Field | Value |
+|---|---|
+| Tier | `execute` (§7 table) for the four authors |
+| Review rung | Rung 1 trio (`doc-reviewer`, fix agent, `fix-verifier`; at most 3 rounds then the owner, D7), one trio per split piece; the integration check is mechanical |
+| Depends on | INTERFACES frozen (done). No dependency on another W1 item to author. Soft: the owning skills' `SKILL.md` items (14-22, 28-29) name these files; they must not write `references/templates/` |
+| Split | 4 agents, directory-disjoint (§3); one integration step |
+
+## 1. Objective
+Produce the 12 reusable templates of design §5.0-§5.11 as files under `references/templates/` of the skill that owns each artifact, each a fill-in skeleton whose field names, enums and regexes are exactly those of INTERFACES, so no consumer skill re-derives a grammar.
+
+## 2. Context Package
+- Design source per file: `part-04-templates.md` (§5.0 to §5.11, §5.3b, §5.8b); writers and exact artifact names: `interfaces/part-a-state.md` A.6; paths/planes: A.1 and part D6 (design §5.11 is itself one of the 12).
+- Frozen grammars the templates must reproduce, not paraphrase: `state.md`, `substate.md`, slot row, machine row, gate files (A.2, A.2.1, A.3, A.4); `catalog.tsv` 12 columns, kind set and per-kind table (A.5, A.5.1; note "no executable column"); `GATE-PASS` and `HUSKY=0` (A.7, link only); review record, `merge-<sha>.md`, `cleanup-*.md`, `tickets.tsv` (A.6); profile keys with YAML serialization (A.2.2); `UNIT-VERDICT`, `NEXT:` (part C); enums (part D).
+- Design limits: generated docs stay about 500 lines; templates carry `FILL_IN_BEFORE_DISPATCH` sentinels where a value is unmeasured (§5.8 sentinel list), never invented values.
+
+## 3. Scope: the split (4 agents, 12 files, directory-disjoint)
+Each file is a Markdown skeleton with: purpose line, field table or fenced skeleton, enum/regex references by INTERFACES anchor, "Writer / Reader" line, and sentinels. One file per design section; sub-sections fold in (5.3b into the 5.3 file as Part B; 5.8b into the 5.8 file as a labelled seed appendix; `substate.md` into the 5.0 file).
+
+| Piece | Agent | Directory (exclusive) | Files (design section) |
+|---|---|---|---|
+| T-A | 1 | `skills/delivery-pipeline/references/templates/` | `state-and-substate.md` (5.0), `retro-and-execution-log.md` (5.9), `artifact-to-plane.md` (5.11) |
+| T-B | 2 | `skills/delivery-architecture/references/templates/` | `ticket.md` (5.1), `architecture.md` (5.2), `test-plan.md` (5.4), `release-plan.md` (5.5, with the `step_id` table, A.6) |
+| T-C | 3 | `skills/delivery-dispatch-plan/references/templates/`, `skills/delivery-run/references/templates/`, `skills/resource-catalog/references/templates/` | `dispatch-plan.md` (5.3 plus 5.3b unit task spec, additions in A.6), `decisions-fork.md` (5.10), `catalog.tsv.md` (5.6) |
+| T-D | 4 | `skills/delivery-intake/references/templates/`, `skills/pre-pr-gate/references/templates/` | `repo-profile.md` (5.8 plus 5.8b seed), `step-completeness-checklist.md` (5.7) |
+
+Ownership rationale: the writer column of A.6 (conductor writes `state.md`, retro; `delivery-architecture` writes architecture, test-plan v0, release-plan v0, drafts; `delivery-dispatch-plan` writes the plan and `.tasks`; `delivery-run` owns `.decisions` fork flow; `resource-catalog` owns `catalog.tsv`; `pre-pr-gate` writes the checklist; `delivery-intake` writes the profile). The directory name `references/templates/` is design §5 line 3.
+
+**Out of scope:** every `SKILL.md` and other `references/` content in those skills (items 14-22, 28-29 and 27b own them); `tools/delivery/*`; INTERFACES edits; briefs (`references/briefs/` in `delivery-run` is item 27b's).
+**Do NOT create:** a `templates/` file outside the table; executable columns or commands in `catalog.tsv.md` (M26); a restatement of the `HUSKY=0` rule (link A.7); invented profile values; symlinks.
+
+## 4. Contracts
+| Contract | Field / value | Authority |
+|---|---|---|
+| `state.md` | one YAML doc; `interfaces_version`, `skill_versions: name: <version>@<sha256>`, gates as pointers only (a verdict is never an agent-written field, M30); per sub-task `launched_utc`, `relaunch_phase`, `reentered`, `reentered_utc` and run-level `h1_handled` (amended: AM-5 29-13/14/17/25, A.2 new fields) | A.2, §5.0 |
+| `substate.md` | header fields, `live: <n>/30 (derived)`, slot row 9 fields in §5.0 order, machine row `session= pid= live_count= build= utc=` | A.3, A.4 |
+| `catalog.tsv` | 12 columns, 17 kinds (INTERFACES 1.3.0 A.5 row 6, AM-3 errata (b)), states `planned\|live\|released\|failed\|kept`, 400-byte row, no executable column | A.5, A.5.1 |
+| `repo-profile.md` | YAML, dotted keys nested, `"yes"`/`"no"` quoted, sole authority (D22), `release_tags.*`, `e2e.*` (`e2e.harness` `nlta\|none`), lane profile; key names as A.2.2: `sensitive_paths[]`, `ports.bus_base`, `ports.lane_base`, `zephyr.execute_tool` (not `sensitive_path_deny_list[]`, `lane_profile.ports`, `zephyr.execute_tool_name`; E36, AM-4 14), `default_branch` (AM-4 20), `lanes[].db.cleanup_cmd`, `commands.install`, `commands.pack`, `repo.consumer_repos[]` (AM-5 17, 19, 21) | A.2.2, §5.8 |
+| Tickets and `.tasks` | 11-section unit spec (§5.3b); scope globs live in `## 3` as `- <glob>` lines (scope-check reads them) | part C1.2 |
+| Release plan | step table, first column `step_id` `^[a-z0-9-]+$`, owner `agent\|human` | A.6 |
+| Checklist | every §5.7 row plus a `GATE-PASS` row; `PASS` only if each row has evidence; row ids `C1`-`C23` = the §5.7 rows in their written order, `C24` version bump (card 10 step 2b), `C25` dist scan (2c), `C26` security-audit `validate-findings.cjs` (under `full` only); `PREPR: STOP <ids>` names these ids (PC-8); a third failing round is `PREPR: STOP`, never `ESCALATE` (not a D1 token), and row C21 cites A.5.1's per-kind cleanup table (E35, AM-4 20); line 1 is validator-written and the desk reads it beside `substate.md` `prepr` (amended: AM-5 26) | §5.7, A.7, D1.1, B9 |
+| Ticket drafts | `ticket.md` opens with YAML front matter `slug`, `issuetype`, `parent` (`-` for the epic) (PC-11) | A.6, D2.1 |
+| Dispatch-plan port table | one row per bind per sub-task: `subtask`, `role` (`bus`, `review-bus`, `lane/<name>`), `base_key` (`ports.bus_base` or `ports.lane_base`), `k`, `candidate` = `<base> + 20·k` with `k` the per-bind index (`st<N>` bus `2N`, review bus `2N + 1`, lanes by consecutive bind index; never `10*k` or "lane index", E37, amended: AM-4 W2-3); a candidate is claimed at launch per A.5.2, never promised free; one claimed retry at candidate + 10, then stop (PC-4; INTERFACES 1.3.0 AM-3 / owner OQ-2) | A.5.2, spec 17 Q4 |
+| Planes | exact §5.11 table; RUN vs repo `plans/<epic>/`; adds the AM-1 rows `security-audit/run-<N>/` (RUN `<subtask>/`) and `skills/security-audit/` (vendored) | A.1, D6 |
+| AM-1 `state.md` | field `security_audit: guidance\|full`, default `guidance` | A.2 |
+| AM-1 `architecture.md` | exactly one required header line `security_sensitive: yes\|no` (`yes` sets `security_audit: full`); `yes` for auth, secrets, money, personal data, the e2e mock or auth-bypass gate, network-facing input parsing, or a new third-party dependency, and when unsure (INTERFACES 1.3.0 AM-3 / owner OQ-1; errata (a)) | A.2, A.6 |
+| AM-1 `substate.md` slot rows | persona `security-auditor`, unit `-`, tier `verify`, counted in the ledger | A.4 |
+| AM-1 catalog | `port` kind: handle `<port>`, planned before launch, released only by cleanup via a `released` registry row; claim order in A.5.2 | A.5.1, A.5.2 |
+| AM-1 checklist | a gate row: under `full`, `node skills/security-audit/validate-findings.cjs <output-dir>/findings.json` exits 0 | A.5.3 |
+| AM-1 dispatch plan lane table | each lane/dev-server/bus port is claimed (never auto-picked; one claimed +10 retry, then stop, AM-3) | A.5.2, C1.1 |
+
+## 5. Inherited module API
+`doc-reviewer`, `fix-verifier`; `tools/check-doc-length.sh`; the XC template sources (read only): `~/projects/x-context-docs/_templates/task-spec.md`, `retrospective.md`, `execution-log.md`, and the Jira ticket template for §5.1, sanitized per build-common SUB rules (employer/client/personal-project text removed as whole blocks).
+
+## 6. What You Inherit
+Frozen INTERFACES parts A to D. Nothing to install.
+
+## 7. Known Risky Values
+| Value | Correct | Wrong | Source |
+|---|---|---|---|
+| `catalog.tsv` columns | 12, no `verify_cmd` | 13 with a command column | A.5 |
+| Task spec sections | 11, six pre-flight checks | 10 or an added section | §5.3b |
+| Gate file names | `H0.<run-id>.ok`, `H1.<run-id>.ok\|.changes\|.reject`, `H-e2e.<subtask>.<run-id>.ok`, `H-prod.<step_id>.<run-id>.ok`, `grant.<subtask>.<n>.<run-id>.ok`, `H-destructive.<row-id>.<run-id>.ok` (gate-file names carry the run id; amended: AM-5 26, A.2.1) | `H-pr` as a file | A.2.1 |
+| Review record | 3 lines, `CODE-GATE-REVIEW: PASS head=<sha> blocking=0 medium=0` | 2 lines | A.6 |
+| sha | 40-hex everywhere | abbreviated | A.1 |
+| Plane for `release-plan.md` v1, `retro.md` | RUN | `plans/<epic>/` | A.6 |
+| Dates | `YYYY-MM-DD` | other formats | build-common |
+
+## 8. Acceptance Criteria
+- [ ] Exactly the 12 files of §3 exist; no other file under those `templates/` directories.
+- [ ] Each file under about 500 lines (`check-doc-length.sh`), has a Writer/Reader line and cites INTERFACES anchors for every grammar.
+- [ ] Every regex/enum value copied from INTERFACES equals the source (grep check below).
+- [ ] 5.8 contains the `FILL_IN_BEFORE_DISPATCH` sentinel convention and lists each unmeasured field; 5.8b rows carry their source and "re-verify at move".
+- [ ] 5.5 carries `agent`/`human` per step with the exact prepared command slot, and the `step_id` table.
+- [ ] 5.11 table equals design §5.11 (7 rows) with A.6 planes.
+- [ ] AM-1 carried: `security_audit` in the `state` template, `security_sensitive` in the `architecture` template, the `port` claim order in the `catalog` and `dispatch-plan` templates, the `validate-findings.cjs` row in the checklist (grep below).
+- [ ] No `/Users/xavier`, no personal-project names, no Notion path (sanitization grep).
+
+## 9. Verification Commands (the verifier re-runs these)
+```bash
+cd ~/projects/agent-hq-worktrees/delivery-w0
+T="skills/delivery-pipeline/references/templates/state-and-substate.md skills/delivery-pipeline/references/templates/retro-and-execution-log.md skills/delivery-pipeline/references/templates/artifact-to-plane.md skills/delivery-architecture/references/templates/ticket.md skills/delivery-architecture/references/templates/architecture.md skills/delivery-architecture/references/templates/test-plan.md skills/delivery-architecture/references/templates/release-plan.md skills/delivery-dispatch-plan/references/templates/dispatch-plan.md skills/delivery-run/references/templates/decisions-fork.md skills/resource-catalog/references/templates/catalog.tsv.md skills/delivery-intake/references/templates/repo-profile.md skills/pre-pr-gate/references/templates/step-completeness-checklist.md"
+n=0; for f in $T; do [ -s "$f" ] && n=$((n+1)) || echo MISSING $f; done; echo files=$n   # expect 12
+find skills/{delivery-pipeline,delivery-architecture,delivery-dispatch-plan,delivery-run,resource-catalog,delivery-intake,pre-pr-gate}/references/templates -type f | grep -v -x -F "$(printf '%s\n' $T)" && echo EXTRA-FILE
+bash tools/check-doc-length.sh .
+grep -L -E 'Writer' $T                               # expect no output
+grep -l -E '/Users/xavier|touri|ofw|runfrist|jetblue|[Nn]otion' $T   # expect no output
+grep -c 'FILL_IN_BEFORE_DISPATCH' skills/delivery-intake/references/templates/repo-profile.md   # >= 1
+grep -q 'verify_cmd' skills/resource-catalog/references/templates/catalog.tsv.md && echo EXEC-COLUMN   # only allowed in a "dropped" note; reviewer reads context
+# grammar copy check: the review-record regex and kind list appear verbatim
+grep -q 'CODE-GATE-REVIEW: PASS head=' skills/pre-pr-gate/references/templates/step-completeness-checklist.md || echo RECORD-MISSING
+grep -q 'validate-findings' skills/pre-pr-gate/references/templates/step-completeness-checklist.md || echo AM1-CHECKLIST
+grep -q 'security_audit' skills/delivery-pipeline/references/templates/state-and-substate.md || echo AM1-STATE
+grep -q 'security_sensitive' skills/delivery-architecture/references/templates/architecture.md || echo AM1-ARCH
+[ "$(grep -cxF 'security_sensitive: yes|no' skills/delivery-architecture/references/templates/architecture.md)" -eq 1 ] || echo AM3-ARCH-LINE
+grep -q 'Never write `security_sensitive: no`' skills/delivery-architecture/references/templates/architecture.md && echo AM3-ARCH-NO
+grep -q 'port-check' skills/resource-catalog/references/templates/catalog.tsv.md || echo AM1-PORT
+grep -q 'security-auditor' skills/delivery-pipeline/references/templates/state-and-substate.md || echo AM1-PERSONA
+grep -q 'C26' skills/pre-pr-gate/references/templates/step-completeness-checklist.md || echo PC-CHECKLIST-IDS
+grep -q 'issuetype:' skills/delivery-architecture/references/templates/ticket.md || echo PC-DRAFT-FRONTMATTER
+grep -q 'ports.bus_base' skills/delivery-dispatch-plan/references/templates/dispatch-plan.md || echo PC-PORT-TABLE
+for k in worktree branch tag process pm2-app port bus tmpdir container image lane-lease db clone cron bgtask file workspace; do grep -q -- "$k" skills/resource-catalog/references/templates/catalog.tsv.md || echo KIND-MISSING $k; done
+```
+**Done condition:** `files=12`, no `MISSING`, `EXTRA-FILE`, `RECORD-MISSING`, `AM1-*`, `AM3-*`, `PC-*`, `KIND-MISSING`, no output from the `grep -L`/`grep -l` lines, `check-doc-length.sh` exit 0, integration record written (below), and each piece's Rung 1 trio at 0 Blocking / 0 Medium (or a D7 owner stop).
+
+**Integration step (one, serial, after T-A to T-D, by the integrator):** run the block above; diff each template's quoted enum/regex against INTERFACES (`grep -F` of each regex string in the matching part); check that every template filename the W1 `SKILL.md` items cite exists (`grep -rho 'references/templates/[A-Za-z0-9._-]*' skills | sort -u` against the 12); write a pass line in the item-33 consistency log. Failure of any row returns the piece to its author, not to another piece.
+
+## 10. Branch
+Worktree `delivery-w0` (`wt/delivery-w0`); no git add, commit, branch, push or rebase by authors; the integrator commits.
+
+## 11. Decision Gate Reminder, plan-check resolutions
+Stop and write `.decisions/27-<piece>.md` if INTERFACES contradicts the design section or a value is unmeasured; use a sentinel, never a guess.
+- RESOLVED Q1 (INTERFACES A.6 writer column; PLAN-CHECK DEFAULT where A.6 names no single writer): the §3 mapping stands. `retro-and-execution-log.md` and `artifact-to-plane.md` go to `delivery-pipeline` (the conductor writes `retro.md`, `execution-log.md` and creates `RUN_HOME`); `decisions-fork.md` goes to `delivery-run` (the lead resolves `.decisions` forks, A.6).
+- RESOLVED Q2 (design part-06 §7 item 27 "12 files, §5.0-5.11"): one file per section §5.0-§5.11, with 5.3b, 5.8b and `substate.md` folded in.
+- RESOLVED Q3 (PC-3): specs 14, 15, 17, 18 and 20 exclude `references/templates/` and their checks skip it; the W2 specs for items 28 (`delivery-run`) and 29 (`delivery-pipeline`), not written yet, must exclude `references/templates/` and, for 28, `references/briefs/`.
+- AM-1 (1.1.0) is applied above: T-A (`state`, slot row persona), T-B (`architecture` header), T-C (`catalog`, `dispatch-plan` lane ports), T-D (`checklist` gate row). AM-1's re-check list names "the `state.md` and `dispatch-plan.md` templates" as consumers; this item is that re-check, so the integration record states the result. Re-read INTERFACES `Amendments` just before finishing; a newer amendment is applied the same way or marked STUCK.
+- RESOLVED (INTERFACES 1.3.0 AM-3 / owner OQ-1, errata (a), (b)): the `architecture.md` template carries exactly one required `security_sensitive: yes|no` line with the OQ-1 criteria (`no` allowed); the `catalog.tsv` kind count is 17; the checklist is unchanged. The `dispatch-plan.md` template follows AM-3 OQ-2 (one claimed +10 retry) and errata (c), (d) (`bundle.md`, `constitution.md`).

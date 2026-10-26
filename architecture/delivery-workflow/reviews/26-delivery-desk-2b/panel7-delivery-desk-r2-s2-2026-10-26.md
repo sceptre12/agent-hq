@@ -1,0 +1,5 @@
+id | sev | artifact file:line | defect | source file:line | fix
+s2-1 | M | SKILL.md:132-138; references/checks.md:111-113,119-121 | Waits/slow gh calls yield to take other lines but no per-id or per-`<verb> <target>` in-progress guard exists; a same-id re-send or fresh-id twin mid-wait/mid-act finds no .out, treats .inflight as a stopped attempt, reads back "absent" and acts twice | part-b-desk.md:47, :22 | Line for an id/target already in progress gets BUSY/ignored until the first finishes; reconcile only an .inflight with no live handler
+s2-2 | L | SKILL.md:76-78 vs :83-85 | pr-merge method vs profile merge_method is check 5 `schema` but the profile is resolved only at check 6; code undefined for unresolvable repo | part-b-desk.md:73, :89 | If profile unresolved at check 5 skip the test; check 6 fails `repo`
+s2-3 | L | references/verbs.md:126-129 | ci-rerun non-PR-run `policy` needs a gh lookup at check 6, before check 7 freshness | part-b-desk.md:73, :65 | Probe freshness before that lookup
+totals 0/1/2

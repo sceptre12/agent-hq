@@ -1,0 +1,10 @@
+# panel7 delivery-run r3 seat s6 (PROTOCOL CONFORMANCE), 2026-10-26
+
+| id | sev | artifact file:line | defect | source file:line | fix |
+|---|---|---|---|---|---|
+| s6-1 | L | skills/delivery-run/SKILL.md:237 (step 12 "Set `phase: prepr`") with :259-262 (step 14 re-run) vs :89 and references/resume.md:52 | Step 14 re-runs `pre-pr-gate`, and step 12 sets `phase: prepr` unconditionally, so `phase` drops from `ci` to `prepr`, contradicting the lead's own "never lowers `phase`" rule; a crash then re-enters step 12 at the stale last-`integrated` head instead of the CI sha. | am5-queue.md 29-3 (`pr-open\|ci` -> stage 5, `prepr` -> 4b, so the conductor stage regresses); part-a-state.md:172 (`phase` enum) | In step 12 say "set `phase: prepr` only when `phase` is below it; on the PC-W2-3 re-run keep `ci`, and re-entry at `prepr` takes `HEAD` from `ci` `GREEN <sha>` when present". |
+| s6-2 | L | skills/delivery-run/SKILL.md:247 (`pr-create` `labels[]`) | The value of `labels[]` is not given; the lead must guess. | part-b-desk.md:84 (`pr-create` field list, no label source); tools/delivery/desk-req-schema.sh:36 (empty array is valid) | State `labels` is `[]` unless the dispatch-plan sub-task table names labels. |
+| s6-3 | L | skills/delivery-run/SKILL.md:245-250 (step 13 `pr-attach` of `ST/lanes/`) | The lead is the named consumer of `LANE:` but never reads `lanes/<lane>.md` line 1; lane files with `LANE: FAIL` would be attached. | part-d-enums-topics.md:24 (`LANE:` row, consumer lead) | In step 13 attach only `lanes/` files whose line 1 is `LANE: PASS`. |
+| s6-4 | L | skills/delivery-run/SKILL.md:140-142 and references/tick.md:23 (`MERGED` left unconsumed until `CLEANUP DONE`) | While `delivery-cleanup` runs in the lead turn, the inline watchdog half (tick.md "Hosted skills") re-reads the still-unconsumed `MERGED` file; no text says to skip it when `phase: merged` and cleanup is in progress. | part-c-waves-control.md:125 (crash replay reprocesses every unrenamed file) | Add "act on `MERGED` only when no cleanup of this `merge_sha` is in progress in this session". |
+
+totals 0/0/4

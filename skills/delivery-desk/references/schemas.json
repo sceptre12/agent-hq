@@ -1,0 +1,819 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "delivery-desk/references/schemas.json",
+  "$comment": "Machine-readable copy of INTERFACES 1.9.0 part B (AM-6 B-9a, AM-7 VERDICT, AM-8 V7 reconciled) (B1, B2, B2.1, B4, B6, B8, B9); part B is the authority. verbs.<verb>.request validates the .req 'fields' object; verbs.<verb>.result validates a DONE .out; envelope alone validates a REJECTED .out.",
+  "interfaces_version": "1.9.0",
+  "definitions": {
+    "abs_path": {"type": "string", "pattern": "^/[^\\u0000-\\u001f\\u007f]+$", "$comment": "absolute path; the desk realpaths it under the root named in the B4 per-field rules"},
+    "repo": {"type": "string", "pattern": "^/[^\\u0000-\\u001f\\u007f]+$", "$comment": "abs path; realpath under a registered clone (B3 step 6, else repo)"},
+    "branch": {"type": "string", "$comment": "deliberately no pattern here: the branch regex ^[A-Z][A-Z0-9]+-[0-9]+(-[a-z0-9-]+)?$ is applied at B3 check 6 and fails as repo (part B2.1 repo row; B3 step 6), not schema at check 5. The regex cannot start with -, so a branch never reaches argv as a flag; the desk also passes it only as refs/heads/<branch> or after -- / --end-of-options"},
+    "git_ref": {"type": "string", "pattern": "^[A-Za-z0-9._/][A-Za-z0-9._/-]*$", "$comment": "part B4 git ref charset with no leading - (no raw flag, ADR 0055 section 4; same rule as tools/delivery/desk-req-schema.sh ref); a leading - is schema at check 5"},
+    "pr": {"type": "integer", "minimum": 0, "$comment": "part B4 int; minimum 0 matches desk-req-schema.sh int (>= 0); part B sets no other bound. Lexical rule (A.8 A.5 contract rule, PR10-R2; AM-5 numeric guards): an int is written as plain decimal digits, so -0 and exponent forms (1e3, 1E+3) are schema at check 5; JSON Schema cannot see the lexical form, so the desk applies it to the raw .req text"},
+    "ci_run_id": {"type": "integer", "minimum": 0, "$comment": "part B4 int; minimum 0 matches desk-req-schema.sh int (>= 0); -0 and exponent forms are schema (see pr)"},
+    "sha40": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "fields_subtask": {"type": "string", "pattern": "^(st[0-9]+|pm)$"},
+    "envelope_subtask": {"type": "string", "pattern": "^(st[0-9]+|pm|run)$"},
+    "label": {"type": "string", "pattern": "^[A-Za-z0-9._:-]+$", "$comment": "part B4 and desk-req-schema.sh labels; a label is only ever passed as the attached value --label=<label>, never as a separate argv word, so a leading - cannot act as a flag"},
+    "job": {"type": "string", "pattern": "^[^\\u0000-\\u001f\\u007f]{1,200}$"},
+    "tag": {"type": "string", "pattern": "^[A-Za-z0-9._/][A-Za-z0-9._/-]*$", "$comment": "part B4 tag charset with no leading - (no raw flag; same rule as desk-req-schema.sh tag); a leading - is schema at check 5"},
+    "package": {"type": "string", "pattern": "^(@[a-z0-9-]+/)?[a-z0-9._][a-z0-9._-]*$", "$comment": "part B4 npm name with no leading - in the scope-less part (no raw flag, ADR 0055 section 4; same first-character rule as desk-req-schema.sh package); a leading - is schema at check 5 (leading-- guard on package is a contract rule, B9 26, PR10-R2)"},
+    "semver": {"type": "string", "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(\\.(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?(\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$", "$comment": "SemVer 2.0; a numeric prerelease id has no leading zero (1.0.0-01 is schema; B9 26)"},
+    "step_id": {"type": "string", "pattern": "^[a-z0-9-]+$"},
+    "jira_key": {"type": "string", "pattern": "^[A-Z][A-Z0-9]+-[0-9]+$"},
+    "method": {"enum": ["squash", "merge", "rebase"], "$comment": "must also equal the profile merge_method (B4); else repo at check 6 (AM-8 V7)"},
+    "transition_to": {"enum": ["Backlog", "In Progress", "In Review", "Blocked", "Verified", "Done", "archive"], "$comment": "D3 canonical status or archive (profile jira.archive_status)"},
+    "str_or_strs": {"oneOf": [{"type": "string"}, {"type": "array", "items": {"type": "string"}}]},
+    "jira_fields_write": {"type": "object", "additionalProperties": false, "properties": {"summary": {"$ref": "#/definitions/str_or_strs"}, "description": {"$ref": "#/definitions/str_or_strs"}, "issuetype": {"$ref": "#/definitions/str_or_strs"}, "parent": {"$ref": "#/definitions/str_or_strs"}, "labels": {"$ref": "#/definitions/str_or_strs"}, "priority": {"$ref": "#/definitions/str_or_strs"}, "components": {"$ref": "#/definitions/str_or_strs"}}, "$comment": "closed Jira write allowlist (B4, card 14, M29)"},
+    "jira_readable_name": {"enum": ["summary", "description", "issuetype", "parent", "labels", "priority", "components", "status"]},
+    "jira_fields_read": {"type": "object", "additionalProperties": false, "properties": {"summary": {"$ref": "#/definitions/str_or_strs"}, "description": {"$ref": "#/definitions/str_or_strs"}, "issuetype": {"$ref": "#/definitions/str_or_strs"}, "parent": {"$ref": "#/definitions/str_or_strs"}, "labels": {"$ref": "#/definitions/str_or_strs"}, "priority": {"$ref": "#/definitions/str_or_strs"}, "components": {"$ref": "#/definitions/str_or_strs"}, "status": {"$ref": "#/definitions/str_or_strs"}}},
+    "https_url": {"type": "string", "pattern": "^https://[^\\s]+$"},
+    "utc": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"},
+    "ci_state": {"enum": ["success", "failure", "pending", "skipped", "cancelled"]},
+    "request_file": {"$comment": "RUN_HOME/desk/<id>.req as written by desk-req.sh (B3 sender step); id, verb, subtask are cross-checked against the DESK line on the hashed copy (B3 step 5, else schema)", "type": "object", "additionalProperties": false, "required": ["id", "verb", "subtask", "fields"], "properties": {"id": {"type": "string", "pattern": "^[a-z0-9-]+-(st[0-9]+|pm|run)-[0-9]{8}T[0-9]{6}Z-[0-9]+$"}, "verb": {"enum": ["push", "pr-create", "pr-attach", "pr-comment", "pr-comments-read", "pr-approval-state", "pr-merge", "branch-delete", "ci-status", "ci-logs", "ci-rerun", "ci-status-main", "fetch", "tag-push", "publish", "test-report-push", "jira-get", "jira-create", "jira-update", "jira-transition"]}, "subtask": {"$ref": "#/definitions/envelope_subtask"}, "fields": {"type": "object"}}}
+  },
+  "envelope": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["id", "verb", "status", "reason", "detail", "request_sha256", "sender", "utc"],
+    "properties": {
+      "id": {"type": "string", "pattern": "^[a-z0-9-]+-(st[0-9]+|pm|run)-[0-9]{8}T[0-9]{6}Z-[0-9]+$"},
+      "verb": {"$comment": "The verb as it appeared on the DESK line (DESK regex verb group); part B6 (part-b-desk.md:116) sets no enum, so a REJECTED .out for a non-B4 verb (approve, trigger-prod, pipeline-edit: schema) or a hash reject still validates. A DONE .out is held to the B4 verb by verbs.<verb>.result (verb const).", "type": "string", "pattern": "^[a-z-]+$"},
+      "status": {"enum": ["DONE", "REJECTED"]},
+      "reason": {"oneOf": [{"enum": ["sender", "schema", "hash", "repo", "marker", "order", "policy", "stale-session", "gate-missing", "action-failed"]}, {"type": "null"}]},
+      "detail": {"oneOf": [{"type": "string", "pattern": "^[^\\n\\r]*$"}, {"type": "null"}]},
+      "request_sha256": {"oneOf": [{"$ref": "#/definitions/sha256"}, {"type": "null"}]},
+      "sender": {"type": "string", "minLength": 1},
+      "utc": {"$ref": "#/definitions/utc"}
+    },
+    "$comment": "B6 envelope. On REJECTED it is the whole .out (reason set, detail non-null). On DONE reason and detail are null and the verb's result fields are added (see verbs.<verb>.result). request_sha256 is null when the reject precedes B3 step 4. No .out for reason sender.",
+    "allOf": [{"if": {"properties": {"status": {"const": "DONE"}}}, "then": {"properties": {"reason": {"type": "null"}, "detail": {"type": "null"}}}}, {"if": {"properties": {"status": {"const": "REJECTED"}}}, "then": {"properties": {"reason": {"enum": ["sender", "schema", "hash", "repo", "marker", "order", "policy", "stale-session", "gate-missing", "action-failed"]}, "detail": {"type": "string"}}}}]
+  },
+  "verbs": {
+    "push": {
+      "conductor_only": false,
+      "requester": "lead (delivery-run, ci-fix-loop): first push of a PR after GATE-PASS and PREPR: PASS for expect_head; a later push to the same PR after GATE-PASS plus ci/<pr>.md naming the head or PREPR: PASS (AM-4 24-Q2)",
+      "result_reader": "lead",
+      "markers": ["head", "gate-run", "first-or-later-push"],
+      "inflight_target": "repo#branch@expect_head",
+      "gate": null,
+      "request": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["repo", "branch", "expect_head"],
+        "properties": {
+          "repo": {"$ref": "#/definitions/repo"},
+          "branch": {"$ref": "#/definitions/branch"},
+          "expect_head": {"$ref": "#/definitions/sha40"}
+        }
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "verb", "status", "reason", "detail", "request_sha256", "sender", "utc", "head"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9-]+-(st[0-9]+|pm|run)-[0-9]{8}T[0-9]{6}Z-[0-9]+$"},
+          "verb": {"const": "push"},
+          "status": {"const": "DONE"},
+          "reason": {"type": "null"},
+          "detail": {"type": "null"},
+          "request_sha256": {"oneOf": [{"$ref": "#/definitions/sha256"}, {"type": "null"}]},
+          "sender": {"type": "string", "minLength": 1},
+          "utc": {"$ref": "#/definitions/utc"},
+          "head": {"$ref": "#/definitions/sha40"}
+        },
+        "$comment": "DONE .out: envelope plus these fields; every field required, no other key"
+      }
+    },
+    "pr-create": {
+      "conductor_only": false,
+      "requester": "delivery-run after PREPR: PASS",
+      "result_reader": "lead (copies pr to substate.md)",
+      "markers": ["head", "gate-run", "review-record"],
+      "inflight_target": "repo#branch@expect_head",
+      "gate": null,
+      "request": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["repo", "branch", "base", "body_path", "labels", "record_path", "expect_head"],
+        "properties": {
+          "repo": {"$ref": "#/definitions/repo"},
+          "branch": {"$ref": "#/definitions/branch"},
+          "base": {"$ref": "#/definitions/git_ref"},
+          "body_path": {"$ref": "#/definitions/abs_path"},
+          "labels": {"type": "array", "items": {"$ref": "#/definitions/label"}},
+          "record_path": {"$ref": "#/definitions/abs_path"},
+          "expect_head": {"$ref": "#/definitions/sha40"}
+        }
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "verb", "status", "reason", "detail", "request_sha256", "sender", "utc", "pr", "head", "url"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9-]+-(st[0-9]+|pm|run)-[0-9]{8}T[0-9]{6}Z-[0-9]+$"},
+          "verb": {"const": "pr-create"},
+          "status": {"const": "DONE"},
+          "reason": {"type": "null"},
+          "detail": {"type": "null"},
+          "request_sha256": {"oneOf": [{"$ref": "#/definitions/sha256"}, {"type": "null"}]},
+          "sender": {"type": "string", "minLength": 1},
+          "utc": {"$ref": "#/definitions/utc"},
+          "pr": {"$ref": "#/definitions/pr"},
+          "head": {"$ref": "#/definitions/sha40"},
+          "url": {"$ref": "#/definitions/https_url"}
+        },
+        "$comment": "DONE .out: envelope plus these fields; every field required, no other key"
+      }
+    },
+    "pr-attach": {
+      "conductor_only": false,
+      "requester": "delivery-run right after pr-create",
+      "result_reader": "delivery-run",
+      "markers": [],
+      "inflight_target": "repo#pr",
+      "gate": null,
+      "request": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["repo", "pr", "paths"],
+        "properties": {
+          "repo": {"$ref": "#/definitions/repo"},
+          "pr": {"$ref": "#/definitions/pr"},
+          "paths": {"type": "array", "items": {"$ref": "#/definitions/abs_path"}}
+        }
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "verb", "status", "reason", "detail", "request_sha256", "sender", "utc", "pr", "attached"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9-]+-(st[0-9]+|pm|run)-[0-9]{8}T[0-9]{6}Z-[0-9]+$"},
+          "verb": {"const": "pr-attach"},
+          "status": {"const": "DONE"},
+          "reason": {"type": "null"},
+          "detail": {"type": "null"},
+          "request_sha256": {"oneOf": [{"$ref": "#/definitions/sha256"}, {"type": "null"}]},
+          "sender": {"type": "string", "minLength": 1},
+          "utc": {"$ref": "#/definitions/utc"},
+          "pr": {"$ref": "#/definitions/pr"},
+          "attached": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["path", "url"], "properties": {"path": {"$ref": "#/definitions/abs_path"}, "url": {"$ref": "#/definitions/https_url"}}}}
+        },
+        "$comment": "DONE .out: envelope plus these fields; every field required, no other key"
+      }
+    },
+    "pr-comment": {
+      "conductor_only": false,
+      "requester": "delivery-run, ci-fix-loop",
+      "result_reader": "same",
+      "markers": [],
+      "inflight_target": null,
+      "gate": null,
+      "request": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["repo", "pr", "body_path"],
+        "properties": {
+          "repo": {"$ref": "#/definitions/repo"},
+          "pr": {"$ref": "#/definitions/pr"},
+          "body_path": {"$ref": "#/definitions/abs_path"}
+        }
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "verb", "status", "reason", "detail", "request_sha256", "sender", "utc", "pr", "comment_url"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9-]+-(st[0-9]+|pm|run)-[0-9]{8}T[0-9]{6}Z-[0-9]+$"},
+          "verb": {"const": "pr-comment"},
+          "status": {"const": "DONE"},
+          "reason": {"type": "null"},
+          "detail": {"type": "null"},
+          "request_sha256": {"oneOf": [{"$ref": "#/definitions/sha256"}, {"type": "null"}]},
+          "sender": {"type": "string", "minLength": 1},
+          "utc": {"$ref": "#/definitions/utc"},
+          "pr": {"$ref": "#/definitions/pr"},
+          "comment_url": {"$ref": "#/definitions/https_url"}
+        },
+        "$comment": "DONE .out: envelope plus these fields; every field required, no other key"
+      }
+    },
+    "pr-comments-read": {
+      "conductor_only": false,
+      "requester": "ci-fix-loop",
+      "result_reader": "ci-fix-loop",
+      "markers": [],
+      "inflight_target": null,
+      "gate": null,
+      "request": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["repo", "pr"],
+        "properties": {
+          "repo": {"$ref": "#/definitions/repo"},
+          "pr": {"$ref": "#/definitions/pr"}
+        }
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "verb", "status", "reason", "detail", "request_sha256", "sender", "utc", "comments_path"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9-]+-(st[0-9]+|pm|run)-[0-9]{8}T[0-9]{6}Z-[0-9]+$"},
+          "verb": {"const": "pr-comments-read"},
+          "status": {"const": "DONE"},
+          "reason": {"type": "null"},
+          "detail": {"type": "null"},
+          "request_sha256": {"oneOf": [{"$ref": "#/definitions/sha256"}, {"type": "null"}]},
+          "sender": {"type": "string", "minLength": 1},
+          "utc": {"$ref": "#/definitions/utc"},
+          "comments_path": {"$ref": "#/definitions/abs_path"}
+        },
+        "$comment": "DONE .out: envelope plus these fields; every field required, no other key"
+      }
+    },
+    "pr-approval-state": {
+      "conductor_only": false,
+      "requester": "conductor",
+      "result_reader": "conductor",
+      "markers": [],
+      "inflight_target": null,
+      "gate": null,
+      "request": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["repo", "pr"],
+        "properties": {
+          "repo": {"$ref": "#/definitions/repo"},
+          "pr": {"$ref": "#/definitions/pr"}
+        }
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "verb", "status", "reason", "detail", "request_sha256", "sender", "utc", "reviewDecision", "headRefOid", "author", "approving_reviews", "h_pr"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9-]+-(st[0-9]+|pm|run)-[0-9]{8}T[0-9]{6}Z-[0-9]+$"},
+          "verb": {"const": "pr-approval-state"},
+          "status": {"const": "DONE"},
+          "reason": {"type": "null"},
+          "detail": {"type": "null"},
+          "request_sha256": {"oneOf": [{"$ref": "#/definitions/sha256"}, {"type": "null"}]},
+          "sender": {"type": "string", "minLength": 1},
+          "utc": {"$ref": "#/definitions/utc"},
+          "reviewDecision": {"enum": ["APPROVED", "CHANGES_REQUESTED", "REVIEW_REQUIRED", ""]},
+          "headRefOid": {"$ref": "#/definitions/sha40"},
+          "author": {"type": "string"},
+          "approving_reviews": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["login", "state", "commit_id"], "properties": {"login": {"type": "string"}, "state": {"enum": ["APPROVED", "CHANGES_REQUESTED", "COMMENTED", "DISMISSED", "PENDING"]}, "commit_id": {"$ref": "#/definitions/sha40"}}}},
+          "h_pr": {"type": "boolean"}
+        },
+        "$comment": "DONE .out: envelope plus these fields; every field required, no other key"
+      }
+    },
+    "pr-merge": {
+      "conductor_only": true,
+      "requester": "conductor only",
+      "result_reader": "conductor (writes merge-<sha>.md)",
+      "markers": ["head", "gate-run", "review-record", "h-pr", "ci", "order", "merge_reach", "merge-target"],
+      "inflight_target": "repo#pr",
+      "gate": "merge_reach row (gate-missing)",
+      "request": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["repo", "pr", "subtask", "method", "expect_head", "predecessors", "record_path"],
+        "properties": {
+          "repo": {"$ref": "#/definitions/repo"},
+          "pr": {"$ref": "#/definitions/pr"},
+          "subtask": {"$ref": "#/definitions/fields_subtask"},
+          "method": {"$ref": "#/definitions/method"},
+          "expect_head": {"$ref": "#/definitions/sha40"},
+          "predecessors": {"type": "array", "items": {"$ref": "#/definitions/pr"}},
+          "record_path": {"$ref": "#/definitions/abs_path"}
+        }
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "verb", "status", "reason", "detail", "request_sha256", "sender", "utc", "merge_sha", "merge_reach"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9-]+-(st[0-9]+|pm|run)-[0-9]{8}T[0-9]{6}Z-[0-9]+$"},
+          "verb": {"const": "pr-merge"},
+          "status": {"const": "DONE"},
+          "reason": {"type": "null"},
+          "detail": {"type": "null"},
+          "request_sha256": {"oneOf": [{"$ref": "#/definitions/sha256"}, {"type": "null"}]},
+          "sender": {"type": "string", "minLength": 1},
+          "utc": {"$ref": "#/definitions/utc"},
+          "merge_sha": {"$ref": "#/definitions/sha40"},
+          "merge_reach": {"type": "string", "$comment": "the profile row verbatim"}
+        },
+        "$comment": "DONE .out: envelope plus these fields; every field required, no other key"
+      }
+    },
+    "branch-delete": {
+      "conductor_only": false,
+      "requester": "delivery-cleanup (host lead or conductor sends)",
+      "result_reader": "delivery-cleanup",
+      "markers": ["content-merged"],
+      "inflight_target": "repo#branch",
+      "gate": null,
+      "request": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["repo", "branch", "merged_into", "merge_sha"],
+        "properties": {
+          "repo": {"$ref": "#/definitions/repo"},
+          "branch": {"$ref": "#/definitions/branch"},
+          "merged_into": {"$ref": "#/definitions/git_ref"},
+          "merge_sha": {"$ref": "#/definitions/sha40"}
+        }
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "verb", "status", "reason", "detail", "request_sha256", "sender", "utc", "deleted", "merged_check"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9-]+-(st[0-9]+|pm|run)-[0-9]{8}T[0-9]{6}Z-[0-9]+$"},
+          "verb": {"const": "branch-delete"},
+          "status": {"const": "DONE"},
+          "reason": {"type": "null"},
+          "detail": {"type": "null"},
+          "request_sha256": {"oneOf": [{"$ref": "#/definitions/sha256"}, {"type": "null"}]},
+          "sender": {"type": "string", "minLength": 1},
+          "utc": {"$ref": "#/definitions/utc"},
+          "deleted": {"const": true},
+          "merged_check": {"enum": ["ancestor", "patch-id", "squash"]}
+        },
+        "$comment": "DONE .out: envelope plus these fields; every field required, no other key"
+      }
+    },
+    "ci-status": {
+      "conductor_only": false,
+      "requester": "ci-fix-loop",
+      "result_reader": "ci-fix-loop",
+      "markers": [],
+      "inflight_target": null,
+      "gate": null,
+      "request": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["repo", "pr"],
+        "properties": {
+          "repo": {"$ref": "#/definitions/repo"},
+          "pr": {"$ref": "#/definitions/pr"}
+        }
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "verb", "status", "reason", "detail", "request_sha256", "sender", "utc", "head", "checks", "state"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9-]+-(st[0-9]+|pm|run)-[0-9]{8}T[0-9]{6}Z-[0-9]+$"},
+          "verb": {"const": "ci-status"},
+          "status": {"const": "DONE"},
+          "reason": {"type": "null"},
+          "detail": {"type": "null"},
+          "request_sha256": {"oneOf": [{"$ref": "#/definitions/sha256"}, {"type": "null"}]},
+          "sender": {"type": "string", "minLength": 1},
+          "utc": {"$ref": "#/definitions/utc"},
+          "head": {"$ref": "#/definitions/sha40"},
+          "checks": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["name", "state"], "properties": {"name": {"type": "string"}, "state": {"$ref": "#/definitions/ci_state"}}}},
+          "state": {"enum": ["success", "failure", "pending", "cancelled"], "$comment": "aggregate over ci.required_checks[]: any failure -> failure; else any pending or a required check absent -> pending; else any cancelled -> cancelled; else success (a required skipped counts as success); never skipped"}
+        },
+        "$comment": "DONE .out: envelope plus these fields; every field required, no other key"
+      }
+    },
+    "ci-logs": {
+      "conductor_only": false,
+      "requester": "ci-fix-loop",
+      "result_reader": "ci-fix-loop",
+      "markers": [],
+      "inflight_target": null,
+      "gate": null,
+      "request": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["repo", "ci_run_id", "job"],
+        "properties": {
+          "repo": {"$ref": "#/definitions/repo"},
+          "ci_run_id": {"$ref": "#/definitions/ci_run_id"},
+          "job": {"$ref": "#/definitions/job"}
+        }
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "verb", "status", "reason", "detail", "request_sha256", "sender", "utc", "log_path"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9-]+-(st[0-9]+|pm|run)-[0-9]{8}T[0-9]{6}Z-[0-9]+$"},
+          "verb": {"const": "ci-logs"},
+          "status": {"const": "DONE"},
+          "reason": {"type": "null"},
+          "detail": {"type": "null"},
+          "request_sha256": {"oneOf": [{"$ref": "#/definitions/sha256"}, {"type": "null"}]},
+          "sender": {"type": "string", "minLength": 1},
+          "utc": {"$ref": "#/definitions/utc"},
+          "log_path": {"$ref": "#/definitions/abs_path"}
+        },
+        "$comment": "DONE .out: envelope plus these fields; every field required, no other key"
+      }
+    },
+    "ci-rerun": {
+      "conductor_only": false,
+      "requester": "ci-fix-loop",
+      "result_reader": "ci-fix-loop",
+      "markers": [],
+      "inflight_target": null,
+      "gate": null,
+      "request": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["repo", "ci_run_id"],
+        "properties": {
+          "repo": {"$ref": "#/definitions/repo"},
+          "ci_run_id": {"$ref": "#/definitions/ci_run_id"}
+        }
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "verb", "status", "reason", "detail", "request_sha256", "sender", "utc", "ci_run_id"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9-]+-(st[0-9]+|pm|run)-[0-9]{8}T[0-9]{6}Z-[0-9]+$"},
+          "verb": {"const": "ci-rerun"},
+          "status": {"const": "DONE"},
+          "reason": {"type": "null"},
+          "detail": {"type": "null"},
+          "request_sha256": {"oneOf": [{"$ref": "#/definitions/sha256"}, {"type": "null"}]},
+          "sender": {"type": "string", "minLength": 1},
+          "utc": {"$ref": "#/definitions/utc"},
+          "ci_run_id": {"$ref": "#/definitions/ci_run_id"}
+        },
+        "$comment": "DONE .out: envelope plus these fields; every field required, no other key"
+      }
+    },
+    "ci-status-main": {
+      "conductor_only": false,
+      "requester": "pm lead, post-merge-verify",
+      "result_reader": "same",
+      "markers": [],
+      "inflight_target": null,
+      "gate": null,
+      "request": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["repo", "merge_sha"],
+        "properties": {
+          "repo": {"$ref": "#/definitions/repo"},
+          "merge_sha": {"$ref": "#/definitions/sha40"}
+        }
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "verb", "status", "reason", "detail", "request_sha256", "sender", "utc", "merge_sha", "stages"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9-]+-(st[0-9]+|pm|run)-[0-9]{8}T[0-9]{6}Z-[0-9]+$"},
+          "verb": {"const": "ci-status-main"},
+          "status": {"const": "DONE"},
+          "reason": {"type": "null"},
+          "detail": {"type": "null"},
+          "request_sha256": {"oneOf": [{"$ref": "#/definitions/sha256"}, {"type": "null"}]},
+          "sender": {"type": "string", "minLength": 1},
+          "utc": {"$ref": "#/definitions/utc"},
+          "merge_sha": {"$ref": "#/definitions/sha40"},
+          "stages": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["name", "state"], "properties": {"name": {"type": "string"}, "state": {"$ref": "#/definitions/ci_state"}}}}
+        },
+        "$comment": "DONE .out: envelope plus these fields; every field required, no other key"
+      }
+    },
+    "fetch": {
+      "conductor_only": false,
+      "requester": "the lead before 02-integrate.md and before each pre-pr-gate call; delivery-cleanup verify (AM-4 W2-4)",
+      "result_reader": "same",
+      "markers": [],
+      "inflight_target": null,
+      "gate": null,
+      "request": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["repo", "ref"],
+        "properties": {
+          "repo": {"$ref": "#/definitions/repo"},
+          "ref": {"$ref": "#/definitions/git_ref"}
+        }
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "verb", "status", "reason", "detail", "request_sha256", "sender", "utc", "ref", "sha"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9-]+-(st[0-9]+|pm|run)-[0-9]{8}T[0-9]{6}Z-[0-9]+$"},
+          "verb": {"const": "fetch"},
+          "status": {"const": "DONE"},
+          "reason": {"type": "null"},
+          "detail": {"type": "null"},
+          "request_sha256": {"oneOf": [{"$ref": "#/definitions/sha256"}, {"type": "null"}]},
+          "sender": {"type": "string", "minLength": 1},
+          "utc": {"$ref": "#/definitions/utc"},
+          "ref": {"$ref": "#/definitions/git_ref"},
+          "sha": {"$ref": "#/definitions/sha40"}
+        },
+        "$comment": "DONE .out: envelope plus these fields; every field required, no other key"
+      }
+    },
+    "tag-push": {
+      "conductor_only": true,
+      "requester": "conductor only, on a pm CONDUCTOR-REQUEST",
+      "result_reader": "release-track",
+      "markers": [],
+      "inflight_target": "repo#tag@sha",
+      "gate": "H-prod.<step_id>.<run-id>.ok only under release_tags.approval: human",
+      "request": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["repo", "tag", "sha", "step_id"],
+        "properties": {
+          "repo": {"$ref": "#/definitions/repo"},
+          "tag": {"$ref": "#/definitions/tag"},
+          "sha": {"$ref": "#/definitions/sha40"},
+          "step_id": {"$ref": "#/definitions/step_id"}
+        }
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "verb", "status", "reason", "detail", "request_sha256", "sender", "utc", "tag", "sha"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9-]+-(st[0-9]+|pm|run)-[0-9]{8}T[0-9]{6}Z-[0-9]+$"},
+          "verb": {"const": "tag-push"},
+          "status": {"const": "DONE"},
+          "reason": {"type": "null"},
+          "detail": {"type": "null"},
+          "request_sha256": {"oneOf": [{"$ref": "#/definitions/sha256"}, {"type": "null"}]},
+          "sender": {"type": "string", "minLength": 1},
+          "utc": {"$ref": "#/definitions/utc"},
+          "tag": {"$ref": "#/definitions/tag"},
+          "sha": {"$ref": "#/definitions/sha40"}
+        },
+        "$comment": "DONE .out: envelope plus these fields; every field required, no other key"
+      },
+      "$comment": "runs only after the H-prod grant (owner 2026-10-26, release-track OQ-3, owner-decisions.md:92; frozen B4 stands: tag-push needs H-prod only under release_tags.approval human)"
+    },
+    "publish": {
+      "conductor_only": true,
+      "requester": "conductor only, on a pm CONDUCTOR-REQUEST",
+      "result_reader": "release-track",
+      "markers": [],
+      "inflight_target": "package@version",
+      "gate": "H-prod.<step_id>.<run-id>.ok",
+      "request": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["repo", "package", "version", "step_id"],
+        "properties": {
+          "repo": {"$ref": "#/definitions/repo"},
+          "package": {"$ref": "#/definitions/package"},
+          "version": {"$ref": "#/definitions/semver"},
+          "step_id": {"$ref": "#/definitions/step_id"}
+        }
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "verb", "status", "reason", "detail", "request_sha256", "sender", "utc", "package", "version", "registry_url"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9-]+-(st[0-9]+|pm|run)-[0-9]{8}T[0-9]{6}Z-[0-9]+$"},
+          "verb": {"const": "publish"},
+          "status": {"const": "DONE"},
+          "reason": {"type": "null"},
+          "detail": {"type": "null"},
+          "request_sha256": {"oneOf": [{"$ref": "#/definitions/sha256"}, {"type": "null"}]},
+          "sender": {"type": "string", "minLength": 1},
+          "utc": {"$ref": "#/definitions/utc"},
+          "package": {"$ref": "#/definitions/package"},
+          "version": {"$ref": "#/definitions/semver"},
+          "registry_url": {"$ref": "#/definitions/https_url"}
+        },
+        "$comment": "DONE .out: envelope plus these fields; every field required, no other key"
+      },
+      "$comment": "runs only after the H-prod grant (owner 2026-10-26, release-track OQ-3, owner-decisions.md:92; frozen B4 stands: tag-push needs H-prod only under release_tags.approval human)"
+    },
+    "test-report-push": {
+      "conductor_only": true,
+      "requester": "conductor only, on a pm CONDUCTOR-REQUEST authored by release-track (AM-2)",
+      "result_reader": "release-track",
+      "markers": [],
+      "inflight_target": "payload_path",
+      "gate": null,
+      "request": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["tool", "payload_path", "dry_run"],
+        "properties": {
+          "tool": {"enum": ["zephyr"]},
+          "payload_path": {"$ref": "#/definitions/abs_path"},
+          "dry_run": {"type": "boolean"}
+        }
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "verb", "status", "reason", "detail", "request_sha256", "sender", "utc", "dry_run_path", "pushed"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9-]+-(st[0-9]+|pm|run)-[0-9]{8}T[0-9]{6}Z-[0-9]+$"},
+          "verb": {"const": "test-report-push"},
+          "status": {"const": "DONE"},
+          "reason": {"type": "null"},
+          "detail": {"type": "null"},
+          "request_sha256": {"oneOf": [{"$ref": "#/definitions/sha256"}, {"type": "null"}]},
+          "sender": {"type": "string", "minLength": 1},
+          "utc": {"$ref": "#/definitions/utc"},
+          "dry_run_path": {"$ref": "#/definitions/abs_path"},
+          "pushed": {"type": "boolean"}
+        },
+        "$comment": "DONE .out: envelope plus these fields; every field required, no other key"
+      }
+    },
+    "jira-get": {
+      "conductor_only": false,
+      "requester": "ticket-clerk, delivery-dispatch-plan",
+      "result_reader": "same",
+      "markers": [],
+      "inflight_target": null,
+      "gate": null,
+      "request": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["key", "fields"],
+        "properties": {
+          "key": {"$ref": "#/definitions/jira_key"},
+          "fields": {"type": "array", "items": {"$ref": "#/definitions/jira_readable_name"}}
+        }
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "verb", "status", "reason", "detail", "request_sha256", "sender", "utc", "key", "fields"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9-]+-(st[0-9]+|pm|run)-[0-9]{8}T[0-9]{6}Z-[0-9]+$"},
+          "verb": {"const": "jira-get"},
+          "status": {"const": "DONE"},
+          "reason": {"type": "null"},
+          "detail": {"type": "null"},
+          "request_sha256": {"oneOf": [{"$ref": "#/definitions/sha256"}, {"type": "null"}]},
+          "sender": {"type": "string", "minLength": 1},
+          "utc": {"$ref": "#/definitions/utc"},
+          "key": {"$ref": "#/definitions/jira_key"},
+          "fields": {"$ref": "#/definitions/jira_fields_read"}
+        },
+        "$comment": "DONE .out: envelope plus these fields; every field required, no other key"
+      }
+    },
+    "jira-create": {
+      "conductor_only": false,
+      "requester": "ticket-clerk in the conductor (<subtask> run)",
+      "result_reader": "ticket-clerk (writes tickets.tsv)",
+      "markers": [],
+      "inflight_target": "parent key + summary",
+      "gate": "H1.<run-id>.ok",
+      "request": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["fields"],
+        "properties": {
+          "parent": {"$ref": "#/definitions/jira_key"},
+          "fields": {"$ref": "#/definitions/jira_fields_write"}
+        },
+        "$comment": "parent is present exactly when fields.issuetype is not Epic (B4); an Epic with parent, or a non-Epic without it, is schema. The top-level parent is the only parent carrier: a fields.parent is schema at check 5; fields needs summary and issuetype, every other allowlisted field is optional (AM-4 22, part-b-desk.md:100); a non-Epic with no parent is schema (B9 26)",
+        "if": {"properties": {"fields": {"required": ["issuetype"], "properties": {"issuetype": {"const": "Epic"}}}}},
+        "then": {"not": {"required": ["parent"]}},
+        "else": {"required": ["parent"]},
+        "allOf": [{"properties": {"fields": {"required": ["summary", "issuetype"], "not": {"required": ["parent"]}}}}]
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "verb", "status", "reason", "detail", "request_sha256", "sender", "utc", "key", "parent"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9-]+-(st[0-9]+|pm|run)-[0-9]{8}T[0-9]{6}Z-[0-9]+$"},
+          "verb": {"const": "jira-create"},
+          "status": {"const": "DONE"},
+          "reason": {"type": "null"},
+          "detail": {"type": "null"},
+          "request_sha256": {"oneOf": [{"$ref": "#/definitions/sha256"}, {"type": "null"}]},
+          "sender": {"type": "string", "minLength": 1},
+          "utc": {"$ref": "#/definitions/utc"},
+          "key": {"$ref": "#/definitions/jira_key"},
+          "parent": {"oneOf": [{"$ref": "#/definitions/jira_key"}, {"type": "null"}]}
+        },
+        "$comment": "DONE .out: envelope plus these fields; every field required, no other key"
+      }
+    },
+    "jira-update": {
+      "conductor_only": false,
+      "requester": "ticket-clerk",
+      "result_reader": "ticket-clerk",
+      "markers": [],
+      "inflight_target": "key",
+      "gate": null,
+      "request": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["key", "fields"],
+        "properties": {
+          "key": {"$ref": "#/definitions/jira_key"},
+          "fields": {"$ref": "#/definitions/jira_fields_write"}
+        }
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "verb", "status", "reason", "detail", "request_sha256", "sender", "utc", "key", "read_back"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9-]+-(st[0-9]+|pm|run)-[0-9]{8}T[0-9]{6}Z-[0-9]+$"},
+          "verb": {"const": "jira-update"},
+          "status": {"const": "DONE"},
+          "reason": {"type": "null"},
+          "detail": {"type": "null"},
+          "request_sha256": {"oneOf": [{"$ref": "#/definitions/sha256"}, {"type": "null"}]},
+          "sender": {"type": "string", "minLength": 1},
+          "utc": {"$ref": "#/definitions/utc"},
+          "key": {"$ref": "#/definitions/jira_key"},
+          "read_back": {"$ref": "#/definitions/jira_fields_read"}
+        },
+        "$comment": "DONE .out: envelope plus these fields; every field required, no other key"
+      }
+    },
+    "jira-transition": {
+      "conductor_only": false,
+      "requester": "ticket-clerk on a TICKET-EVENT",
+      "result_reader": "ticket-clerk",
+      "markers": [],
+      "inflight_target": "key",
+      "gate": null,
+      "request": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["key", "to"],
+        "properties": {
+          "key": {"$ref": "#/definitions/jira_key"},
+          "to": {"$ref": "#/definitions/transition_to"}
+        }
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "verb", "status", "reason", "detail", "request_sha256", "sender", "utc", "key", "read_back"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9-]+-(st[0-9]+|pm|run)-[0-9]{8}T[0-9]{6}Z-[0-9]+$"},
+          "verb": {"const": "jira-transition"},
+          "status": {"const": "DONE"},
+          "reason": {"type": "null"},
+          "detail": {"type": "null"},
+          "request_sha256": {"oneOf": [{"$ref": "#/definitions/sha256"}, {"type": "null"}]},
+          "sender": {"type": "string", "minLength": 1},
+          "utc": {"$ref": "#/definitions/utc"},
+          "key": {"$ref": "#/definitions/jira_key"},
+          "read_back": {"type": "object", "additionalProperties": false, "required": ["status"], "properties": {"status": {"type": "string"}}}
+        },
+        "$comment": "DONE .out: envelope plus these fields; every field required, no other key"
+      }
+    }
+  },
+  "reason_codes": {
+    "sender": {"class": "terminal", "b3_step": 1, "trigger": "transport sender not in the desk-held registry for the run; a conductor-only verb whose sender is not the registered conductor or whose <id> subtask is not run; any <id> with <subtask> run whose transport sender is not the registry's run id. No .out is written."},
+    "schema": {"class": "terminal", "b3_step": 5, "trigger": "the copy fails the closed per-verb schema: unknown verb, unknown or missing field, raw flag, force, string where an array is required, id/verb/subtask in the JSON differing from the line (including a relayed claude -p request whose subtask does not match the id); also a DESK path not equal to RUN_HOME/desk/<id>.req, a <verb> outside the 20 B4 verbs (approve, trigger-prod, pipeline-edit included: they are not verbs, so check 5 refuses them before check 6), and a ref, base, merged_into, tag or package starting with - (raw flag); a jira-create with no parent for a non-Epic, and an int written as -0 or in exponent form (B9 26, PR10-R2)"},
+    "hash": {"class": "terminal", "b3_step": 4, "trigger": "the copy's sha256 differs from sha256=<hex>"},
+    "repo": {"class": "terminal", "b3_step": 6, "trigger": "repo not under a registered clone (resolves to no profile); pr-merge method differs from the profile merge_method (AM-8 V7); branch fails <JIRA-KEY>(-[a-z0-9-]+)?; body_path, payload_path, record_path or an attachment path outside its allowed root"},
+    "marker": {"class": "curable", "b3_step": 8, "trigger": "a re-derived marker fails: jira-create parent missing at re-fetch (AM-8 V7); head sha, CODE-GATE-REVIEW/Verified-By, H-pr approval, CI not green at pr-merge, GATE-PASS record missing for a push or pr-create, branch-delete content not merged into merged_into; also push-spacing and pipeline-bound (detail)"},
+    "order": {"class": "curable", "b3_step": 8, "trigger": "a pr-merge predecessor is not merged"},
+    "policy": {"class": "terminal", "b3_step": 6, "$comment": "approve, trigger-prod and pipeline edit are quoted from part B2.1; as DESK verbs they never reach check 6 (a non-B4 verb is schema at check 5, part B2 and B3 step 5), so in practice policy is for in-schema requests: ci-rerun on a non-pull-request run, a tag-push the profile refuses, a redaction hit or an unusable pattern file, a test-report-push first call with dry_run false", "trigger": "an in-schema request the desk never grants (ci-rerun on a non-pull-request run; non-B4 verbs such as approve, trigger-prod or pipeline edit are schema at check 5, not policy); a tag-push the repo profile does not allow (no release_tags entry, used \"no\", tag not matching pattern, malformed entry); a redaction hit in a body, payload, attachment or string field; a test-report-push whose first call for a payload_path carries dry_run false (B9 26)"},
+    "stale-session": {"class": "curable", "b3_step": 7, "trigger": "the GitHub or Atlassian session is not fresh", "$comment": "curable: resent with a fresh id on the owner's word (B9 29-33); unrelated to the A.3 stop_reason stale-session of a second pm lead (A.8)"},
+    "gate-missing": {"class": "curable", "b3_step": 8, "trigger": "H1.<run-id>.ok absent before jira-create; H-prod.<step_id>.<run-id>.ok absent before publish, or before a tag-push under release_tags.approval human; merge_reach row absent before pr-merge"},
+    "action-failed": {"class": "curable", "b3_step": 9, "trigger": "a valid request whose action then fails (non-fast-forward, branch protection, remote or gh error); .inflight stays"}
+  },
+  "regexes": {
+    "$comment": "POSIX ERE (INTERFACES Regex dialect); copied from part B. These lines are not verbs (RESOLVED Q2).",
+    "id": "^([a-z0-9-]+)-(st[0-9]+|pm|run)-([0-9]{8}T[0-9]{6}Z)-([0-9]+)$",
+    "run_subtask_prefix": "^[a-z][a-z0-9]*-[0-9]+-[0-9]{8}(-[0-9]+)?-(st[0-9]+|pm|run)$",
+    "DESK": "^DESK +([a-z0-9-]+-(st[0-9]+|pm|run)-[0-9]{8}T[0-9]{6}Z-[0-9]+) \\| ([a-z-]+) \\| (/[^ ]+) \\| sha256=([0-9a-f]{64})$",
+    "DONE": "^DONE +([a-z0-9-]+-(st[0-9]+|pm|run)-[0-9]{8}T[0-9]{6}Z-[0-9]+) \\| ([a-z-]+) \\| result=(/[^ ]+) \\| ([^|[:cntrl:]]+)$",
+    "REJECTED": "^REJECTED +([a-z0-9-]+-(st[0-9]+|pm|run)-[0-9]{8}T[0-9]{6}Z-[0-9]+) \\| (sender|schema|hash|repo|marker|order|policy|stale-session|gate-missing|action-failed)$",
+    "REGISTER-SENDER": "^REGISTER-SENDER ([a-z0-9-]+) \\| (st[0-9]+|pm|run) \\| ([^ ]+)$",
+    "REGISTERED": "^REGISTERED ([a-z0-9-]+) \\| (st[0-9]+|pm|run) \\| (ok|refused)$",
+    "GATE": "^GATE ([a-z0-9-]+) (H0|H1|H-e2e\\.(st[0-9]+|pm)|H-pr|H-prod\\.[a-z0-9-]+|grant\\.(st[0-9]+|pm)\\.[0-9]+|H-destructive\\.[A-Za-z0-9.-]+|RESUME\\.(st[0-9]+|pm)) (ok|changes|reject)( .+)?$",
+    "ANSWER": "^ANSWER ([a-z0-9-]+) (st[0-9]+|pm) ([ui][0-9]+) (.+)$",
+    "REBIND": "^REBIND ([a-z0-9-]+) ([^ ]+)$",
+    "VERDICT": "^VERDICT ([a-z0-9-]+) pm ([A-Za-z0-9.-]+) (.+)$",
+    "STATUS": "^STATUS +([a-z0-9-]+-(st[0-9]+|pm|run)-[0-9]{8}T[0-9]{6}Z-[0-9]+)$",
+    "BUSY": "^BUSY ([a-z0-9-]+-(st[0-9]+|pm|run)-[0-9]{8}T[0-9]{6}Z-[0-9]+) \\| ([^|[:cntrl:]]+) \\| ([^|[:cntrl:]]+)$",
+    "status_busy_source": "STATUS and BUSY are the permission-tiers-02 section 2 envelope lines (architecture/permission-tiers-02.md:92 grammar, :100-101 2-minute rule), not part B; the id group reuses the B2 id; the regex form is an author default",
+    "desk_address": "^desk$",
+    "conductor_only_verbs": "^(pr-merge|publish|tag-push|test-report-push)$",
+    "gate_verdicts": {"H0": ["ok"], "H1": ["ok", "changes", "reject"], "H-e2e.<subtask>": ["ok"], "H-prod.<step_id>": ["ok"], "H-pr": [], "grant.<subtask>.<n>": ["ok"], "H-destructive.<row-id>": ["ok"], "RESUME.<subtask>": ["ok"]},
+    "gate_source": "B8 plus the B9 gate lines (AM-5 26, 21, queue row 29): grant.<subtask>.<n>, H-destructive.<row-id> (row id as D2.2 row 12, [A-Za-z0-9.-]+), RESUME.<subtask>; B9 GATE lines carry <run-id> in the B8 form GATE <run-id> <gate> ... (INTERFACES 1.6.0 AM-6 (f)) so the run resolves; a grant line's text must start with ref=<sensitive path> (DEFAULT (author))",
+    "gate_file": "^(H0|H1|H-e2e\\.(st[0-9]+|pm)|H-prod\\.[a-z0-9-]+|grant\\.(st[0-9]+|pm)\\.[0-9]+|H-destructive\\.[A-Za-z0-9.-]+|RESUME\\.(st[0-9]+|pm))\\.([a-z0-9-]+)\\.(ok|changes|reject)$",
+    "gate_file_source": "A.2.1 AM-5 26: every gate-file name is <gate>.<run-id>.<verdict>; H-e2e under RUN_HOME/<subtask>/gates/, the rest under RUN_HOME/gates/; only .ok satisfies a gate; changes and reject exist for H1 only"
+  }
+}

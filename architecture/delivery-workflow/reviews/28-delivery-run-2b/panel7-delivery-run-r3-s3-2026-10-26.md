@@ -1,0 +1,7 @@
+id | sev | artifact file:line | defect | source file:line | fix
+s3-1 | M | references/tick.md:38 (+27, SKILL.md:159-164) | Unconfirmed depth-2 rows after a controller TaskStop stay .row "until one full tick has passed", but no tick step re-evaluates/frees them later; step 5 re-flags them STALLED (second nudge/TaskStop); slots stay counted | interfaces/part-c-waves-control.md:150,183 | Add a per-tick step applying the confirm rule and freeing; exclude from step 5
+s3-2 | M | references/tick.md:43 (9a), SKILL.md:165-167 | Controller row freed so 9a passes while unconfirmed depth-2 rows remain and SESSION still holds lane leases (10.2 skips own leases): fresh invocation can share a unit worktree with a possible zombie | tick.md:38; part-c-waves-control.md:23 | 9a also requires no .row from a stopped invocation
+s3-3 | M | references/bus-and-ports.md:66, tick.md:24, SKILL.md:174-175 | Mid-run stops (S8, human) say "stop" with controller/agents possibly live; no TaskStop/sweep/free before exit; agents run unobserved, cron gone | part-a-state.md:169; part-c-waves-control.md:150,183 | On any stop with live agents run the TaskStop order or keep the tick until they return
+s3-4 | L | references/tick.md:77 (CV41) | No recorded wait-start for the unit_median_min lane/slot wait | SKILL.md:186 | Record first-failure UTC at 10.2
+s3-5 | L | SKILL.md:221-222 vs tick.md:37-41 | 10.8 frees controller row "after its TaskStop"; tick frees last after sweep and verdict re-read | tick.md:37 | Say free after the step 9 order
+totals 0/3/2

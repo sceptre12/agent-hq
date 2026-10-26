@@ -64,7 +64,7 @@ _cprof_write_token() {
 _cprof_new() {
   local name tmpl root d tier ov force=0
   name=$1; shift
-  [[ -n $name ]] || { _cprof_err "usage: cprof new <name> [--template T] [--tier executor|desk [--overlay P]]"; return 1; }
+  [[ -n $name ]] || { _cprof_err "usage: cprof new <name> [--template T] [--tier executor|desk [--overlay P]] (--tier executor renders <owner> from CPROF_OWNER, a GitHub account name [A-Za-z0-9-]; it fails closed if CPROF_OWNER is unset, empty or malformed)"; return 1; }
   while (( $# )); do
     case $1 in
       --template) tmpl=$2; shift 2 || { _cprof_err "--template needs a value"; return 1; } ;;
@@ -231,6 +231,8 @@ cprof — isolated per-shell Claude Code profiles
   cprof new <name> [--template T] [--tier executor|desk [--overlay P] [--force]]
                                     create profile; token read from stdin (hidden on a tty);
                                     --tier renders config/settings.json + tier/tier.src + CLAUDE.md
+                                    --tier executor renders <owner> from CPROF_OWNER (a GitHub account name, [A-Za-z0-9-]);
+                                    it fails closed if CPROF_OWNER is unset, empty or malformed
   cprof launch <name> [--dry-run] [-- <claude args>]
                                     exec claude with the tier's flag (refuses the opposite tier's); unlike `use`,
                                     strips ANTHROPIC_API_KEY/CLAUDE_CODE_USE_*/DISABLE_AUTO_MEMORY set by profile.env

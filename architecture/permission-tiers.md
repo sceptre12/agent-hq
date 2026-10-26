@@ -82,6 +82,7 @@ The owner's own interactive seat is outside the tiers.
      prompt (R-2); renders `config/settings.json` = jq-merge(`hq/config/settings.json`, tier
      fragment, overlay, `claudeMdExcludes`); writes `<profile>/tier` and `<profile>/tier.src`
      (sha256 of each input); installs the tier's `CLAUDE.md` template into `workspace/`.
+     `--tier executor` renders `<owner>` from `CPROF_OWNER` (a GitHub account name, `[A-Za-z0-9-]`); it fails closed if `CPROF_OWNER` is unset, empty or malformed.
    - `cprof launch <name> [-- <claude args>]` — the `use` environment (`cprof.zsh:128-135`)
      plus the tier flag: executor → `--dangerously-skip-permissions`; desk →
      `--permission-mode auto`; plus `--settings '{"crossSessionInbound":"accept"}'` (MEASURED in

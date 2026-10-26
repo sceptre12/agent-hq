@@ -9,8 +9,8 @@
 # lib/preflight-lib.sh for the numeric primitives that enforce it.
 #
 # Source of truth: plans/<project>/probe/parallel-ops-design.md
-# §5 "Executable guardrails" (2026-08-24) — all 8 checks, same order, same
-# thresholds.
+# §5 "Executable guardrails" (2026-08-24): the 8 checks plus 4b, same order and
+# thresholds, except 8081 is INVERTED (must be free; §5 line 229 is falsified).
 #
 # Usage: parallel-preflight.sh --expect-sims N --devices "UDID,UDID,..." [--quiet]
 #   --expect-sims N   REQUIRED, 0..64. Booted-sim count expected for THIS run.
@@ -24,13 +24,13 @@
 # DISK_FREE_GB = macOS "available for important usage" (decimal GB, as Finder shows);
 # df fallback, else UNKNOWN. Ladder + PATH-only test seam: lib/preflight-lib.sh.
 #
-# Deliberate divergences from §5, all of them tightening:
+# Deliberate divergences from §5 (tightening, plus the 8081 inversion above):
 #   * §5 says "exactly one listener"; we count distinct PIDs, because one
 #     dual-stack process emits an IPv4 and an IPv6 line and is still 1 listener.
 #   * §5 and §2 make JAVA_HOME mandatory. An unset JAVA_HOME is NO-GO with the
 #     brew-resolved export line printed as remediation — never a bare OK.
 #
-# NOTE: this shell wraps `grep` in a function that silently returns empty for
+# NOTE: in the Claude Code Bash-tool shell (a zsh snapshot) `grep` is a shell function that silently returns empty for
 # some inputs — every grep below uses `command grep`, never bare `grep`.
 
 set -u
@@ -122,7 +122,7 @@ fi
 # 11001 is the current Expo default (RCT_METRO_PORT): once committed, a fallen-back
 # `expo start` lands there instead of 8081, so both ports need the same trap.
 # Any listener on either = an expo start that skipped its assigned port. Deliberately
-# inverts design §5:229, which is falsified.
+# inverts parallel-ops-design.md §5 line 229 (see header), which is falsified.
 #
 # port_trap_probe: shared body for both traps. Positive control reuses lsof_any
 # (set once below); distinct PIDs, not lines, since a dual-stack listener emits
@@ -221,18 +221,18 @@ if [ ! -d "$lock_dir" ] || [ ! -r "$lock_dir" ] || [ ! -e "$lock_dir" ] \
 elif [ -e "$LOCKFILE" ] || [ -L "$LOCKFILE" ]; then
   # -L as well: `[ -e ]` alone reports a DANGLING lock symlink as absent.
   report MEASURE_LOCK "PRESENT" "$T7" "NO-GO"
-  # Provenance (read-only): the lock is claimed/released by the orchestrator via
-  # tools/measurement-lock.sh, which stamps owner + claim time. Surfacing it here
-  # tells the operator WHO holds the window and whether it is plausibly stale.
+  # Provenance (read-only): the lock is a plain file claimed and removed by hand (this repo
+  # has no claim/release script). Surfacing its first lines here shows the operator what is
+  # in the lock and whether it is plausibly stale.
   if [ -f "$LOCKFILE" ] && [ -r "$LOCKFILE" ]; then
     while IFS= read -r _lockline; do
       NOTES+=("MEASURE_LOCK: ${_lockline}")
-    done < <(head -3 "$LOCKFILE")
+    done < <(head -3 "$LOCKFILE" | tr -cd '[:print:]\n')
     unset _lockline
   else
     NOTES+=("MEASURE_LOCK: lockfile present but unreadable/non-regular — inspect $LOCKFILE manually.")
   fi
-  NOTES+=("MEASURE_LOCK: if the owning measurement is finished, release with: tools/measurement-lock.sh release")
+  NOTES+=("MEASURE_LOCK: after confirming no measurement is running, release by removing the lockfile: rm -- $LOCKFILE")
 else
   report MEASURE_LOCK "absent" "$T7" "OK"
 fi

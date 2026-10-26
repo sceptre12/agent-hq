@@ -1,0 +1,76 @@
+# Owner decisions on agent-workflow-design.md (2026-10-26)
+- D1: human acceptance replaces the S1 panel-approval gate on the architecture; the final artifact must still be reviewed.
+- D2: skills hosted in agent-hq.
+- D3: a desk skill owns all git/GitHub steps (structured request, independent marker verification, DONE/REJECTED). No grammar/ADR change (clears B2).
+- D4: 30 agents per sub-task; 200 machine-wide ceiling. Default per-session cap is 20 -> raise CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS or split teams.
+- D5: one PR per sub-task. Human reviews alongside agents; after human approval agents merge (via desk skill); merge order = architecture plan order.
+- D6: ADOPT as skill rules: D35, D55, D57, D59, D60, D62. NOT adopted (advisory only): D44, D54, D58, D61, D66.
+- D7: after fix round 3 with open B/M findings, the sub-task STOPS and the owner gets the open findings; other sub-tasks continue.
+- D12: smaller seat sets allowed only after (a) a RACI remap moving every dropped role's checks to a kept role and (b) a 3-seat probe showing no lost checks. Until then full 7.
+- D14 (+ M31 compromise for these three): shepherd, ci-fix-loop, release-track built as marked pilot drafts, used in the first pilot; pilot friction becomes provenance; full review after. Clears B3.
+- D16: ALL delivery skills model-invocable (no disable-model-invocation anywhere). Clears M6 contradiction.
+- D25: build BACKEND=claude-p now alongside Agent-tool backend. Revision must: count claude-p agents in the 30/200 ledger; drop "gates identical" claim and state the missing sandbox/deny list + compensating controls; mark it untested until work env.
+- D22: one repo-profile file per target repo is the sole authority; other docs link (+sha), never copy. Clears M17.
+- D11: all tickets live in Jira; the desk performs all Jira interaction. NO Notion on that system: remove every Notion portion from all skills (ticket-clerk = Jira-only via desk; D62 cadence applies to Jira ticket updates, not Notion pages).
+- D24: distribution by symlinks per ADR 0009.
+- ADR 0023: YES, extend wave-execution (max_concurrent, persona, lane, gate_type step_complete, DAG-frontier mode); record an amendment to ADR 0023. delivery-run builds on it. Clears M8 gate item.
+- MVP (M31): FULL BREADTH. Build all skills (except the three D14 pilot drafts at draft quality) before the first pilot.
+- D8: cleanup deletes branch (local+remote, via desk) only when content-merged into main (ancestor OR rebase/squash content check); else keep + flag.
+- D9: cleanup removes catalog entries only; non-catalog finds are reported, never deleted.
+- D10: shepherd flags + redirects every 10 min; stalls/creep escalate to the sub-task lead, who decides TaskStop; Sonnet.
+- D23: ci-fix-loop never edits pipeline definitions/shared pipeline repos/triggers/required checks; stops and pings the human.
+- OWNER RULE (2026-10-26): NO symlinking into ~/.claude/skills (or anywhere) from agent-hq now — something else is symlinked there. Build only in agent-hq; the owner moves the work to the real environment for testing. D24 symlinks apply only at that later install step, done by the owner. The home pilot therefore runs only after the owner moves the work.
+- D15: release-track agents may deploy to staging, poll health/dashboards, report. Production deploy, flag flips, money, prod data, external publication, store submission = human step agents prepare + track.
+- D17: e2e required for user-visible stories where the repo has a harness; agents write e2e using the NLTA plugin (NL Test Framework: Gherkin .feature intent -> generated TS Playwright/WDIO tests). Source: ~/projects/x-context-docs/projects/nl-testing-framework/ (shared/architecture.md, conventions.md, learnings.md, confluence-drafts/*, decisions/001, bug-reports/*). No harness -> architecture doc names the gap; testing plan covers by hand post-merge.
+- D18: sign-off (architecture acceptance and scope changes) = whoever is executing the workflow. No role map.
+- D13: pilot target = "proof web" (owner's name; in the real environment after the move; not present under ~/projects here).
+- D20: ALWAYS full width (up to 30 per sub-task); no ramp-up, even in a new repo.
+- D21 + FRAMING: "This will purely be used for work." The workflow targets the work environment only. HUSKY=0 skip on PR creation/first push is allowed, BUT before every commit the agent runs the affected lint, test and typecheck (affected-only) and records the pass. Never --no-verify outside that flow.
+- D19: learnings captured by the Hermes port inside agent-hq (owner will turn it on); runs write learnings into agent-hq via that Hermes port, not to the home Hermes.
+- OWNER RULE (2026-10-26): this agent-hq setup will NOT run on this machine. No home-profile considerations anywhere (no home tracker, home Hermes, home pilot, home/work branches). Single environment = work. Ground resources in x-context-docs foundations-capabilities. Full work session history to follow for evaluation.
+- T1 (D3 refinement): ADD a `DESK` verb to the permission-tiers-02 §2 grammar via an ADR amendment (not a practice-only pointer line).
+- T2 (D16): exemption from skill-authoring §4 side-effect row is fine; all model-invocable.
+- T3 (D15): on Proof Web agents track only for now, BUT the design should plan to use the new Zephyr API/MCP integration (https://docs.zephyr-cloud.io/tools/api-mcp#zephyr-api-mcp) for release-track; research routed to desk (executor can't fetch web).
+## Round-2 panel answers (2026-10-26)
+- R2-1 (B2 Zephyr): the person running the workflow has the Zephyr MCP set up locally themselves; the design does not install it. (Guard must therefore be enforced technically in the run — tool restriction/hook — not by install scope.)
+- R2-2 (B3 merge reach): owner: answer comes from context docs. Facts (XC foundations-capabilities shared/architecture-04-cicd.md:47-54, open-questions.md:46-47, architecture-05-platform.md:13-19, foundationsPipelineCleanup/shared/architecture.md:75-90, FoundationSemver/decisions/dft-deployment-check.md): PR_Merge_Pipeline_v2 runs E2E -> pre-prod Zephyr build -> pre-prod S3 build+upload -> prod S3 build with ALLOW_DEPLOYMENT_CHECK=true set INLINE in the pipeline YAML (de-foundations-cicd, foundations-owned, human-only per D23) -> ProdS3Upload east+west. S3 is the secondary/backup deployment; live production is Zephyr tag promotion (human). dft-deployment-check fails the prod build for any affected app under apps/ (excl. examples/e2e) whose package.json version was not bumped vs merge base.
+- R2-3 (D21 refinement): affected lint/test/typecheck run once per push/batch (before each push / at unit end), not per commit.
+- R2-4 (PR identity/approval): uses the operator's own locally configured GitHub auth (gh or equivalent, system settings); no separate bot account, no approved-account list in the work runtime.
+- R2-5 (B3 resolved): agent merge after human PR approval is accepted on Proof Web; approval covers the prod S3 BACKUP upload (live prod = human Zephyr promotion). Repo profile records the merge pipeline stages; dispatch plan must bump package.json version of every affected app under apps/ or the merge pipeline's deploymentCheck fails.
+- R2-6: copy owner-decisions.md, M-probe-results.md, zephyr-summary.md into agent-hq AS-IS (owner ruling, overrides sanitize default) — done as a W0 build item, not now.
+- R2-7 defaults (coordinator, announced): build-time git on the build machine = existing desk pushes as today; move item 8 (review-7-panel + feature-change port/strip) into W0; no approved-account list in the work runtime (operator's GitHub auth).
+- R2-8: Phase C = apply revision list + these answers, then separate fix-verifier on B1-B3 + the 21 claimed-not-delivered items.
+## Build + presentation rulings (2026-10-26)
+- B-1: building the skill family runs in parallel with up to 50 agents at once (build-time cap; runtime cap stays 30/sub-task, 200/machine). Plan must report wall-clock, with agent-hours shown only as effort/cost.
+- B-2: an HTML visual of the plan goes into x-context-docs and is pushed straight to main. Layout:
+  - top-level leadership page: a "bouncing ball" view of one person directing a team of agents to high-success outcomes;
+  - clickable detail pages per process;
+  - a cost/quality/budget page, a learning-system page, and a caretaker-agents page.
+- B-3: the plan must be grounded in Hermes learnings (and their growth effect).
+- B-3 application (coordinator, under the owner's "plan grounded in Hermes learnings"): adopt G48 (cheap Haiku pre-round check before round 1, owner-approved in Hermes) as a workflow rule. Add the six missing safeguards from hermes-learnings-digest.md §C. Any fixed bus cap must derive from the 50/30 ceilings, not a self-imposed serial limit.
+- B-4 (owner, 2026-10-26): "Why is there a cost metric the goal is to focus on parallizing work and ensuring we can get things done with as many agents as possible safely with only a max of 50 agents lets move forward and not increase scope"
+  - Remove the build-cost estimate and the token/dollar budget guardrails from the design.
+  - Remove the cost view and the dollar figures from the HTML.
+  - Focus: maximum safe parallelism under the 50-agent cap. No new scope.
+- H1 ACCEPT (owner, 2026-10-26 13:38Z): "Alright i accept the design now move forward with building out the work" — v2 as of 443f06465dc1.
+- OWNER RULE (2026-10-26): never publish artifacts to claude.ai (no Artifact tool). View HTML locally with the system `open` command.
+- INTERFACES owner questions (2026-10-26):
+  - Q1 YES: the conductor relays DESK lines for claude -p leads, and the desk cross-checks the id and subtask.
+  - Q2 YES: add an optional bus_endpoint to wave-execution; caller-owned bus attach and skip-teardown (ratify with 0054).
+  - Q3 YES: add a pr-attach verb plus a record_path field on pr-create and pr-merge (ratify with 0055).
+- HTML: 30 is a CAP per sub-task. Work runs in parallel up to that cap; not every sub-task launches 30 agents.
+- ADR 0055 open points (owner, 2026-10-26, "Accept all"):
+  - OP1 A: no detail on the line; the detail goes in .out.
+  - OP2 A: long DONE form.
+  - OP3 B: a desk-held sender registry; the conductor registers ids over the transport.
+  - OP4 A: the existing desk tier; "never source" is scoped to INSTALL. The conductor and Agent-tool leads are executor tier; claude-p leads have no tier (D25).
+  - OP5 B: terminal vs curable codes; a curable code may be resent with a fresh id once its cause clears.
+  - OP6 A: R2-7 is runtime only; build-time git keeps the existing envelope.
+  - OP7 A: reserved token `run`; utc yyyymmddThhmmssZ.
+  - OP8 (a) B: R2-4 lifts ADR 0053 item 6 in the work runtime. (b) A: the registered-clone repo check only.
+  - OP9 A: traces scanned; images attached unscanned and labelled as such.
+  - OP10 A: a tenth code `action-failed`, curable under OP5.
+- ADR 0054 questions (owner, 2026-10-26):
+  - Q2 yes. Q3: gate and fix agents COUNT toward max_concurrent. Q4-Q11 yes, per the loop record.
+  - RATIFY 0054 once the fix-verifier confirms the answers are written in.
+- ADR 0055: RATIFY once the fix-verifier confirms the OP1-10 answers are written in.

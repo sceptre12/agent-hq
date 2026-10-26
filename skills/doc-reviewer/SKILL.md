@@ -46,7 +46,9 @@ Never auto-apply fixes.
 
 Read `references/checks.md` for the full spec of every check before executing — the table
 below is the authoritative inventory (`references/checks.md` must contain one full spec per
-row; if they diverge, `references/checks.md` is stale).
+numbered row; if they diverge, `references/checks.md` is stale). The DOC-1..DOC-4 row is
+specified in `references/delivery-doc-checks.md`; read it too when the document is a delivery
+stage 2 artifact.
 
 | Check | Name | Applies to |
 |---|---|---|
@@ -80,8 +82,10 @@ row; if they diverge, `references/checks.md` is stale).
    for any skill/doc that defines, produces, or consumes bus topics or inter-agent message
    flows. Full definitions, verdict scales, and examples: `references/checks.md`. When the
    document under review is a delivery stage 2 artifact (`architecture.md`, `dispatch-plan.md`,
-   a task spec, or an epic/child ticket draft), also run DOC-1..DOC-4 from
-   `references/delivery-doc-checks.md`; no input is needed, the document decides.
+   a task spec, or an epic/child ticket draft; identified by path or self-description as in
+   `references/delivery-doc-checks.md`), also run DOC-1..DOC-4 from that file; no input is
+   needed, the document decides. The `DOC-` labels appear only in finding rows, never in the
+   report header or prose; report a delivery-check miss once, under its `DOC-` row.
 3. **Source Verification (Check 8).** For any section changing EXISTING files: first check
    whether a completed task spec already has an "Implementation Patterns" section (cheap);
    otherwise read the actual source (expensive but necessary). If source is inaccessible,
@@ -143,7 +147,7 @@ Key Learnings list are in `references/checks.md`.
       with a CONFLICT/TENSION/CLEAN verdict.
 - [ ] The overall verdict (READY / NOT READY / READY WITH CONDITIONS) is stated.
 - [ ] No fix was applied without an explicit decision recorded first.
-- [ ] For a delivery stage 2 artifact, the delivery checks were run and the report says "delivery checks: run" (or "delivery checks: clean") without naming the labels; each finding row carries its `DOC-<n>` label, and no `DOC-` token appears outside finding rows.
+- [ ] For a delivery stage 2 artifact, the applicable delivery checks were run and the report carries the status line defined in `references/delivery-doc-checks.md` ("delivery checks: run" with findings, "delivery checks: clean" without, "delivery checks: clean, partial" when a part was unverifiable) without naming the labels; each finding row carries its `DOC-<n>` label, and no `DOC-` token appears outside finding rows.
 - [ ] Applied fixes were re-verified for coherence (Step 10) before reporting completion.
 
 ## Provenance

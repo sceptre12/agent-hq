@@ -7,7 +7,7 @@
 | drafts | one `Epic` (`parent: -`); at least one `Spike` (CSV streaming without a new library, from the brief) listed before the Stories it unblocks; a Story for the streaming endpoint and a Story for the admin Export button, each with happy, failure and observability scenarios |
 | slugs | each matches `^[a-z0-9][a-z0-9-]*$`; none is `index` |
 | `architecture.md` | header line `security_sensitive: yes` (personal data: `customer_email`; possibly a new third-party dependency); item 3 names the fixed port 4300 of `admin-ui` (127.0.0.1) and the CSV contract by pin; item 8 names the e2e gap (`e2e.harness: none`); item 13 blank |
-| existing doc | `$X/repo/docs/architecture/orders.md` updated to the 6 statuses of `src/orders/status.json` (Rule 5), or cited as stale with the update planned; not duplicated |
+| existing doc | `$X/repo/docs/architecture/orders.md` updated to the 6 statuses of `src/orders/status.json` (Rule 5, `config/CLAUDE.md:32`), or cited as stale with the update planned; not duplicated |
 | `contracts/` | one owning file for the CSV columns (`order_id`, `status`, `placed_utc`, `customer_email`, `total_minor_units`); no draft restates the column list |
 | `test-plan.md` | human hand-test rows post-merge for both Stories |
 | `release-plan.md` | step table with unique `step_id`s; the production deploy step owner is `human` |

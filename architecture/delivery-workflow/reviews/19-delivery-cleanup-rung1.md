@@ -86,3 +86,37 @@
 - **OQ-C:** who runs `CronDelete` and `TaskStop` for `cron` and `bgtask` rows, given that the executor is a subagent? Recommended: the host session runs them and the executor records the result. Without the tool, the row is kept with `no-host-tool`.
 - **OQ-D:** A.5.1 `db` cites a profile-lane `cleanup_cmd`, but A.2.2 has no such key. Recommended: add `lanes.<name>.{verify_cmd,cleanup_cmd}` to A.2.2. Until then the row is kept with `no-profile-cmd`.
 - **Advisory, not raised as a question:** R12 deletes a clone with unpushed commits only behind the `clone-unpushed` skill-default guard.
+
+## Post-D7 fix (owner-authorized, 2026-10-26, no new review round)
+The owner authorized applying the loop's recommended fixes after the D7 stop, with the owner-accepted answers to OQ-A..D (AM-5 queue row "(19)"). Fixer: Worker1 integrator. Fix-verify: separate Sonnet agents running the installed `fix-verifier`.
+- **S1 (B) fixed:** the clone guard is the worktree check, `git -C <path> status --ignored --porcelain` non-empty → `keep clone <path> ignored-or-dirty` and flag, never delete (`executor-rules.md` clone line; the red flag and the guard column cover clones).
+- **S2 fixed:** Provenance pins INTERFACES 1.4.0, AM-4 row 20 (`default_branch`, `list --live`); Step 7 notes that `catalog.sh` prints `live` rows only and `failed` is read from `catalog.tsv`.
+- **S3 fixed:** `main` → the profile `default_branch` (A.2.2) in the D8 test, the `fetch` and `branch-delete` fields, red flags and exit criteria.
+- **S4 fixed:** host hand-off step 2 runs `TaskStop`, then the A.5.1/C7 orphan sweep (register each orphan as a `process` row, add it to `## approved`).
+- **S5 fixed:** one `.md.tmp`; line 1 inserted as the last write, then `mv` (A.6). `.md.new` removed.
+- **OQ-A:** a failed cleanup → the approver sends C2 `ESCALATE` reason `human-step` with the `.tmp` path. **OQ-B:** the detached `pm` worktree passes the PR condition of the removal guard (cites AM-5 queue row "(19)"); clean/no-ignored still applies. **OQ-C:** the host session runs `CronDelete`/`TaskStop`. **OQ-D:** `db` rows use `cleanup_cmd`, kept `no-profile-cmd` until the key exists.
+- Low V2: `bus` with no `bus.endpoint` → `keep bus <handle> no-endpoint`.
+- **Fix-verify 1: all closed, 0 B, 0 M, 2 Advisory** (one wording advisory fixed; "pending the INTERFACES amendment" kept while AM-5 is pending). §9: `SKILL-19-OK`.
+- Out of scope, still open: `skills/delivery-run/references/briefs/cleanup-executor.md` ".git included or excluded" (item 27b; AM-5 row says included).
+
+## Functional check (2026-10-26)
+A separate Sonnet agent ran the skill literally (host/approver, executor, validator phases) against a fixture under `$TMPDIR/cleanup-fx.XXXXXX`, with the catalog written by the real `tools/delivery/catalog.sh` and the port claimed with the real `~/projects/agent-hq/tools/port-check.sh` (port 7931). Deviations: the claim went to a copy of `ports.tsv` via `PORT_REGISTRY_FILE` so the real registry was not written; clones sat under `RUN_HOME` (`catalog.sh` refuses other roots); one extra unregistered worktree exercised `SQUATTER`; there is no remote, so the desk `DONE` replies were simulated (`desk-req.sh` itself ran locally). Evidence: `$TMPDIR/cleanup-fx-evidence/` (record, `catalog.tsv`, run log).
+
+| # | Assertion | Result |
+|---|---|---|
+| A1 | merged worktree removed (`git worktree remove`, absent from list, path gone) | PASS |
+| A2 | clean clone removed (one `rm -r` by literal path) | PASS |
+| A3 | worktree with ignored `.env` kept and flagged (`kept ignored-or-dirty`, residual line), `.env` intact | PASS |
+| A4 | clone with ignored `.env` kept and flagged, `.env` intact | PASS |
+| A5 | non-catalog directory untouched and reported in `## residual` | PASS (needed a listing source the text lacked, F3) |
+| A6 | `sleep 600` gone (`kill -0` before ok, `kill`, `kill -0` after fails) | PASS |
+| A7 | port row `released`; `port-check.sh 7931` FREE | PASS |
+| A8 | `list --live --subtask st1` empty; no st1 row latest planned/live/failed | PASS |
+| A9 | line 1 `CLEANUP DONE st1` written last via one temp + `mv`; four sections in order | PASS |
+| A10 | nothing outside the fixture changed (agent-hq main clean, real `ports.tsv` untouched; W diffs only from other agents) | PASS |
+Also: tmpdir removed, merged branch deleted, the `.env` worktree's branch kept.
+
+Findings and dispositions (fixed once, then re-verified by a separate Sonnet `fix-verifier`: **CLEAN**, 0 B, 0 M; §9 `SKILL-19-OK`):
+- F1 handle examples need `<repo-abs-path>`: fixed. F2 path handles must lie under `RUN_HOME`/`WORKTREE_BASE`: stated. F3 no source found a plain unregistered dir: read-only `ls` of `worktree_base` and `RUN_HOME/<subtask>/` added as a report-only source (never a deletion scope, D9). F4 guard `deferred-desk` added. F5 `worktree-kept` guard; approver `keep` applied by `catalog.sh keep`; rows matched by kind+handle, not row id (also F9). F7 `port-check.sh --audit` lines filtered to scope. F8 validator also checks `port-check.sh <port>`. F10 `kill -0` "operation not permitted" is stop-and-report, not gone; the already-gone rule re-tests a `process` `GHOST` (`catalog-audit.sh` reports any `kill -0` failure as `GHOST`). F11 `INPUT-ERROR` reason mapping added to Step 0.
+- **Open for the owner:** F6, the skill has no rule for a repo with no remote (`merge_reach=local`): the D8 hand-off is remote-first and assumes a desk `fetch`. Advisories left as is: `deferred-desk` is defined only in `dry-run-table.md`; D1 reason `sha` is not mapped in Step 0.
+- Residue: two fixture `sleep 600` processes (pids 66138, 79808, cwd in the removed fixture) could not be signalled from this sandbox (EPERM); they exit by themselves within 10 minutes.

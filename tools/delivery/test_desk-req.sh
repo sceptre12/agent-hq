@@ -127,6 +127,45 @@ rej jira-to jira-transition '{"key":"ABC-1","to":"Shipped"}' run
 rej bad-tool test-report-push "{\"tool\":\"xray\",\"payload_path\":\"$RH/bodies/p\",\"dry_run\":true}" run
 rej dry-str test-report-push "{\"tool\":\"zephyr\",\"payload_path\":\"$RH/bodies/p\",\"dry_run\":\"true\"}" run
 rej bad-semver publish "{$G,\"package\":\"p\",\"version\":\"1.2\",\"step_id\":\"s\"}" run
+# M3 jira-create: fields.parent refused, summary and issuetype required, parent iff not Epic
+rej jc-fields-empty jira-create '{"parent":"ABC-1","fields":{}}' run
+rej jc-fields-parent jira-create '{"parent":"ABC-1","fields":{"summary":"s","issuetype":"Task","parent":"ABC-2"}}' run
+rej jc-epic-nosummary jira-create '{"fields":{"issuetype":"Epic"}}' run
+rej jc-no-issuetype jira-create '{"parent":"ABC-1","fields":{"summary":"s"}}' run
+rej jc-summary-num jira-create '{"parent":"ABC-1","fields":{"summary":1,"issuetype":"Task"}}' run
+rej jc-epic-fparent jira-create '{"fields":{"summary":"s","issuetype":"Epic","parent":"ABC-2"}}' run
+check "jc-msg fields.parent" "$(run "$RID" run jira-create "$(fx r '{"parent":"ABC-1","fields":{"summary":"s","issuetype":"Task","parent":"ABC-2"}}')"; echo "$ERRT")" "desk-req: schema: fields.parent not allowed"
+reset; run "$RID" run jira-create "$(fx r '{"fields":{"summary":"s","issuetype":"Epic"}}')"; check "jc epic ok" "$RC" 0
+reset; run "$RID" run jira-update "$(fx r '{"key":"ABC-1","fields":{"parent":"ABC-2"}}')"; check "jira-update partial ok" "$RC" 0
+reset
+# desk panel: semver as part B (no leading zeros), no leading - in package
+rej semver-lead0 publish "{$G,\"package\":\"p\",\"version\":\"01.2.3\",\"step_id\":\"s\"}" run
+rej semver-empty-pre publish "{$G,\"package\":\"p\",\"version\":\"1.2.3-\",\"step_id\":\"s\"}" run
+rej semver-dotdot publish "{$G,\"package\":\"p\",\"version\":\"1.2.3-a..b\",\"step_id\":\"s\"}" run
+rej package-dash publish "{$G,\"package\":\"-x\",\"version\":\"1.2.3\",\"step_id\":\"s\"}" run
+rej package-scope-dash publish "{$G,\"package\":\"@a/-x\",\"version\":\"1.2.3\",\"step_id\":\"s\"}" run
+reset; f=$(fx sv "{$G,\"package\":\"p\",\"version\":\"0.10.0-rc.1+b.7\",\"step_id\":\"s\"}")
+run "$RID" run publish "$f"; check "semver full ok" "$RC" 0
+reset
+# M2: a trailing LF, CR, TAB or DEL in any regex-checked field is schema (jq "$" matches before a final LF)
+B="\"branch\":\"ABC-1\""; E="\"expect_head\":\"$SHA\""
+for c in '\n' '\r' '\t' '\u007f'; do
+  rej "lf-repo $c" fetch "{\"repo\":\"$REPO$c\",\"ref\":\"main\"}"
+  rej "lf-ref $c" fetch "{$G,\"ref\":\"main$c\"}"
+  rej "lf-branch $c" push "{$G,\"branch\":\"ABC-1$c\",$E}"
+  rej "lf-sha $c" push "{$G,$B,\"expect_head\":\"$SHA$c\"}"
+  rej "lf-tag $c" tag-push "{$G,\"tag\":\"v1$c\",\"sha\":\"$SHA\",\"step_id\":\"s\"}" run
+  rej "lf-step $c" tag-push "{$G,\"tag\":\"v1\",\"sha\":\"$SHA\",\"step_id\":\"s$c\"}" run
+  rej "lf-key $c" jira-get "{\"key\":\"ABC-1$c\",\"fields\":[\"summary\"]}" run
+  rej "lf-parent $c" jira-create "{\"parent\":\"ABC-1$c\",\"fields\":{\"summary\":\"s\",\"issuetype\":\"Task\"}}" run
+  rej "lf-package $c" publish "{$G,\"package\":\"p$c\",\"version\":\"1.2.3\",\"step_id\":\"s\"}" run
+  rej "lf-semver $c" publish "{$G,\"package\":\"p\",\"version\":\"1.2.3$c\",\"step_id\":\"s\"}" run
+  rej "lf-label $c" pr-create "{$G,$B,\"base\":\"main\",\"body_path\":\"$RH/bodies/b\",\"labels\":[\"x$c\"],\"record_path\":\"$RH/review/st1/record-$SHA.md\",$E}"
+  rej "lf-base $c" pr-create "{$G,$B,\"base\":\"main$c\",\"body_path\":\"$RH/bodies/b\",\"labels\":[],\"record_path\":\"$RH/review/st1/record-$SHA.md\",$E}"
+  rej "lf-fsub $c" pr-merge "{$G,\"pr\":1,\"subtask\":\"st1$c\",\"method\":\"squash\",$E,\"predecessors\":[],\"record_path\":\"$RH/review/st1/record-$SHA.md\"}" run
+  rej "lf-job $c" ci-logs "{$G,\"ci_run_id\":1,\"job\":\"build$c\"}"
+  rej "lf-body $c" pr-comment "{$G,\"pr\":1,\"body_path\":\"$RH/bodies/c.md$c\"}"
+done
 rej conductor-st1 tag-push "{$G,\"tag\":\"v1\",\"sha\":\"$SHA\",\"step_id\":\"s\"}" st1
 rej conductor-merge pr-merge "{$G,\"pr\":1,\"subtask\":\"st1\",\"method\":\"squash\",\"expect_head\":\"$SHA\",\"predecessors\":[],\"record_path\":\"$RH/review/st1/record-$SHA.md\"}" st1
 rej body-outside pr-comment "{$G,\"pr\":1,\"body_path\":\"/etc/passwd\"}"

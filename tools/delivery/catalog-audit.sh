@@ -2,9 +2,11 @@
 # tools/delivery/catalog-audit.sh -- sourced by catalog.sh (uses its RH, CAT, WB, RUN_ID, T, realp).
 # Classification (A.5, A.5.1 verify column): open = latest row planned|live; alive MATCH, gone GHOST.
 # container|image|workspace|db|cron|bgtask are not checkable from a shell and print no line.
+# port: live truth fails closed like tools/port-check.sh (tools/lib/port-check-lib.sh lsof_run): an lsof that
+#   is missing, or exits other than 0-with-output / 1-without, gives no verdict for the row and audit exits 3.
 # SQUATTER = git worktree under WORKTREE_BASE named <run-id>-* with no open row (repos from the catalog's worktree rows).
 
-audit_latest() { # all latest rows (first-seen order) of every pair, optionally only open ones
+audit_latest() { # the latest row of every kind+handle pair, in first-seen order
   [ -f "$CAT" ] || return 0
   awk -F'\t' '{ k = $6 "\034" $7; if (!(k in last)) order[++n] = k; last[k] = $0 }
     END { for (i = 1; i <= n; i++) print last[order[i]] }' "$CAT"
@@ -16,11 +18,20 @@ audit_wt_has() { # repo path -> 0 when git lists the worktree
   git -C "$1" worktree list --porcelain 2>/dev/null < /dev/null | command grep -Fxq "worktree $p"
 }
 
-audit_check() { # kind handle subtask -> 0 alive, 1 gone, 2 unverifiable (no output)
+audit_port() { # port -> 0 listening, 1 not listening, 3 lsof missing or failed
+  local out lrc=0
+  command -v lsof > /dev/null 2>&1 || return 3
+  out=$(lsof -nP -iTCP:"$1" -sTCP:LISTEN 2>/dev/null < /dev/null) || lrc=$?
+  [ "$lrc" -eq 0 ] && [ -n "$out" ] && return 0
+  [ "$lrc" -eq 1 ] && [ -z "$out" ] && return 1
+  return 3
+}
+
+audit_check() { # kind handle subtask -> 0 alive, 1 gone, 2 unverifiable (no output), 3 live truth unreadable
   local k=$1 h=$2 st=$3 path rest repo ref pid ep
   case $k in
     process) kill -0 "$h" 2>/dev/null ;;
-    port) lsof -nP -iTCP:"$h" -sTCP:LISTEN 2>/dev/null < /dev/null | command grep -q . ;;
+    port) audit_port "$h" ;;
     tmpdir|file|clone) [ -e "$h" ] ;;
     lane-lease) return 0 ;;
     worktree)
@@ -43,7 +54,7 @@ audit_check() { # kind handle subtask -> 0 alive, 1 gone, 2 unverifiable (no out
 }
 
 cmd_audit() {
-  local rows kind handle rid st state rc open="" repos="" line f
+  local rows rc arc=0 open="" repos=""
   local f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 p r wt
   [ -f "$CAT" ] || return 0
   rows=$(audit_latest)
@@ -60,13 +71,15 @@ cmd_audit() {
     case $rc in
       0) printf 'MATCH\t%s\n' "$f4" ;;
       1) printf 'GHOST\t%s\n' "$f4" ;;
+      3) echo "catalog.sh: audit: lsof missing or failed for $f6 $f7 (row $f4); failing closed, no verdict" >&2; arc=3 ;;
     esac
   done <<< "$rows"
-  [ -n "$WB" ] || return 0
+  [ -n "$WB" ] || return "$arc"
   for r in $repos; do
     git -C "$r" worktree list --porcelain 2>/dev/null < /dev/null | sed -n 's/^worktree //p' | while IFS= read -r wt; do
       case $wt in "$WB/$RUN_ID"-*) ;; *) continue ;; esac
       printf '%s' "$open" | command grep -Fxq "$wt" || printf 'SQUATTER\t-\tworktree:%s\n' "$wt"
     done
   done | awk '!seen[$0]++'
+  return "$arc"
 }

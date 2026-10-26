@@ -12,10 +12,15 @@ DR_CONDUCTOR_RE='^(pr-merge|publish|tag-push|test-report-push)$'
 # jq program: $verb is the verb, input is the fields object. Prints "" when
 # valid, else "verb", "fields: not an object", "unknown key K", "missing K"
 # or the name of the first mistyped key. Types follow the B4 "Field types"
-# paragraph; a ref or tag may not start with "-" (no raw flag).
+# paragraph; a ref, tag or package may not start with "-" (no raw flag). Every
+# regex-typed value is first refused if it holds any control character: jq's
+# Oniguruma lets "$" match before a final LF, so "main\n" would otherwise pass.
+# jira-create: top-level parent is the only parent carrier (fields.parent is
+# refused), fields.summary and fields.issuetype are required strings, and parent
+# is present exactly when issuetype is not Epic (B4 Field types, row jira-create).
 DR_JQ=$(cat <<'JQEOF'
 def isstr: type == "string";
-def rx($r): isstr and test($r);
+def rx($r): isstr and (test("[[:cntrl:]]") | not) and test($r);
 def inl($a): . as $x | any($a[]; . == $x);
 def ok($t):
   if $t == "abs" then rx("^/[^[:space:]]+$")
@@ -30,8 +35,8 @@ def ok($t):
   elif $t == "abss" then (type == "array" and all(.[]; ok("abs")))
   elif $t == "labels" then (type == "array" and all(.[]; rx("^[A-Za-z0-9._:-]+$")))
   elif $t == "job" then rx("^[^[:cntrl:]]{1,200}$")
-  elif $t == "package" then rx("^(@[a-z0-9-]+/)?[a-z0-9._-]+$")
-  elif $t == "semver" then rx("^[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?$")
+  elif $t == "package" then rx("^(@[a-z0-9-]+/)?[a-z0-9._][a-z0-9._-]*$")
+  elif $t == "semver" then rx("^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?(\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$")
   elif $t == "step" then rx("^[a-z0-9-]+$")
   elif $t == "tool" then (. == "zephyr")
   elif $t == "bool" then (type == "boolean")
@@ -72,10 +77,19 @@ def epic: ((.fields? // null) | (type == "object" and .issuetype == "Epic"));
   elif ($f | type) != "object" then "fields: not an object"
   else
     (if $verb == "jira-create" and ($f | epic) then ($s | del(.parent)) else $s end) as $s2
-    | ([$f | keys_unsorted[] | select(in($s2) | not) | "unknown key " + .][0]
+    | (if $verb == "jira-create" and (($f | .fields? | type) == "object") then
+         ($f | .fields) as $j
+         | if ($j | has("parent")) then "fields.parent not allowed"
+           elif ($j | .summary | isstr | not) then "missing fields.summary"
+           elif ($j | .issuetype | isstr | not) then "missing fields.issuetype"
+           else "" end
+       else "" end) as $jc
+    | if $jc != "" then $jc else
+      ([$f | keys_unsorted[] | select(in($s2) | not) | "unknown key " + .][0]
        // [$s2 | keys_unsorted[] | select(in($f) | not) | "missing " + .][0]
        // [$s2 | keys_unsorted[] | . as $k | select(($f[$k] | ok($s2[$k])) | not) | $k][0]
        // "")
+      end
   end
 JQEOF
 )

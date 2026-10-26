@@ -20,7 +20,7 @@ Role statement and execute imperative first; tier line with rationale; done toke
 - Never approve a PR. You may request changes only on Blocking.
 - Verbs are the closed B4 set; there is no raw flag and no force. Conductor-only verbs (`pr-merge`, `publish`, `tag-push`, `test-report-push`) are accepted only from the registered conductor with `<subtask>` `run`.
 - `HUSKY=0` is an inline per-command assignment on every desk `git push` and on PR creation, never exported, never `--no-verify` (A.7). A `push` is accepted only when `RUN_HOME/<subtask>/gate-runs/<expect_head>.md` exists.
-- Gate files carry the run id (`<gate>.<run-id>.ok`); the `GATE` lines include `grant.<subtask>.<n>`, `H-destructive.<row-id>` and `RESUME.<subtask>` (A.2.1, B8, B9). Read `PREPR: PASS` from `checklist-<subtask>.md` line 1 and cross-check `substate.md` `prepr`; disagreement is `REJECTED marker` (B9). With no remote (`merge_reach: local`) run no `fetch` or `branch-delete` (A.8).
+- Gate files carry the run id (`<gate>.<run-id>.ok`); the `GATE` lines include `grant.<subtask>.<n>`, `H-destructive.<row-id>` and `RESUME.<subtask>`, each with `<run-id>` (A.2.1, B8, B9); on `RESUME.<subtask>` also clear that sub-task's `substate.md` `stop_reason` (INTERFACES 1.6.0 AM-6 (f)). Read `PREPR: PASS` from `checklist-<subtask>.md` line 1 and cross-check `substate.md` `prepr`; disagreement is `REJECTED marker` (B9). With no remote (`merge_reach: local`) run no `fetch` or `branch-delete` (A.8).
 - Scan `body_path` bodies and attachments with the redaction gate before posting (M31, M28).
 - A `REJECTED` with a terminal code is reported to the owner, never retried through another channel.
 

@@ -5,4 +5,4 @@
 - Install in the fixture uses the profile `commands.install` form (frozen lockfile, scripts ignored). A row that needs a dependency the lockfile does not hold: do not run it, do not improvise; stop with reason `missing-dependency` and report it to the `pm` lead.
 - The profile `repo.consumer_repos[]` are read-only here; never edit them.
 - Publishing, tagging or promoting the artifact is never part of this skill (`release-track` and the desk own those).
-- Class: the plan template's consumer table (`id | consumer | how it is simulated | expected`) has no class column. Until item 27 adds `class (gating|informational)` to that table (OQ-D recommendation), a consumer row counts as `gating` (the conservative reading: it can only block a PASS, never make one). A plan that gives the row a class column uses that class.
+- Class: every consumer row carries a `class` column (`gating|informational`) in the plan's consumer table (template `test-plan.md` §C) and in `postmerge-<sha>.md` (INTERFACES 1.6.0 AM-6 B-9c, the A.6 record format). Step 1 reads it like a §B row's class; the record line carries it as `<class>` (`record-format.md`).

@@ -229,7 +229,7 @@ Atlassian session.
   carrier: a `fields.parent` entry is `schema` at check 5 (`schemas.json`
   `verbs.jira-create.request`); `fields` needs `summary` and `issuetype`, every other allowlisted
   field is optional (AM-4 22, `part-b-desk.md:100`); `parent` present exactly when
-  `fields.issuetype` is not `Epic` (else `schema`; a missing `parent` is `schema`, B9 26); the parent is re-fetched first and must exist.
+  `fields.issuetype` is not `Epic` (else `schema`; a missing `parent` is `schema`, B9 26; top-level `parent` only, a `fields.parent` is refused, INTERFACES 1.6.0 AM-6 B-9a); the parent is re-fetched first and must exist.
   A changed draft `parent` or `issuetype`, and a terminal `REJECTED`, are `ticket-clerk`'s to
   report (B4); the desk does not update a created issue's parent.
 - Result: `key`, `parent` (null for an epic).

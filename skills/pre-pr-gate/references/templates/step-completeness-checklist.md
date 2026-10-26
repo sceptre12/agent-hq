@@ -35,7 +35,7 @@ Fill the evidence cell with a path, a command and its exit status, or a sha. `n/
 | C9 | GATE-PASS: a `GATE-PASS` record exists for every pushed batch on the branch (D21, R2-3) | each `RUN_HOME/<subtask>/gate-runs/<sha>.md` with line 1 matching `^GATE-PASS ([0-9a-f]{40}) (.+)$`; the head's record exists. `HUSKY=0` rule: INTERFACES A.7 | |
 | C10 | Redaction gate clean | scan command with `secrets.pattern_file`, 0 hits | |
 | C11 | Scope-check clean, or each extra or sensitive path justified by a desk `INSTALLED` row or a grant file `RUN_HOME/gates/grant.<subtask>.<n>.<run-id>.ok` naming it (INTERFACES A.2.1, AM-4 20 Q1) | scope-check output; `INSTALLED` row or grant path per extra path | |
-| C12 | Reviewer record path and 0 Blocking / 0 Medium | record path `RUN_HOME/review/<subtask>/record-<head>.md`; line 1 matches the record regex in section 4 with the current head | |
+| C12 | Ports claimed (the port row: the review-bus `BUS_PORT` claim, at most one +10 retry; a second refusal is `PREPR: STOP C12`, INTERFACES 1.6.0 AM-6 B-7, D2.2 row 10), then reviewer record path and 0 Blocking / 0 Medium | claim line or refusal line; record path `RUN_HOME/review/<subtask>/record-<head>.md`; line 1 matches the record regex in section 4 with the current head | |
 | C13 | Verified-By seat is distinct from the Reviewed-By seat | line 2 `seat-id` vs line 3 `seat-id` of the record | |
 | C14 | Fixer shas listed, each with a `fix:` field | `fix-<agent-id>-<n>.md` paths, shas | |
 | C15 | `fix-verifier` result CLEAN | `verify-<seat-id>-<n>.md` path, verdict line | |

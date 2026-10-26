@@ -13,7 +13,7 @@ Stall watchdog and shepherd tick: for every subagent and background task, check 
 ```
 
 - **Catalog:** register the cron as a `cron` row (handle = the cron id; `register`, then `start`), so `delivery-cleanup` can `CronDelete` it (A.5.1). Register the controller background task as a `bgtask` row once its task id is known.
-- **`claude -p` lead (PC-W2-7):** it is unmeasured whether a session cron fires inside a `claude -p` lead, and nothing would wake an idle lead to probe it. So a `claude -p` lead runs the C1.1 fallback from its start until PC-W2-7 is measured: each invocation runs blocking in its own turn, and it runs the watchdog half below between invocations and at every wait-slice boundary (`Hosted skills`, `Wait states`). It still arms the cron and rewrites `tick_utc`, so a later measurement can read it (proposed CV23, in place of the 12-minute probe A.8 adopted with CV8; `handoffs-and-modes.md` "Conventions adopted and lead conventions").
+- **`claude -p` lead (PC-W2-7; INTERFACES 1.6.0 AM-6 (d)):** the 12-minute cron probe runs first. The lead arms the cron, notes `tick_utc` at its first invocation and waits on that invocation in a timed slice of 12 minutes (a background Bash `sleep 720` whose return wakes it). A `tick_utc` that moved means the cron fires: carry on idling between ticks. No move within the 12 minutes means the cron does not fire (A.8 "A.3 fields"), and only then the lead switches to the C1.1 fallback for the rest of its session: each invocation runs blocking in its own turn, and it runs the watchdog half below between invocations and at every wait-slice boundary (`Hosted skills`, `Wait states`). It keeps rewriting `tick_utc` either way.
 
 ## Watchdog half: every tick, in order
 

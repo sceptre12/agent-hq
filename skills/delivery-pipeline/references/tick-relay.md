@@ -71,7 +71,7 @@ One no-reply rule covers every conductor send (29-16; the 5 + 5 minutes follow B
 | `ci`, `prepr`, `head`, `review_record` | none (stage 5b readiness, `stages.md`) | none |
 | `stop_reason` in `stop-the-line:*`, `d7-round3` (incl. the lead's `CI: HUMAN d7-round3` mapping), `human`, `port-refused` (for `pm` `human` only without a `POSTMERGE: STOP` record, 29-31) | `state: stopped` | per `stops-and-posts.md`; a `human` post names `homes/<session>/lead.log` and `substate.md` (default) |
 | `stop_reason: stale-session` (`pm`, A.8, O-1 lead default) | none (state kept) | none; post it as a human step, no relaunch while the old lock is fresh |
-| `RUN_HOME/gates/RESUME.<subtask>.<run-id>.ok` for a `stopped` sub-task (A.8, B9) | leaves `stopped` (the only exit) | none |
+| `RUN_HOME/gates/RESUME.<subtask>.<run-id>.ok` for a `stopped` sub-task (A.8, B9) | leaves `stopped` (the only exit) for the state its unchanged `phase` maps to (the A.2 transitions, A.8 "A.2 state mapping and exits"; it returns to the phase it was in when stopped; the desk cleared `stop_reason` when it wrote the file; INTERFACES 1.6.0 AM-6 (f)); then relaunch per `resume.md` | none |
 | `stop_reason: spawn-cap` | none (state kept) | none; C5.3 relaunch (`resume.md`) |
 | `stop_reason: invalidate` | none (state kept) | written when `INVALIDATE` was sent |
 | `pm`: `RUN_HOME/postmerge-<pm_sha>.md` line 1 `POSTMERGE: STOP <reason>` (`postmerge` stays empty; read it every tick while `postmerge` is empty) | none (state kept) | none; post the reason and the record path; for a destructive row name the row and the line `GATE <run-id> H-destructive.<row-id> ok <text>` (A.2.1, B9); wait (default). A `pm` `stop_reason: human` with this record is read as this row (state kept); without it the `human` row applies (29-31) |
@@ -103,7 +103,7 @@ Append every event as one line `TICKET-EVENT <slug-or-key> <event>` to `RUN_HOME
 
 ## Inbox writes (C5.1, C5.2, C6)
 
-The conductor writes `RELEASE <subtask>`, `INVALIDATE <subtask> <reason>` and `MERGED <subtask> <merge_sha>` only; the desk writes `ANSWER` and `VERDICT <subtask> <row-id> <text>` (type `verdict`, C8).
+The conductor writes `RELEASE <subtask>`, `INVALIDATE <subtask> <reason>` and `MERGED <subtask> <merge_sha>` only; the desk writes `ANSWER`; the `pm` `verdict` message (type `verdict`, C8) is written by the `post-merge-verify` verdict agent to the lead, and the desk writes no `VERDICT` line (INTERFACES 1.6.0 AM-6 (a)).
 
 - **Name.** `RUN_HOME/<subtask>/inbox/<seq>-<yyyymmddThhmmssZ>-<type>.md`, `type` `release`, `invalidate` or `merged`. `<seq>` (`^[0-9]{4}$`) is the next free number, claimed by an `O_EXCL` create (`set -C`) of the marker `inbox/.seq/<seq>`; a failed create tries the next number. Then write the file (temp plus `mv`).
 - **Body.** Line 1 is the message verbatim; further lines are notes.

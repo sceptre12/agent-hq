@@ -17,9 +17,9 @@ REBIND <run-id> <sender-id>                 ^REBIND ([a-z0-9-]+) ([^ ]+)$
 B9 (AM-5 26, 21, queue row 29; `part-b-desk.md:179`, `:184`) adds three gates to B8:
 `grant.<subtask>.<n>` (A.2.1 grant row, AM-4 20 Q1), `H-destructive.<row-id>` (a human grant for
 a destructive post-merge test row; `<row-id>` as D2.2 row 12, `[A-Za-z0-9.-]+`) and
-`RESUME.<subtask>` (the only exit from `stopped`, A.8 O-4). B9 writes them as
-`GATE <gate> ok <text>`; the desk accepts them in the B8 form with `<run-id>` (the run must
-resolve; a line without it fails the regex).
+`RESUME.<subtask>` (the only exit from `stopped`, A.8 O-4). B9 GATE lines carry
+`<run-id>` in the B8 form, `GATE <run-id> <gate> ok <text>` (INTERFACES 1.6.0 AM-6 (f)); the run
+must resolve, and a line without it fails the regex.
 
 Every gate-file name carries the run id (A.2.1 AM-5 26): `<gate>.<run-id>.<verdict>`, so one
 desk session serving several runs cannot confuse them. Below, `<rid>` is the line's `<run-id>`.
@@ -38,7 +38,7 @@ is answered in the session with what failed; nothing is written.
 | `H-pr` | none | nothing: external evidence only (the approving review, B5) | `pr-merge` refuses without the read-back |
 | `grant.<subtask>.<n>` | ok | `RUN_HOME/gates/grant.<subtask>.<n>.<rid>.ok` (A.2.1, AM-4 20 Q1; B9) | none at the desk; a `pre-pr-gate` sensitive-path hit passes only with a desk `INSTALLED` row for that path or this file |
 | `H-destructive.<row-id>` | ok | `RUN_HOME/gates/H-destructive.<row-id>.<rid>.ok` (A.2.1 AM-5 21; B9) | the desk honours the line and writes the file; `post-merge-verify` refuses the row without it (`POSTMERGE: STOP`, D1.1) |
-| `RESUME.<subtask>` | ok | `RUN_HOME/gates/RESUME.<subtask>.<rid>.ok` (A.8, O-4; B9) | none at the desk; the conductor moves a `stopped` sub-task on only with this file (owner action) |
+| `RESUME.<subtask>` | ok | `RUN_HOME/gates/RESUME.<subtask>.<rid>.ok` (A.8, O-4; B9) | the desk clears `stop_reason` in `RUN_HOME/<subtask>/substate.md` (temp file, `mv`) when it writes this file; the sub-task returns to its pre-stop phase and the conductor moves it on only with this file (owner action; INTERFACES 1.6.0 AM-6 (f)) |
 
 Any other gate-verdict pair is refused in the session and nothing is written.
 

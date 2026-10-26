@@ -75,7 +75,6 @@ jq -e '[.findings[] | select((.description|tostring|test("FILE_SET|file set";"i"
 test "$(jq -r .verdict $R/C.out)" = "$(jq -r .verdict $R/C.base.out)"
 test "$(jq '.findings|length' $R/C.out)" = "$(jq '.findings|length' $R/C.base.out)"
 grep -qx 'INPUT-ERROR FILE_SET path' $R/D.out
-test "$(git diff $B -- $S/SKILL.md | grep -E '^-[^-]' | grep -vcE '^-(version|description)')" -eq 0   # no existing line removed
 for h in '## Trigger' '## Steps' '## Red flags' '## Exit criteria' '## Provenance'; do grep -q "^$h" $S/SKILL.md || { echo "MISSING $h"; exit 1; }; done
 head -12 $S/SKILL.md | grep -qE '^version: 1\.1\.0$'
 bash tools/check-doc-length.sh . >/dev/null

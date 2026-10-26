@@ -11,7 +11,7 @@ run its mapped tests, enforced by a git `pre-push` hook plus three invariants th
 - `core.hooksPath` is `tools/git-hooks`, a RELATIVE path (ADR 0007), and `extensions.worktreeConfig` is unset, so all
   worktrees share it and a worktree runs ITS OWN branch's copy of the hooks. A branch that adds `pre-push` gates its own push.
 - Before D1 there was no `pre-push` or `pre-merge-commit` hook. `--no-verify` and `-c core.hooksPath=` bypass hooks.
-- `origin` is `sceptre12/agent-hq` (private). the hq source repo had never had a PR. Branch protection returns 403 on this plan, so GitHub
+- `origin` is `sceptre12/agent-hq` (private). The hq source repo had never had a PR. Branch protection returns 403 on this plan, so GitHub
   cannot be the enforcement point and no GitHub-side merge is allowed.
 - Integration is a local `git merge wt/<slug>` then a push of `main` (Rule 6).
 - `pr-review` takes `REPO` + `PR_NUMBER` but never posts a PR comment and exits 0 offline, so the marker (§4) is posted by

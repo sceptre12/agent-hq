@@ -286,6 +286,8 @@ Inputs: `tier.src` lines `<sha256> <path>` (`cprof-tiers.zsh:43`) vs the current
 inputs are the main checkout's working tree (`~/projects/agent-hq/config`), which is already live for
 main (`~/.claude/settings.json` links to it).
 
+`--tier executor` renders `<owner>` from `CPROF_OWNER` (a GitHub account name, `[A-Za-z0-9-]`); it fails closed if `CPROF_OWNER` is unset, empty or malformed.
+
 | State | Action | Printed | Result |
 |---|---|---|---|
 | fresh (lists equal) | launch as today | nothing | exec claude |

@@ -91,18 +91,18 @@ Establish this before doing anything else — it decides every dispatch call bel
 
 6. **Run the waves in order, 1..W**, skipping waves the checkpoint records as
    gate-passed. A wave whose work_items declare no `depends_on` edge is a
-   **barrier wave** (below, as in 1.0.0); a wave with any edge is a **frontier
-   wave**, run per `references/frontier-mode.md`. Declared waves are always
+   **barrier wave** (below, as in 1.0.0; `depends_on: []` declares none); a
+   wave with at least one edge is a **frontier wave**, run per `references/frontier-mode.md`. Declared waves are always
    barriers to each other. For every wave:
    1. Read wave N's spec (goal, inputs, work_items, agents, exit_criteria,
       outputs). Resolve `inputs` that reference a prior wave's `outputs` from
       what that wave actually produced — never invent a value.
    2. **Dispatch** one agent per work_item (or per the wave's `agents` rule).
-      Give each agent a `from_agent` id carrying `NONCE` (e.g.
-      `<work_item>-gate-<nonce>`, `^[a-z0-9-]+$`) and record its role
-      (`worker`, `gate` or `fix`), wave and work_item; no id is reissued under one
-      `session_id`. When `bus_endpoint` is declared, append the dispatch record
-      line for the agent to `dirname(bus_endpoint)/dispatch/<invocation>.jsonl`
+      Give each agent its own `from_agent` id matching `^[a-z0-9-]+$` and
+      carrying `NONCE` (shapes in `references/frontier-mode.md`) and record its
+      role (`worker`, `gate` or `fix`), wave and work_item; no id is reissued
+      under one `session_id`, so two agents never share one. When `bus_endpoint` is declared, append the dispatch record
+      line for the agent to `dirname(<resolved bus_endpoint>)/dispatch/<invocation>.jsonl`
       **before** dispatching it (fields in `references/frontier-mode.md`). The
       brief carries `session_id`, its `from_agent` id, the wave number, its
       `inputs`, the topic, the wave's `exit_criteria` verbatim, and the
@@ -110,8 +110,9 @@ Establish this before doing anything else — it decides every dispatch call bel
       not change the `agents` tier). Admission, for work_item, gate and fix
       agents alike: never more than `max_concurrent` agents live at once — an
       agent with no free slot waits for one; at most one live work_item per
-      `lane` in the run — the others wait; a lane stays busy from dispatch until
-      that work_item's gate passes or it escalates.
+      `lane` within one run (one invocation of the skill) — the others wait. In a frontier wave
+      the lane stays busy from dispatch until that work_item's gate passes or
+      it escalates (`references/frontier-mode.md`).
    3. **Rendezvous:** poll the topic — the bundle `output_topic` when declared
       (it overrides every per-wave value), else the wave's `output_topic`, else
       `{SESSION_ID}-rendezvous`. The bus post is the sole completion signal.
@@ -130,8 +131,9 @@ Establish this before doing anything else — it decides every dispatch call bel
       - `step_complete` — one gate agent per work_item walks that work_item's
         `done_condition` plus the wave's `exit_criteria`, both verbatim; this is
         the only case where the rubric has a second part, and neither is
-        reworded. The agent passes the work_item only when `command` exits 0
-        and its last stdout line equals `token`. Which output it reads is the
+        reworded. The agent passes the work_item only when `command` exits 0,
+        its last stdout line equals `token`, and the `exit_criteria` hold for
+        that work_item's output. Which output it reads is the
         caller's brief. A barrier wave passes only when **every** gate agent
         passes (no majority).
       If a work_item declared an `output_schema`, validate its post against it
@@ -142,9 +144,9 @@ Establish this before doing anything else — it decides every dispatch call bel
 
 7. **Fix loop (on gate failure):** dispatch fix agent(s) scoped to the failing
    items only (they wait for a free slot like any agent), re-run the gate
-   after each attempt, and post to `{SESSION_ID}-fix-loop-output`. Cap:
-   `fix_loop_cap` (default 3) — per wave in a barrier wave, per work_item in a
-   frontier wave. On exhaustion post `{SESSION_ID}-escalation` with
+   after each attempt, and post to `{SESSION_ID}-fix-loop-output`. Cap: the
+   wave's `fix_loop_cap` (declared once per wave, default 3), counted per wave
+   in a barrier wave and per work_item in a frontier wave. On exhaustion post `{SESSION_ID}-escalation` with
    `{ halt_reason: "fix-loop-cap-exhausted", wave: N, iterations: <cap> }`
    (plus `work_item: <id>` in a frontier wave) — never retry past the cap.
    A barrier wave then stops the run; a frontier wave never releases that
@@ -279,8 +281,8 @@ work items and exit criteria, one wave's output feeding the next.
       invocation; no outcome was read from stdout, exit code, env vars or a file.
 - [ ] Frontier waves gated each work_item on its own output, never released a
       dependent of an unpassed work_item, and reopened no passed gate.
-- [ ] Fix loops stayed within `fix_loop_cap` (per wave, or per work_item in a
-      frontier wave) and posted `{SESSION_ID}-escalation` on exhaustion.
+- [ ] Fix loops stayed within the wave's `fix_loop_cap` (counted per wave, or
+      per work_item in a frontier wave) and posted `{SESSION_ID}-escalation` on exhaustion.
 - [ ] A resumed run skipped exactly what the checkpoint records as passed and
       re-gated anything else; with `dispatch_budget`, rule 11 held.
 

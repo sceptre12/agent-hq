@@ -6,9 +6,9 @@
 - **work_items:** a single verification pass covering all of `fixed_docs`.
 - **agents:** 1, model: sonnet.
 - **gate_type:** `judge_panel` (ADR 0023 graft 3 — demonstrates
-  `references/spec-format.md` § Gate and output-schema fields; this is the
-  terminal wave, so its correctness is worth a panel rather than a single
-  check).
+  `references/spec-format.md` § Gate and output-schema fields; this wave
+  closes the audit/fix cycle, so its correctness is worth a panel rather than
+  a single check).
 - **judges:** 3
 - **exit_criteria** (supplied verbatim to all 3 judges as the panel rubric):
   - Verifier reports zero findings across every doc in `fixed_docs`.

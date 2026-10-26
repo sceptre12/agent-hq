@@ -28,7 +28,7 @@
 - **gate_type:** `step_complete` (one gate agent per work_item; each walks that
   work_item's `done_condition` plus `exit_criteria`, read against that work_item's
   output only).
-- **fix_loop_cap:** 2 (per work_item in a frontier wave)
+- **fix_loop_cap:** 2 (declared for the wave; counted per work_item in a frontier wave)
 - **exit_criteria:**
   - The work_item's own file under `target_dir/site/` exists and is non-empty.
   - The work_item's `done_condition` command exits 0 and its last stdout line equals its token.

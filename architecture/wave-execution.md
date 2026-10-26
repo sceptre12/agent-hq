@@ -27,8 +27,8 @@ CMD_* token bindings, an instantiation profile for one monorepo — lived in
 ~1,700 lines of employer-specific spec files in a separate domain-spec
 directory in the source repo that is **out of scope** and was not read for
 domain content during this port. Only the generic machinery was kept: bus rendezvous, gate/exit
-criteria, fix-loop with iteration cap, escalation channel, the `is_subagent`
-dispatch gate, and Prohibited Side Channels. What used to be "Wave 1 through
+criteria, fix-loop with iteration cap, escalation channel, the dispatch-mode
+gate (`SKILL.md`'s Operating Mode Gate), and Prohibited Side Channels. What used to be "Wave 1 through
 Wave 7, each hardcoded" is now "waves 1 through N, each defined by the caller's
 `spec_root`."
 
@@ -107,10 +107,10 @@ restart` is the only safe recovery verb (never `reload`); `session_id` is passed
 explicitly on every send/broadcast; the port is read only from `$DATA_DIR/port`.
 A bundle `output_topic` overrides every per-wave value. On that shared topic the
 discriminator is the `from_agent` id (ADR 0054 A7): each agent gets a
-nonce-bearing id (`<work_item>-<nonce>`, `<work_item>-gate-<nonce>`,
-`<work_item>-fix<k>-<nonce>`) with a recorded role, and a post counts only from
+nonce-bearing id (`<work_item>-<nonce>`, `<work_item>-gate<k>-<nonce>`,
+`<work_item>-fix<k>-<nonce>`; `<k>` as defined in `references/spec-format.md`) with a recorded role, and a post counts only from
 an id assigned in this invocation — with `bus_endpoint`, registered in
-`dirname(bus_endpoint)/dispatch/<invocation>.jsonl` before dispatch (fields
+`dirname(<resolved bus_endpoint>)/dispatch/<invocation>.jsonl` before dispatch (fields
 `agent_id, role, unit, persona, tier, backend, utc`). The skill never reads a
 caller's `status/<agent-id>.verdict` fallback file.
 The bus post to a wave's topic is the sole valid completion signal — the same
@@ -126,8 +126,8 @@ code, env vars, task files, sibling files, or named pipes).
   against the same `spec_root` **are** coordinated, via the checkpoint file
   (see § Capabilities → Resume / checkpoint below) — only true concurrency
   remains uncoordinated. A pinned resume reuses the same `SESSION_ID`.
-- `fix_loop_cap` (default 3) is enforced per wave in a barrier wave and per
-  work_item in a frontier wave (ADR 0054 A5), not globally — the cap bounds each
+- `fix_loop_cap` (default 3) is declared once per wave and enforced per wave in
+  a barrier wave and per work_item in a frontier wave (ADR 0054 A5), not globally — the cap bounds each
   scope's own retries, not the run as a whole.
 - The skill never reads a wave's target files itself — all domain-level file
   access is delegated to the dispatched wave agents, matching the source's own
@@ -151,7 +151,7 @@ code, env vars, task files, sibling files, or named pipes).
   wave role is baked into the skill; `references/spec-format.md` and
   `references/example-spec/` carry the only wave-shaped content, and the
   example is intentionally unrelated to package releases (a docs audit/fix/
-  verify bundle) to keep the port domain-neutral.
+  verify bundle plus a frontier build wave) to keep the port domain-neutral.
 - **Multi-file source (`SKILL.md` + `SKILL-02/03/04.md`, ~600 lines, heavy
   cross-file "read before proceeding" chaining) consolidated to one `SKILL.md`
   body + `references/`,** matching the Gate-2 restructuring expectation recorded
@@ -208,8 +208,8 @@ authoritative record of field shapes and rule text.
 | `invocation` | invocation argument | `^[0-9]+$`; names `dispatch/<invocation>.jsonl` | — | 0054 A0 |
 | `tier_override` | invocation argument | `<work_item>=<tier>`, repeatable; recorded as `tier` in the dispatch record | none | 0054 A0 |
 | `persona` | per-`work_item` | one-line token, passed verbatim in the brief; does not change the `agents` tier | today's brief | 0054 A2 |
-| `lane` | per-`work_item` | one-line token; one live work_item per lane, busy until its gate passes or it escalates | no lane constraint | 0054 A3 |
-| `depends_on` | per-`work_item` | list of same-wave work_item ids; makes the wave a frontier wave | none (barrier wave) | 0054 A5 |
+| `lane` | per-`work_item` | one-line token; one live work_item per lane within one run; in a frontier wave busy until its gate passes or it escalates | no lane constraint | 0054 A3 |
+| `depends_on` | per-`work_item` | list of same-wave work_item ids; one edge makes the wave a frontier wave (`[]` declares none) | none (barrier wave) | 0054 A5 |
 | `done_condition` | per-`work_item` | `{"token", "command"}`, both non-empty one-line, no other key; required under `step_complete` | absent | 0054 A4 |
 | `session_id` | bundle | `^[a-z0-9-]+$`; pinned, stable on resume, in the content hash | minted per invocation | 0054 A6 |
 | `output_topic` | bundle | one literal topic, no placeholder; overrides per-wave values | per-wave values | 0054 A7 |
@@ -221,23 +221,25 @@ In the first three `gate_type` modes the caller's `exit_criteria` is supplied ve
 rubric — `adversarial_verify` dispatches `skeptics` agents to actively falsify the wave's
 output against it (any sustained falsification = fail); `judge_panel` dispatches `judges`
 agents that each post a pass/fail verdict, majority rules. Gate agents post to the bus like
-any `work_item` — the wave's declared `output_topic`, or the default
-`{SESSION_ID}-rendezvous` if none — matching `SKILL.md`'s Topic Naming table exactly (no new
-topic introduced); the bus-rendezvous model is unchanged. Each gate agent's post is a
+any `work_item` — the bundle-level `output_topic` when declared (it overrides every per-wave
+value, ADR 0054 A7), else the wave's declared `output_topic`, or the default
+`{SESSION_ID}-rendezvous` if none — as in `SKILL.md`'s Topic Naming table (no new topic
+introduced); the bus-rendezvous model is unchanged. Each gate agent's post is a
 verdict payload: `{agent_id, verdict: pass | fail, rationale}`. An `output_schema` a post
 fails to validate against makes that agent's completion **incomplete** (a gate failure, not a
 spec defect — a *malformed* schema in the spec is a spec defect, caught by rule 10).
 
 `step_complete` (ADR 0054 A4) is the one rubric exception: one gate agent per work_item
 walks that work_item's `done_condition` beside the wave's `exit_criteria`, both verbatim,
-and passes it only if `command` exits 0 and its last stdout line equals `token`. In a
+and passes it only if `command` exits 0, its last stdout line equals `token`, and the
+`exit_criteria` hold for that work_item's output. In a
 barrier wave every gate agent must pass (no majority).
 
 **Barrier and frontier waves (ADR 0054 A5).** A wave whose work_items declare no
-`depends_on` is a barrier wave and runs as in 1.0.0. A wave with any edge is a frontier
-wave: it enumerates its work_items; a work_item is released when every blocker's gate has
+`depends_on` edge is a barrier wave and runs as in 1.0.0 (`depends_on: []` declares none).
+A wave with at least one edge is a frontier wave: it enumerates its work_items; a work_item is released when every blocker's gate has
 passed, its lane is free and a `max_concurrent` slot is free; each work_item is gated on its
-own output with its own `fix_loop_cap`; on exhaustion the controller posts
+own output, the wave's `fix_loop_cap` counted per work_item; on exhaustion the controller posts
 `{halt_reason: "fix-loop-cap-exhausted", wave, work_item, iterations}` to
 `{SESSION_ID}-escalation` and never releases that work_item's transitive dependents, while
 the others run on. No passed gate is reopened, so cancellation is non-release (never a
@@ -249,7 +251,7 @@ edge and no global barrier-free flag.
 
 9. **`gate_type` validity** (Graft 3 / D1; ADR 0054 A4, A8). If present, must be one of the
    four enum values; `adversarial_verify` requires `skeptics ≥ 1`; `judge_panel` requires an
-   odd `judges ≥ 3`; `step_complete` requires a two-key `done_condition` on every work_item.
+   odd `judges ≥ 3`; `step_complete` requires every work_item of the wave to be listed (enumerated) with a two-key `done_condition`.
    `gate_agents`: 1, `skeptics`, `judges`, and for `step_complete` `work_items_count`
    (barrier) or 1 per work_item (frontier). `exit_criteria` prose remains required in every
    mode (it is the rubric).
@@ -258,16 +260,16 @@ edge and no global barrier-free flag.
     runtime non-conforming post, which is a gate failure per above).
 11. **Dispatch-budget check** (Graft 2 / D4). When `dispatch_budget` is declared, compute
     worst-case dispatch count = Σ over waves of `work_items_count + (fix_loop_cap + 1) ×
-    gate_agents`, where `gate_agents` = 1 (`exit_criteria` — this mode dispatches 0
-    additional agents in practice; the formula charges 1 as conservative padding),
-    `skeptics` (`adversarial_verify`), or `judges` (`judge_panel`). If the sum exceeds
+    gate_agents`, where `gate_agents` = 1 (`exit_criteria`; the formula charges 1),
+    `skeptics` (`adversarial_verify`), `judges` (`judge_panel`), or
+    `work_items_count` (`step_complete`, rule 9). If the sum exceeds
     `dispatch_budget`, `VALIDATION_FAILED` naming the projected count, the budget, and the
     remedy (split the bundle at a wave boundary) — halt before any dispatch. A frontier wave's
     term is `work_items_count × (1 + (fix_loop_cap + 1) × g)`, `g` = gate agents per
     work_item (ADR 0054 A5). Computed last, after rules 9–10 and 13–15, so gate-agent counts,
     schema validity and each wave's mode are known.
 12. **`spec_ref` recursion** *(deferred, Graft 5 / D5)*. A `work_item` with `spec_ref`
-    validates the child bundle by applying rules 1–11 one level deep, refuses cycles, and
+    validates the child bundle by applying rules 1–11 and 13–15 one level deep, refuses cycles, and
     rolls the child's worst-case dispatch count into the parent's `dispatch_budget` across
     the nesting boundary.
 13. **`session_id`** (ADR 0054 A6, A8). When declared, matches `^[a-z0-9-]+$`.
@@ -290,7 +292,7 @@ invocation hashes its `spec_root`, reads the matching checkpoint file if one exi
 every wave already recorded as gate-passed, and starts a **brand-new bus session** (a new
 `SESSION_ID`) at the first incomplete wave. This is a separate, deliberately-persistent
 artifact from the per-run bus instance — a normal successful run still tears down its bus
-instance exactly as described above; only the checkpoint file survives across invocations. A
+instance when the skill started the bus (no `bus_endpoint`) exactly as described above; only the checkpoint file survives across invocations. A
 mismatched or absent content hash means "no valid checkpoint," so the run starts at wave 1;
 the hash also refuses resuming a bundle whose spec changed underneath a prior run. If a
 resumed invocation's checkpoint already shows every wave gate-passed, wave-execution reports

@@ -59,7 +59,7 @@ h1_handled:                           # <H1 file name> <utc>: the H1.* file alre
 skill_versions:
   delivery-pipeline: <version>@<sha256 of installed SKILL.md>
   # one entry per skill the run uses: name: <version>@<sha256>
-interfaces_version: <version>@<sha256 of INTERFACES.md>   # e.g. 1.5.0@<64-hex>
+interfaces_version: <version>@<sha256 of INTERFACES.md>   # e.g. 1.9.0@<64-hex>
 security_audit: guidance              # guidance|full (AM-1); default guidance
 machine_ledger_row: <abs path>        # $DELIVERY_ROOT/machine/<session>.row of the conductor session
 ```
@@ -131,7 +131,7 @@ gates: {H0: /abs/delivery/found-1234-20261102/gates/H0.found-1234-20261102.ok, H
 subtasks: [{id: st0, session: found-1234-20261102-st0-l1, lead_id: lead-st0, backend: agent-tool, state: merged, pr: 812, merge_sha: <40-hex sha>, released_utc: 2026-11-02T10:14:00Z, launched_utc: 2026-11-02T10:13:30Z, relaunch_phase: , reentered: false, reentered_utc: }]
 h1_handled: H1.found-1234-20261102.changes 2026-11-02T09:40:00Z
 skill_versions: {delivery-pipeline: 0.1.0@<sha256>}
-interfaces_version: 1.5.0@<sha256>
+interfaces_version: 1.9.0@<sha256>
 security_audit: guidance
 machine_ledger_row: /abs/delivery/machine/found-1234-20261102-c1.row
 ```

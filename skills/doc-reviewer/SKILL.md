@@ -1,5 +1,6 @@
 ---
 name: doc-reviewer
+version: 1.1.0
 description: >
   Single-agent, 10-step / 3-phase checklist review (Discovery, Decision, Resolution) for
   architecture docs, addendums, task specs, and standards — catches contradictions
@@ -63,6 +64,7 @@ row; if they diverge, `references/checks.md` is stale).
 | 12 | Within-Document Value Consistency | Multi-section specs |
 | 13 | AC Runability Check | Specs with command ACs |
 | 14 | Flow-Scope Check | Specs/skills with bus topics or message flows |
+| DOC-1..DOC-4 | Delivery docs (stage 2): required sections, `(fact)` commands, child coverage, ticket-template format (`references/delivery-doc-checks.md`) | Delivery stage 2 artifacts: `architecture.md`, `dispatch-plan.md`, a task spec, an epic/child ticket draft |
 
 **Phase A — Discovery (find every issue)**
 
@@ -76,7 +78,10 @@ row; if they diverge, `references/checks.md` is stale).
    codebase (skip for net-new specs). Checks 9–13 for TypeScript implementation specs,
    multi-wave delivery specs, or any spec with an explicit task list + AC table. Check 14
    for any skill/doc that defines, produces, or consumes bus topics or inter-agent message
-   flows. Full definitions, verdict scales, and examples: `references/checks.md`.
+   flows. Full definitions, verdict scales, and examples: `references/checks.md`. When the
+   document under review is a delivery stage 2 artifact (`architecture.md`, `dispatch-plan.md`,
+   a task spec, or an epic/child ticket draft), also run DOC-1..DOC-4 from
+   `references/delivery-doc-checks.md`; no input is needed, the document decides.
 3. **Source Verification (Check 8).** For any section changing EXISTING files: first check
    whether a completed task spec already has an "Implementation Patterns" section (cheap);
    otherwise read the actual source (expensive but necessary). If source is inaccessible,
@@ -127,6 +132,7 @@ Key Learnings list are in `references/checks.md`.
 | "The task list is just a summary, the code blocks are the real spec." | Task lists, code blocks, and AC tables are authored at different times and drift independently — run Checks 10–11 to reconcile them, don't assume they agree. |
 | "This new check looks reasonable, ship it." | Validate any new check against a real failing case before finalizing it (per `superpowers:writing-skills`) — an unvalidated check may not catch what it claims to. |
 | "I'll review the full document first, then check individual waves." | For multi-wave specs, run wave-scoped checks BEFORE the full-document review — full-first misses within-wave completeness gaps that wave-scoped passes catch (one recorded spec needed 5+ passes because of this ordering mistake). |
+| "The delivery doc has all its headings, so the delivery checks can be skipped." | Headings are only DOC-1. Run DOC-2..DOC-4 (`references/delivery-doc-checks.md`): an uncommanded `(fact)`, a child without AC or a happy-only AC passes a heading count. |
 | "Third-party services should follow our contracts too." | They can't — contracts need explicit scope clauses for third-party components that can't be made to conform. |
 
 ## Exit criteria
@@ -137,8 +143,10 @@ Key Learnings list are in `references/checks.md`.
       with a CONFLICT/TENSION/CLEAN verdict.
 - [ ] The overall verdict (READY / NOT READY / READY WITH CONDITIONS) is stated.
 - [ ] No fix was applied without an explicit decision recorded first.
+- [ ] For a delivery stage 2 artifact, the delivery checks were run and the report says "delivery checks: run" (or "delivery checks: clean") without naming the labels; each finding row carries its `DOC-<n>` label, and no `DOC-` token appears outside finding rows.
 - [ ] Applied fixes were re-verified for coherence (Step 10) before reporting completion.
 
 ## Provenance
 Provenance: Hermes skill learnings/skill-sharing (imported from learnings/skill-sharing.md; the recorded port friction)
 Lineage: X-context-docs skills/doc-reviewer@0e9281e
+Extension: delivery stage 2 checks (card: doc-reviewer `references/delivery-doc-checks.md`, "stage 2 checks"); version 1.1.0.

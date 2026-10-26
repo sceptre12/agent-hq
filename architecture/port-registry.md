@@ -158,10 +158,23 @@ count, fail every later read closed, or forge an extra row. Two properties matte
   would hide the collision; keeping both surfaces it. The registry's job is to make collisions
   visible, not to arbitrate them.
 
-`--claim` re-runs the check first and refuses to append on a live conflict unless given an
-explicit `--force` (which records `note=forced`), and a check that exits `3` (for example a
-failed `lsof`) refuses too, so the ordinary path cannot register a claim
-that is already false at the moment it is written.
+`--claim` re-runs the check first and refuses to append on a live conflict (check exit `1` or `2`)
+unless given an explicit `--force`, which prefixes the note with `forced` (`forced: <note>`, or
+`forced` alone when the note is `-`). A check that exits `3` (for example a missing or failed
+`lsof`) always refuses, `--force` included: exit `3` means the check never reached a verdict, so
+there is nothing to override. The ordinary path therefore cannot register a claim that is already
+false at the moment it is written.
+
+Releasing your own claim needs no `--force`. A `--claim ... released` succeeds on check exit `1`
+or `2` when every active row covering the port belongs to the same `project` as the release, and
+it keeps the caller's note (for example `released 2026-10-09 (stopped)`). The release must repeat
+the claim's exact `source` to supersede it (§2.1); otherwise it warns on stderr. `--force` is only
+for taking over a row another project holds, or a port that is listening with no row.
+
+Ports are canonical decimal only: `1`-`65535`, no leading zero, at most five digits (the same
+rule applies to each end of a `container_port`). `045010` or a 20-digit number exits `3`, so a
+non-canonical spelling cannot read `FREE` against a row for the same port or append a duplicate
+the audit cannot pair.
 
 ### Use by the delivery workflow
 
@@ -246,8 +259,9 @@ carried as `UNVERIFIED` rather than dropped or guessed.
 
 `tools/ports.tsv` is the only source of truth for the seed; this section does not copy or count
 its rows. agent-hq ships generic and agent-hq-shipped service rows only: the swarm-communication
-bus range (`architecture/swarm-communication-layer.md:79-81`), the Hermes gateway and the retired
-Hermes H1 proxy (cited to `tools/hermes/`), and macOS system listeners from a 2026-09-04 `lsof`
+bus range (`architecture/swarm-communication-layer.md:79-81`), the Hermes gateway (cited to
+`architecture/hermes-agent.md:94`), the retired Hermes H1 proxy (no agent-hq file restates its
+port; the row says so in its `source`), and macOS system listeners from a 2026-09-04 `lsof`
 capture. The work environment fills its own rows at the move.
 
 ## 8. Open questions and recommendations

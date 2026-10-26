@@ -37,7 +37,8 @@
 # MODES
 #   port-check.sh <port>                          registry + lsof lookup for one host port
 #   port-check.sh --claim <port> <bind> <container_port> <service> <project> <status> <source> <note>
-#                 [--force]                        re-check, then append exactly one TSV line
+#                 [--force]                        re-check, then append exactly one TSV line; --force
+#                                                  overrides exit 1/2 only, never 3; self-release needs none
 #   port-check.sh --audit                          classify active rows against lsof: MATCH / GHOST
 #                                                  (live rows), SQUATTER, CONFLICT
 #
@@ -192,11 +193,20 @@ cmd_claim() {
 
   local check_ec=0
   cmd_check "${c_port}" >/dev/null 2>&1 || check_ec=$?
-  if [ "${check_ec}" -ne 0 ] && [ "${force}" -ne 1 ]; then
-    echo "FAIL: refusing --claim on ${c_port} — check reports exit ${check_ec} (not free). Pass --force to override (recorded as note=forced)." >&2
+  # Exit 3 is "no verdict" (lsof or registry broken): nothing overrides it, not even --force.
+  if [ "${check_ec}" -ne 0 ] && [ "${check_ec}" -ne "${EXIT_TAKEN}" ] && [ "${check_ec}" -ne "${EXIT_DISAGREE}" ]; then
+    echo "FAIL: refusing --claim on ${c_port} — check exited ${check_ec} (no verdict); --force cannot override this." >&2
     return "${check_ec}"
   fi
-  [ "${force}" -eq 1 ] && c_note="forced"
+  # Self-release: a `released` claim for a port whose every active row is held by the same project
+  # needs no --force (architecture SS4); --force is only for taking over another holder's row.
+  if [ "${check_ec}" -ne 0 ] && [ "${force}" -ne 1 ] && ! { [ "${c_status}" = "released" ] && active_rows | held_only_by "${c_port}" "${c_project}"; }; then
+    echo "FAIL: refusing --claim on ${c_port} — check reports exit ${check_ec} (not free). Pass --force to override (note gets a 'forced' prefix)." >&2
+    return "${check_ec}"
+  fi
+  if [ "${check_ec}" -ne 0 ] && [ "${force}" -eq 1 ]; then
+    if [ "${c_note}" = "-" ]; then c_note="forced"; else c_note="forced: ${c_note}"; fi
+  fi
   [ "${c_status}" = "released" ] && ! registry_rows | awk -F'\t' -v p="${c_port}" -v s="${c_source}" '$1==p && $7==s && $6!="released" {f=1} END {exit !f}' && echo "WARNING: this release supersedes no claim — no earlier non-released row has port ${c_port} and source '${c_source}' (release must repeat the claim's exact source); appending anyway." >&2
 
   local verified row

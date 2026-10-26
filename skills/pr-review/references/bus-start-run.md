@@ -11,9 +11,11 @@ Nothing in this flow writes under `/tmp` or `$TMPDIR`.
 SESSION_UUID=$(uuidgen | tr '[:upper:]' '[:lower:]' | cut -c1-8)
 SESSION_SUFFIX="review-${SESSION_UUID}"
 SESSION_ID="${RUN_ID}-${SUBTASK}-${SESSION_SUFFIX}"   # ^[a-z0-9-]+$; never equal to the lead's <run-id>-<subtask> (C1.1)
-APP_NAME="swarm-mcp-${RUN_ID}-${SUBTASK}-review"      # carries <run-id>-<subtask>; distinct from the lead's app
-DATA_DIR="$RUN_HOME/$SUBTASK/bus"                     # spec value (task 10 §2, Q10-5)
-DIFF_DIR="$RUN_HOME/review/$SUBTASK/pr-review-${SESSION_SUFFIX}"   # A.1: review/<subtask>/ is pr-review's
+APP_NAME="swarm-mcp-${RUN_ID}-${SUBTASK}-${SESSION_SUFFIX}"   # carries <run-id>-<subtask>; unique per review
+REVIEW_ID="pr-${SESSION_SUFFIX}"
+REVIEW_DIR="$RUN_HOME/review/$SUBTASK/$REVIEW_ID"    # A.1: review/<subtask>/ is pr-review's
+DATA_DIR="$REVIEW_DIR/bus"                            # in-run review bus (lead decision 10-B2; spec 10 Q10-5)
+DIFF_DIR="$REVIEW_DIR"
 DIFF_PATH="$DIFF_DIR/diff.diff"
 PM2=${PM2_BIN:-$(which pm2 2>/dev/null)}
 [ -n "${PM2}" ] && [ -x "${PM2}" ] || { echo "ERROR: pm2 binary not found — set PM2_BIN or ensure pm2 is on PATH"; exit 1; }
@@ -21,10 +23,10 @@ PM2=${PM2_BIN:-$(which pm2 2>/dev/null)}
 
 ## Order (never reorder)
 
-0. **Pre-check, before any claim.** Stop and report, with nothing claimed or registered, when
-   `"$PM2" jlist | command grep -q "\"name\":\"$APP_NAME\""` (the app exists) or when `$DATA_DIR`
-   already exists (a directory this review did not create, for example another app's bus). This review
-   never starts a second bus on an existing `data_dir` and never deletes one it did not create.
+The review bus lives at `RUN_HOME/review/<subtask>/<review-id>/bus/` (lead decision 10-B2, spec 10
+Q10-5; INTERFACES 1.4.0 A.5.2 covers this bus's port but does not yet state the path), never in the sub-task lead's `RUN_HOME/<subtask>/bus/` (A.1, D4 `<run-id>-<subtask>-rendezvous`). `<review-id>` = `pr-review-<uuid8>`, fresh per
+review, so app name, `SESSION_ID` and `DATA_DIR` never collide with the lead's bus or another review's.
+
 1. **Claim.** Through `skills/port-claim` (Steps 1-4):
    `tools/port-check.sh --claim "$BUS_PORT" 127.0.0.1 "$BUS_PORT" swarm-bus "$RUN_ID" claimed "$RUN_ID-$SUBTASK" "pr-review bus"`.
    - Exit 0: claimed, continue.
@@ -46,7 +48,7 @@ PM2=${PM2_BIN:-$(which pm2 2>/dev/null)}
 3. **Launch**, with the port pinned so `get-port` cannot choose another (the retry port when the
    retry was taken, C1.1):
    ```bash
-   mkdir -p "$DATA_DIR/logs" "$DIFF_DIR"
+   mkdir -p "$DATA_DIR/logs"
    printf '%s\n' "$APP_NAME" > "$DATA_DIR/.created-by"   # cleanup removes only a dir this marker proves it created
    cd ~/projects/agent-hq/tools/swarm-communication-layer || { echo "ERROR: swarm-communication-layer not found"; exit 1; }
    export NVM_DIR="$HOME/.nvm"; [ -s "${NVM_DIR}/nvm.sh" ] && source "${NVM_DIR}/nvm.sh" && nvm use --lts > /dev/null 2>&1
@@ -88,12 +90,14 @@ executor tier). The scripts in `diff-fetch.md` take `DIFF_PATH` as an input.
 `end_session` (explicit `session_id`), then:
 
 ```bash
-APP_NAME="$APP_NAME" DATA_DIR="$DATA_DIR" DIFF_PATH="$DIFF_PATH" DIFF_DIR="$DIFF_DIR" RUN_HOME="$RUN_HOME" SUBTASK="$SUBTASK" bash -c '
+APP_NAME="$APP_NAME" REVIEW_DIR="$REVIEW_DIR" REVIEW_ID="$REVIEW_ID" DATA_DIR="$DATA_DIR" DIFF_PATH="$DIFF_PATH" RUN_HOME="$RUN_HOME" SUBTASK="$SUBTASK" bash -c '
   PM2=${PM2_BIN:-$(which pm2 2>/dev/null)}
   [ -n "$PM2" ] && [ -x "$PM2" ] && "$PM2" delete "$APP_NAME" 2>/dev/null || true
-  [ -n "$RUN_HOME" ] && [ "$DIFF_PATH" = "$DIFF_DIR/diff.diff" ] && rm -f "$DIFF_PATH" && rmdir "$DIFF_DIR"
-  [ -n "$RUN_HOME" ] && [ "$DATA_DIR" = "$RUN_HOME/$SUBTASK/bus" ] \
+  [ -n "$RUN_HOME" ] && [ "$REVIEW_DIR" = "$RUN_HOME/review/$SUBTASK/$REVIEW_ID" ] || exit 0
+  [ "$DIFF_PATH" = "$REVIEW_DIR/diff.diff" ] && rm -f "$DIFF_PATH"
+  [ "$DATA_DIR" = "$REVIEW_DIR/bus" ] \
     && [ "$(cat "$DATA_DIR/.created-by" 2>/dev/null)" = "$APP_NAME" ] && rm -rf "$DATA_DIR"
+  rmdir "$REVIEW_DIR"
 '
 ```
 

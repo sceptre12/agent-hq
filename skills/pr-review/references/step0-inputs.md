@@ -24,5 +24,6 @@ dispatch prompt; an empty value is a set value and is validated like any other.
 
 `ROLES` derives from the seat table of `review-tailor-<slug>.md` (lines 2+, `seat-id<TAB>role<TAB>reason`).
 The D2.3 `pr-review` inputs are `ROLES`, `BUS_PORT`, `SECURITY_AUDIT`, `PR_REVIEW_MODE`, `STACK_BASE`,
-`STACK_HEAD` and `RECORD_PATH`. The other rows are dispatch-prompt fields validated here, not D2.3-named
-inputs. Record line 2 is never written with an empty field.
+`STACK_HEAD` and `RECORD_PATH`. The other rows are dispatch-prompt fields validated here; `SEAT_ID`,
+`RUN_ID` and `SUBTASK` are declared dispatch-prompt fields (lead decision OQ-10-2: to be added to D2.3;
+the INTERFACES 1.4.0 D2.3 row does not yet name them). `BUS_PORT` is optional standalone (lead decision OQ-10-3; 1.4.0 D2.3 still reads "absent standalone"). Record line 2 is never written with an empty field.

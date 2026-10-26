@@ -9,7 +9,8 @@ with the label `DOC-<n>` in the Check column. They add no severity and no verdic
 
 Severity is the existing scale (Blocking / Medium / Advisory, `references/checks.md`
 "Severity Classification"): Blocking for a missing `architecture.md` section, a child
-without AC or a sub-task with no child draft (INTERFACES 1.5.0 D2.3, AM-4 12); Medium for
+without AC (DOC-3) or a sub-task with no child draft (DOC-4; INTERFACES 1.5.0 D2.3, AM-4 12;
+INTERFACES 1.6.0 AM-6 C-6); Medium for
 an uncommanded `(fact)` and for a template-format miss; Advisory for wording. Every severity below is a plan-check default: a default, not an owner rule; the
 caller may override it.
 
@@ -44,10 +45,10 @@ no `DOC-` row and no status line. Path and self-description decide; there is no 
 
 | Document under review | DOC-1 | DOC-2 | DOC-3 | DOC-4 |
 |---|---|---|---|---|
-| `architecture.md` | yes (14 sections) | yes | yes, parts 1-3, against the child drafts in `plans/<epic>/drafts/` | yes, on every draft in `plans/<epic>/drafts/` (not `index.md`) |
+| `architecture.md` | yes (14 sections) | yes | yes, parts 1-2, against the child drafts in `plans/<epic>/drafts/` | yes, on every draft in `plans/<epic>/drafts/` (not `index.md`), plus the sub-task coverage final sweep |
 | `dispatch-plan.md` | yes (template 5.3) | yes | not applicable | not applicable |
 | Unit task spec | yes (11 sections) | yes | not applicable | not applicable |
-| Child ticket draft (alone) | not applicable (DOC-4 covers its sections) | yes | part 3 only | yes |
+| Child ticket draft (alone) | not applicable (DOC-4 covers its sections) | yes | part 2 only | yes |
 | Epic ticket draft (alone) | not applicable (DOC-4 covers its sections) | yes | not applicable | yes |
 
 "Not applicable" produces nothing: no finding row, no `DOC-` token, no prose line. When a
@@ -132,40 +133,37 @@ Builds on the Cross-Reference Walk (Check 4); use its method, do not restate it.
 
 **Reads:** the epic and sub-task tree in `architecture.md` section 5, and every child ticket
 draft in `plans/<epic>/drafts/` (or the single child draft under review). The epic draft and
-`drafts/index.md` are not child drafts and are outside parts 1-3.
+`drafts/index.md` are not child drafts and are outside parts 1-2.
 
-**Pass rule (three parts, all required where applicable):**
+**Pass rule (two parts, both required where applicable):**
 1. Every child draft is reachable from the architecture doc: it appears as a node of the
    section 5 tree (by id or title).
-2. Every sub-task in the tree has at least one child draft.
-3. Every child draft has acceptance criteria: an "Acceptance criteria" section that exists
+2. Every child draft has acceptance criteria: an "Acceptance criteria" section that exists
    and holds any content other than a placeholder. A child whose AC section is absent, empty
    or only "TBD" is a child without AC (the ticket-decomposer stop rule). Whether present AC
    is well formed (Gherkin, case kinds) is DOC-4, not DOC-3.
 
-Parts 1-2 need both `architecture.md` and the drafts; reviewing a lone draft runs part 3
-only (see Applicability).
+Part 1 needs both `architecture.md` and the drafts; reviewing a lone draft runs part 2
+only (see Applicability). A sub-task with no child draft is DOC-4 (final sweep), not DOC-3
+(INTERFACES 1.6.0 AM-6 C-6).
 
-**Finding text:** `DOC-3: <orphan draft <id> | sub-task <id> has no draft | child <id> has no
-AC>.`
+**Finding text:** `DOC-3: <orphan draft <id> | child <id> has no AC>.`
 
-**Severity:** Blocking for a child without AC and for a sub-task with no child draft (stage 3
-would dispatch nothing for it; INTERFACES 1.5.0 D2.3, AM-4 12, which labels this case DOC-4);
+**Severity:** Blocking for a child without AC (INTERFACES 1.5.0 D2.3, AM-4 12);
 Medium (plan-check default) for a draft not in the tree; Advisory (wording) for a title mismatch between
 tree and draft when the id matches.
 
 **Worked example.** The tree lists sub-tasks S1, S2, S3; drafts exist for S1 and S2, and the
-S2 draft has an empty "Acceptance criteria" heading. Findings: `| 3 | DOC-3: sub-task S3
-has no child draft | Blocking | DOC-3 | Draft S3 or remove it from the tree |` and `| 4 |
-DOC-3: child S2 has no AC | Blocking | DOC-3 | Add Gherkin AC (happy, failure or edge,
-observability) |`.
+S2 draft has an empty "Acceptance criteria" heading. Finding: `| 3 | DOC-3: child S2 has no AC | Blocking | DOC-3 | Add Gherkin AC
+(happy, failure or edge, observability) |`; S3 is reported under DOC-4 (final sweep).
 
 ## DOC-4 Template format
 
 **Reads:** each epic and child ticket draft (never `drafts/index.md`), against design
 template 5.1 and the A.6 draft front matter, and the
-`dispatch-plan.md` unit table when it is available. **Scope: template format only** (header
-fields, section presence and order, AC shape, agent additions). A content judgment about a
+`dispatch-plan.md` unit table when it is available; for the final sweep, the section 5 tree
+of `architecture.md`. **Scope: template format only** (header fields, section presence and
+order, AC shape, agent additions), plus the final sweep below. A content judgment about a
 draft (wrong scope, weak reasoning, a missing epic draft) is a finding under this skill's
 normal checks (Checks 1-14), never a `DOC-` label.
 
@@ -188,6 +186,11 @@ normal checks (Checks 1-14), never a `DOC-` label.
   token, verifier, budget. A child is agent-executed when it carries any agent-addition field
   or the `dispatch-plan.md` unit table lists its ticket; otherwise skip this bullet.
 
+**Final sweep (needs `architecture.md` and the drafts):** every sub-task in the section 5
+tree has at least one child draft. A sub-task with none is Blocking (stage 3 would dispatch
+nothing for it; INTERFACES 1.5.0 D2.3, AM-4 12; INTERFACES 1.6.0 AM-6 C-6). Reviewing a lone
+draft skips the sweep (see Applicability).
+
 **Boundary with DOC-3.** For a child draft, AC absent, empty or placeholder only: DOC-3
 (child without AC), never also DOC-4; for the epic draft it is a DOC-4 missing section.
 AC present but malformed (not Gherkin, or a case kind missing): DOC-4.
@@ -196,15 +199,18 @@ Report each draft's AC under exactly one of the two.
 **Finding text:** `DOC-4: draft <id> deviates from the ticket template: <front matter keys
 not exactly slug, issuetype, parent | missing header field | missing section | AC not
 Gherkin | AC lacks <failure-or-edge|observability> case | missing epic addition | missing
-agent addition>.`
+agent addition>.` Final sweep: `DOC-4: sub-task <id> has no child draft.`
 
-**Severity (plan-check default):** Medium for a template-format miss (front matter keys,
+**Severity (plan-check default):** Blocking for a sub-task with no child draft (final sweep);
+Medium for a template-format miss (front matter keys,
 missing header field, section, Gherkin form, AC case kind, epic addition or agent addition);
 Advisory (wording) for wording, ordering or capitalisation.
 
 **Worked example.** Child draft C4 has Gherkin AC with one happy scenario and one failure
 scenario and nothing about logging or metrics. Finding: `| 5 | DOC-4: draft C4 AC lacks an
 observability case | Medium | DOC-4 | Add a scenario stating what is logged or measured |`.
+In the DOC-3 example, S3 gives `| 4 | DOC-4: sub-task S3 has no child draft | Blocking | DOC-4 |
+Draft S3 or remove it from the tree |`.
 
 ## Reporting
 

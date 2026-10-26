@@ -25,7 +25,7 @@ PM2=${PM2_BIN:-$(which pm2 2>/dev/null)}
 ## Order (never reorder)
 
 The review bus lives at `RUN_HOME/review/<subtask>/<review-id>/bus/` with its `bus.endpoint` beside it
-(INTERFACES 1.5.0 A.1, D5, AM-5 10-B2; the review-bus exception to the M12 namespacing, E42), never in the sub-task lead's `RUN_HOME/<subtask>/bus/` (A.1, D4 `<run-id>-<subtask>-rendezvous`). `<review-id>` = `pr-review-<uuid8>`, fresh per
+(INTERFACES 1.5.0 A.1, D5, AM-5 10-B2; the review-bus exception to the M12 namespacing, E42), never in the sub-task lead's `RUN_HOME/<subtask>/bus/` (A.1, D4 `<run-id>-<subtask>-rendezvous`). `<review-id>` = `pr-review-<uuid8>` and the bus session id `<run-id>-<subtask>-review-<uuid8>` (canonical, INTERFACES 1.6.0 AM-6 C-3), fresh per
 review, so app name, `SESSION_ID` and `DATA_DIR` never collide with the lead's bus or another review's.
 
 1. **Claim.** Through `skills/port-claim` (Steps 1-4):

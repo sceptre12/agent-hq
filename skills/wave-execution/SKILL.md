@@ -113,10 +113,11 @@ Establish this before doing anything else — it decides every dispatch call bel
       not change the `agents` tier). Admission, for work_item, gate and fix
       agents alike: never more than `max_concurrent` agents live at once — an
       agent with no free slot waits for one; at most one live work_item per
-      `lane` within one run (one invocation of the skill) — the others wait. In
-      a barrier and a frontier wave alike the lane stays busy from dispatch
-      until the holder's gate passes or it escalates (INTERFACES 1.5.0 C1.1;
-      `references/frontier-mode.md`).
+      `lane` within one run (one invocation of the skill) — the others wait. The
+      lane stays busy from dispatch until, in a barrier wave (one wave-level
+      gate), the holder posts its completion (`UNIT-VERDICT`), or, in a
+      frontier wave, the holder's per-item gate passes or escalates
+      (INTERFACES 1.6.0 AM-6 C-4, C1.1; `references/frontier-mode.md`).
    3. **Rendezvous:** poll the topic — the bundle `output_topic` when declared
       (it overrides every per-wave value), else the wave's `output_topic`, else
       `{SESSION_ID}-rendezvous`. The bus post is the sole completion signal.

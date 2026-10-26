@@ -49,7 +49,9 @@ them, so the legacy form (waves 1-3, no new fields) still validates and runs as 
   `invocation` argument halts with `BUNDLE-ERROR invocation` (INTERFACES 1.5.0 C1.1); in the
   dispatch record a wave 1-3 worker carries `persona` `none` and a wave-level gate agent
   `unit` `wave-<N>`; lane `writer-a` stays busy from
-  `index`'s dispatch until its gate passes or it escalates (a frontier wave); a `tier_override` such as
+  `index`'s dispatch until its per-item gate passes or it escalates (a frontier wave; in a barrier
+  wave a lane is released at the holder's completion post, `UNIT-VERDICT`, INTERFACES 1.6.0 AM-6 C-4;
+  lane release is a runtime rule, so `tests/run.sh`, a static bundle checker, does not test it); a `tier_override` such as
   `site=opus` is recorded as `tier` in that worker's dispatch record line; gate agents get
   ids like `site-gate1-<nonce>` (workers `site-<nonce>`, fixers `site-fix1-<nonce>`), each id
   distinct per agent.

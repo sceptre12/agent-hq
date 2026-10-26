@@ -18,7 +18,7 @@ One unit inside a delivery run. The lead (conductor, `delivery-run`) already fix
 | `REPO_PROFILE` | `<abs path>@<sha>` of `repo-profile.md`, `<sha>` the git blob id (A.2 `repo_profile`) | `missing` | `format` (not `<abs>@<40-hex>`), `sha` (`git hash-object <path>` differs from `<sha>`, D1), `path` (file absent) |
 | `SUBTASK_BRANCH` | the sub-task's own ticket branch (dispatch-plan sub-task table `branch` column, `<sub-task key>-<slug>`, A.6 additions), never this unit's `$BR` (`OQ-13-5`) | `missing` | `format` (no local ref in `REPO`) |
 
-Profile keys read in Step 0 (A.2.2): `worktree_base` (absolute; its root check is `catalog.sh`'s, A.5) and `gates.command`; a missing key prints `INPUT-ERROR worktree_base missing` or `INPUT-ERROR gates.command missing` (A.2.2 "A missing key fails the reader's Step 0").
+Profile keys read in Step 0 (A.2.2): `worktree_base` (absolute; its root check is `catalog.sh`'s, A.5) and `gates.command`; a missing key prints `INPUT-ERROR worktree_base missing` or `INPUT-ERROR gates.command missing` (A.2.2 "A missing key fails the reader's Step 0"). A unit launched without the Agent tool prints `INPUT-ERROR tools` before Step 3 (a launcher defect, INTERFACES 1.6.0 AM-6 C-5; never an `ESCALATE`).
 
 ## Per-step table
 | Solo step | Team mode |
@@ -26,7 +26,7 @@ Profile keys read in Step 0 (A.2.2): `worktree_base` (absolute; its root check i
 | 0 Repo policy lookup | Replaced by the input check above: `GATES` = `gates.command` from `REPO_PROFILE` (A.7 Command row); `ROUTE` is moot. Arrival duty (Rule 6) is surface-only: run its two commands read-only and quote their output in the unit report; `$REPO` is the lead's main checkout (it holds the sub-task worktrees), so never fix it and never stop on it; no failure row (`OQ-13-11`). |
 | 1 Ticket | team: skip ticket creation; say "ticket owned by the conductor". Read the key, see Key below. No Jira, tracker or desk call. |
 | 2 Worktree | Worktree `$WORKTREE_BASE/$RUN_ID-$SUBTASK-$UNIT` (C1.1 dispatch record row), branch `<JIRA-KEY>-<slug>`, created only after the key exists. Catalog first, see Worktree and catalog. |
-| 3-4 Implement, tests | Before Step 3, confirm the Agent tool is available (the `review path` needs it; the unit dispatches no verifier, Step 6); absent = its failure row, before any edit. Otherwise unchanged. A `HANDBACK` ends the unit per the failure table. |
+| 3-4 Implement, tests | Before Step 3, confirm the Agent tool is available: the unit runs at depth 1 and dispatches its `review path` reviewer at depth 2 (A.7 "depth-2 agents never dispatch" means agents at depth 2 spawn nothing, INTERFACES 1.6.0 AM-6 C-5); the unit dispatches no verifier (Step 6). Absent = a launcher defect: print `INPUT-ERROR tools` and stop, before any edit (no record, as for any Step 0 `INPUT-ERROR`). Otherwise unchanged. A `HANDBACK` ends the unit per the failure table. |
 | 5 Repo gates | Run the checks locally while working. The `GATE-PASS` record is not the unit's: the engine's per-work_item gate agent writes `gate-runs/<head>.md` after the post (A.7, AM-4 13), see Unit end. |
 | 6 Distinct verifier | The distinct verifier is `wave-execution`'s per-work_item gate agent (depth 1, dispatched by the engine), which runs `gates.command` on the posted head and writes `GATE-PASS` to `gate-runs/<head>.md` (A.7, AM-4 13, `OQ-13-8`); the unit dispatches no verifier. |
 | 7 Review rung | The rung is the unit table's `review path` (C1.2); `pre-pr-gate` owns the PR-level `pr-review`. At most 3 rounds, then stop (D7). |
@@ -82,7 +82,7 @@ C2 pairing: `PASS` takes only `none`; `ROLLED` takes only `budget`, `lane-unavai
 
 | Failure | Verdict | Reason |
 |---|---|---|
-| Step 0 `INPUT-ERROR` | no record (D1: print, stop); C4 "No post" makes it a gate failure handled by the lead | - |
+| Step 0 `INPUT-ERROR`, or `INPUT-ERROR tools` before Step 3 (no Agent tool, AM-6 C-5) | no record (D1: print, stop); C4 "No post" makes it a gate failure handled by the lead | - |
 | Key absent in `tickets.tsv` | `ESCALATE` | `spec-gap` |
 | `catalog.sh` exit 2 (usage or rejected row) or an unexpected exit 3 | `ESCALATE` | `contract-gap` |
 | `catalog.sh` exit 4 (lock timeout) | `ROLLED` | `env-bug` (`OQ-13-10`) |
@@ -90,7 +90,6 @@ C2 pairing: `PASS` takes only `none`; `ROLLED` takes only `budget`, `lane-unavai
 | Step 3 `HANDBACK` (layer outside the repo) | `ESCALATE` | `spec-gap` |
 | A `.decisions/<unit>.md` was written (spec §11 class) | `ESCALATE` | `decision-gate` |
 | AC NOT MET or review Blocking/Medium still open after round 3 (D7) | `ESCALATE` | `fix-loop-cap-exhausted` (`OQ-13-9`) |
-| No Agent tool for the `review path` (depth limit, C1.1), found before Step 3 | `ESCALATE` | `contract-gap` |
 | Dev-server port refused at its candidate and at its one +10 retry, or `port-check.sh` exit 3 (A.5.2, AM-3) | `ESCALATE` | `human-step` (`OQ-13-10`) |
 | The unit's `budget` (C1.2: brief text the lead copies into the slot row `budget_min`) passes before Unit end completes | `ROLLED` | `budget` |
 

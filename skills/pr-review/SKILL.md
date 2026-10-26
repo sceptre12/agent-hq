@@ -139,7 +139,8 @@ script lives in `references/`; the sub-agent runs it as written.
   (INTERFACES 1.5.0 A.1, D5, AM-5 10-B2); `catalog.sh start`. Exit 1 or 2 refuses the launch (no
   auto-pick); one retry at `BUS_PORT + 10`, claimed before the bind; a second refusal stops the line,
   reported to the lead; exit 3 is stop-the-line (1.5.0 A.5.2, C1.1, D2.3, AM-3 / owner OQ-2). App name
-  and `SESSION_ID` carry `<run-id>-<subtask>-review-<uuid8>`.
+  and `SESSION_ID` carry `<run-id>-<subtask>-review-<uuid8>`; the review id is `pr-review-<uuid8>`
+  (canonical, INTERFACES 1.6.0 AM-6 C-3).
 
 Capture `SESSION_ID`, `DATA_DIR`, `APP_NAME`, `PORT` and `SESSION_SUFFIX` (in a run also `DIFF_PATH` and `ENDPOINT`).
 

@@ -1,0 +1,24 @@
+# required-config.tsv: the owner's required Hermes config, read by check-config (same directory).
+# One requirement per line: <dotted.key><TAB><op><TAB><value>. Lines starting with # are comments.
+# Ops: eq | set-eq | empty-map | has-hook | unset-or-eq (semantics in the check-config header).
+# Source: config-edits.md and config.active.yaml (they agree); model.provider comes from config.active.yaml and INSTALL.md step 3. The toolset list must equal hermes-up GW_TOOLSETS.
+agent.disabled_toolsets	set-eq	[terminal, code_execution, web, browser, browser-cdp, browser-use, computer_use, vision, image_gen, video_gen, video, tts, cronjob, delegation, x_search, kanban, project, start_chat, desktop_ui, feishu_doc, feishu_drive, hermes-yuanbao, connections, discord, discord_admin]
+memory.memory_enabled	eq	true
+memory.user_profile_enabled	eq	true
+memory.write_approval	eq	false
+memory.provider	unset-or-eq	""
+skills.write_approval	eq	false
+skills.guard_agent_created	eq	true
+security.allow_lazy_installs	eq	false
+updates.check	eq	false
+auth.adopt_external_logins	eq	false
+approvals.mode	eq	manual
+approvals.timeout	eq	300
+approvals.cron_mode	eq	deny
+approvals.unattended_mode	eq	deny
+approvals.deny	set-eq	["git push*", "git commit*", "rm -rf*", "curl*", "wget*", "*| sh*", "*| bash*", "security *", "launchctl*"]
+mcp_servers	empty-map	{}
+hooks.pre_tool_call	has-hook	__HOME__/claude-profiles/hermes/bin/pre-tool-call.sh
+curator.enabled	eq	false
+hooks_auto_accept	unset-or-eq	false
+model.provider	eq	anthropic

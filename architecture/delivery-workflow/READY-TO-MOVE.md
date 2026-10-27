@@ -2,7 +2,7 @@
 
 - **Date:** 2026-10-26. **Item:** design §7 item 33 (`part-06-build-plan-and-sources.md:32`). **Integrator:** Worker1.
 - **Branches:** `wt/delivery-w0` (docs, W1 skills, briefs, templates, the `feature-change` EXTEND, `release-track` scripts, vendored `security-audit`; worktree `~/projects/agent-hq-worktrees/delivery-w0`) is agent-hq PR #13. `ext/delivery-extends` (EXTENDs `wave-execution`, `pr-review`, `fix-verifier`, `doc-reviewer`, items 9-12; worktree `~/projects/agent-hq-worktrees/delivery-extends`, HEAD `a217e0d`) is the follow-up PR (§12); these four EXTENDs are not in PR #13. The delivery scripts, the port guard and the code-gate scope change are on `main` (PRs #9-#12, §2).
-- **Contract:** `INTERFACES.md` version **1.9.0** (frozen 1.0.0, nine amendments AM-1..AM-9, all 2026-10-26).
+- **Contract:** `INTERFACES.md` version **1.10.0** (frozen 1.0.0, ten amendments: AM-1..AM-9 2026-10-26, AM-10 2026-10-27).
 - **State at writing (PR #13 round 1):** every item 33 and AM-8/AM-9 edit is committed: `wt/delivery-w0` is pushed (PR #13, reviewed head `941ac56`, plus the round-1 fix commit); `ext/delivery-extends` (`a217e0d`) is committed locally, not pushed.
 - **Records:** `SCRATCH/item33/` holds the resolver, viability, fixlog and sweep files named below (`SCRATCH` = the build session's scratchpad; copied nowhere in `agent-hq`).
 
@@ -139,7 +139,7 @@ Round 1: W 85 broken (48 wrong line/file/path, 31 stale version pins, 6 AM-6 (a)
 
 - EXTENDs: `wave-execution`, `pr-review`, `fix-verifier`, `doc-reviewer`, `feature-change` at `1.1.0`.
 - NEW skills at `0.1.0`, except `delivery-dispatch-plan` `0.2.0`, `resource-catalog` `0.1.1`, `delivery-cleanup` `0.1.1` (V5); `port-claim` `1.1.1`.
-- `INTERFACES.md` `1.9.0`; `state.md` `interfaces_version` pins it per run.
+- `INTERFACES.md` `1.10.0`; `state.md` `interfaces_version` pins it per run.
 - One bump per skill at the move, not before.
 
 ## 12. PR plan (both under Rule 10, the hq code gate; `INVARIANTS.md` "Code gate")

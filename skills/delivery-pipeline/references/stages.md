@@ -1,6 +1,6 @@
 # Stages 1-8: entry, skill call, exit token, `state.md` writes
 
-Authority: INTERFACES 1.9.0 parts A-D (AM-1 to AM-9 applied; AM-6 and AM-7 changed A.8, B8, B9, C8; including the W2 plan-check rows W2-1..W2-10 and the adopted conductor conventions 29-n in A.8, B9, C8, D8; `provenance.md` §Conventions). Where this file and INTERFACES differ, INTERFACES wins and this file is the defect. Stage numbers are design §1.
+Authority: INTERFACES 1.10.0 parts A-D (AM-1 to AM-10 applied; AM-6 and AM-7 changed A.8, B8, B9, C8; including the W2 plan-check rows W2-1..W2-10 and the adopted conductor conventions 29-n in A.8, B9, C8, D8; `provenance.md` §Conventions). Where this file and INTERFACES differ, INTERFACES wins and this file is the defect. Stage numbers are design §1.
 
 ## Conventions for every stage
 

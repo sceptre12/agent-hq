@@ -1,6 +1,6 @@
 # Tree rules: typed tree, spikes first, slugs, checks
 
-Sources: design v2 card 3; part-04 §5.1 (tickets), §5.2 (`architecture.md`); INTERFACES 1.9.0 (`architecture/delivery-workflow/INTERFACES.md:3`) part A.1 `<slug>` (`interfaces/part-a-state.md:7-53`), A.6 (`drafts/<slug>.md`, `drafts/index.md`; `part-a-state.md:293-334`), D1.1 `DRAFTS:` (`interfaces/part-d-enums-topics.md:12-31`), D2.1 ticket issue type and e2e per unit (`:34-68`); AM-2 row 10 (draft front matter, plan-check default PC-11).
+Sources: design v2 card 3; part-04 §5.1 (tickets), §5.2 (`architecture.md`); INTERFACES 1.10.0 (`architecture/delivery-workflow/INTERFACES.md:3`) part A.1 `<slug>` (`interfaces/part-a-state.md:7-53`), A.6 (`drafts/<slug>.md`, `drafts/index.md`; `part-a-state.md:293-334`), D1.1 `DRAFTS:` (`interfaces/part-d-enums-topics.md:12-31`), D2.1 ticket issue type and e2e per unit (`:34-68`); AM-2 row 10 (draft front matter, plan-check default PC-11).
 
 ## Typed tree
 

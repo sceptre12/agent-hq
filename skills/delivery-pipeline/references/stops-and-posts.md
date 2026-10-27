@@ -1,6 +1,6 @@
 # Gate waits, stops and status posts
 
-Authority: INTERFACES 1.9.0 A.2.1 (gate files, run-id suffix AM-5 26), B2.1 (reason classes), B8 and B9 (human lines; the `VERDICT` line, AM-7 touch-up 7; GATE `<run-id>`, AM-6 (f)), A.2, A.3 and A.8 (`stop_reason`, transitions, AM-4 W2-1, W2-5; `RESUME`, `stale-session`, AM-5), C2 (escalations), C5.1 (abandoned run), C6, D3 (ticket events); owner rulings D7, D18, M30; spec 29 RESOLVED Q1, Q2, Q3, Q4, Q5, PC-W2-9, PC-W2-10.
+Authority: INTERFACES 1.10.0 A.2.1 (gate files, run-id suffix AM-5 26), B2.1 (reason classes), B8 and B9 (human lines; the `VERDICT` line, AM-7 touch-up 7; GATE `<run-id>`, AM-6 (f)), A.2, A.3 and A.8 (`stop_reason`, transitions, AM-4 W2-1, W2-5; `RESUME`, `stale-session`, AM-5), C2 (escalations), C5.1 (abandoned run), C6, D3 (ticket events); owner rulings D7, D18, M30; spec 29 RESOLVED Q1, Q2, Q3, Q4, Q5, PC-W2-9, PC-W2-10.
 
 ## Gate waits (files only; never written, never skipped)
 

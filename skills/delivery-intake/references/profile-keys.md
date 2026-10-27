@@ -1,6 +1,6 @@
 # Profile keys for delivery-intake (writer of every key; part A.2.2 and part-04 section 5.8)
 
-Authority: the profile is the sole authority for repo facts (D22); other docs link `@<sha>` and never copy. Key names and types come from INTERFACES 1.9.0 part A.2.2 (with the AM-2 keys, AM-4 20 `default_branch`, AM-5 17 `e2e.harness`, AM-5 19 `lanes[].db.cleanup_cmd`, AM-5 21 `commands.install`, `commands.pack`, `repo.consumer_repos[]`) and are not restated beyond what you need to measure them. Use the A.2.2 spelling exactly; a skeleton that spells a key differently is corrected to A.2.2, never followed.
+Authority: the profile is the sole authority for repo facts (D22); other docs link `@<sha>` and never copy. Key names and types come from INTERFACES 1.10.0 part A.2.2 (with the AM-2 keys, AM-4 20 `default_branch`, AM-5 17 `e2e.harness`, AM-5 19 `lanes[].db.cleanup_cmd`, AM-5 21 `commands.install`, `commands.pack`, `repo.consumer_repos[]`) and are not restated beyond what you need to measure them. Use the A.2.2 spelling exactly; a skeleton that spells a key differently is corrected to A.2.2, never followed.
 
 ## Serialization
 - One YAML document: a new profile at `<PRIMARY_REPO>/plans/repo-profile.md`; a refreshed one at the path it was read from (repo `plans/` or the context store its header names, A.6). A dotted name is a nested map (`ci.required_checks[]` = list `required_checks` under map `ci`).

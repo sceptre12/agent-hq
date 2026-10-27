@@ -1,6 +1,6 @@
 # Review hand-off: review-tailor, the loop, G48, D57, G46, D7
 
-Sources: card 3 and card 4 (part-02 §2.2); part-02 §2.4 (rung per artifact); part-03 §3.4 (seats, orchestrator, synthesizer, fixer, fix-verifier) and line 94 (adopted rules); INTERFACES 1.9.0 (`architecture/delivery-workflow/INTERFACES.md:3`) part A.1 `<slug>` (`interfaces/part-a-state.md:7-53`), A.2 `orchestrator_tier` and `security_audit` (`part-a-state.md:60,72`), D1.1 `RUNG:` (`interfaces/part-d-enums-topics.md:12-31`), D2.1 enums (`:34-68`), D2.2 row 4 (`:78`); `skills/review-7-panel/SKILL.md` and `preround-check.md`; spec 16 (review-tailor) RESOLVED Q1-Q2.
+Sources: card 3 and card 4 (part-02 §2.2); part-02 §2.4 (rung per artifact); part-03 §3.4 (seats, orchestrator, synthesizer, fixer, fix-verifier) and line 94 (adopted rules); INTERFACES 1.10.0 (`architecture/delivery-workflow/INTERFACES.md:3`) part A.1 `<slug>` (`interfaces/part-a-state.md:7-53`), A.2 `orchestrator_tier` and `security_audit` (`part-a-state.md:60,72`), D1.1 `RUNG:` (`interfaces/part-d-enums-topics.md:12-31`), D2.1 enums (`:34-68`), D2.2 row 4 (`:78`); `skills/review-7-panel/SKILL.md` and `preround-check.md`; spec 16 (review-tailor) RESOLVED Q1-Q2.
 
 ## 1. The call (step 10)
 
@@ -24,7 +24,7 @@ STAKES: <reversible|one-way>
 CONTENTION: <none|contested>
 NOVELTY: <known|novel>
 ```
-Each line holds the key, `: ` and the bare enum value, nothing else. These are the values `delivery-dispatch-plan` step 12 copies from `PLANS_DIR/review-architecture.md` into its own `review-tailor` call and never re-chooses (a missing line is `INPUT-ERROR <NAME> missing` there): D2.2 row 3 output consumed by rows 5 and 13 (INTERFACES 1.9.0 D8, AM-5 15 and 17); the conductor also passes lines 2-4 to the `pm` lead for `release-track` (C8, 29-28). The reason for each value goes in the record body, one line each, `why STAKES=<value>: <reason>` (likewise `CONTENTION`, `NOVELTY`). A re-entry writes the block again with the values of its new call.
+Each line holds the key, `: ` and the bare enum value, nothing else. These are the values `delivery-dispatch-plan` step 12 copies from `PLANS_DIR/review-architecture.md` into its own `review-tailor` call and never re-chooses (a missing line is `INPUT-ERROR <NAME> missing` there): D2.2 row 3 output consumed by rows 5 and 13 (INTERFACES 1.10.0 D8, AM-5 15 and 17); the conductor also passes lines 2-4 to the `pm` lead for `release-track` (C8, 29-28). The reason for each value goes in the record body, one line each, `why STAKES=<value>: <reason>` (likewise `CONTENTION`, `NOVELTY`). A re-entry writes the block again with the values of its new call.
 
 ## 2. Reading the record
 

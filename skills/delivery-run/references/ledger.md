@@ -1,6 +1,6 @@
 # Slot ledger, spawn cap, machine row and leases
 
-Depth for the SKILL.md steps "machine-ledger row" and "invocation loop", and for every dispatch the lead makes. Authority (INTERFACES 1.9.0): part A A.3 (`live`, `reserved`, `spawns`, lock), A.4 (slot row, free slots, machine row, security-audit agents), A.5 (leases), A.7 (gate runner), A.8 (AM-5: CV3, CV10, CV12, 29-2); part C C1.1 (`max_concurrent`, dispatch record, lane lease), C5.3 (hand-over); spec 28 RESOLVED Q1, Q2, PC-W2-1, PC-W2-2, PC-W2-6; AM-4 rows W2-2, W2-8, W2-9, 13.
+Depth for the SKILL.md steps "machine-ledger row" and "invocation loop", and for every dispatch the lead makes. Authority (INTERFACES 1.10.0): part A A.3 (`live`, `reserved`, `spawns`, lock), A.4 (slot row, free slots, machine row, security-audit agents), A.5 (leases), A.7 (gate runner), A.8 (AM-5: CV3, CV10, CV12, 29-2); part C C1.1 (`max_concurrent`, dispatch record, lane lease), C5.3 (hand-over); spec 28 RESOLVED Q1, Q2, PC-W2-1, PC-W2-2, PC-W2-6; AM-4 rows W2-2, W2-8, W2-9, 13.
 
 ## The slot row
 

@@ -12,7 +12,7 @@ One lead per `substate.md`. A resumed lead gets the brief
 `resume <subtask>: re-read substate.md, inbox/ and gates/` and runs the same steps (C5.3);
 the checkpoint is the sole resume authority (O-Q6).
 
-Authority: INTERFACES 1.9.0 parts A-D (AM-5 additions A.8, B9, C8, D8; AM-6..AM-9). Paths: `RUN_HOME = $DELIVERY_ROOT/<run-id>`, `ST = RUN_HOME/<subtask>`.
+Authority: INTERFACES 1.10.0 parts A-D (AM-5 additions A.8, B9, C8, D8; AM-6..AM-10). Paths: `RUN_HOME = $DELIVERY_ROOT/<run-id>`, `ST = RUN_HOME/<subtask>`.
 Depth lives in seven references: [bus-and-ports](references/bus-and-ports.md),
 [ledger](references/ledger.md), [verdicts](references/verdicts.md),
 [control-channel](references/control-channel.md), [resume](references/resume.md),
@@ -324,6 +324,6 @@ Every wait (`RELEASE`, `ANSWER`, `MERGED`, this pause, `WAITING-HUMAN`) follows
 
 Card 6 friction (`part-02-skill-inventory.md:60`): payments-build ledger record; 3.8 h and
 6.8 h idle-waits. Learnings, design part-06 §7b rows "4 Build, lane-waves, ledger",
-"4 Watchdog tick", "5b Merge, Integrator". Spec `tasks/28-delivery-run.md`; INTERFACES 1.9.0
+"4 Watchdog tick", "5b Merge, Integrator". Spec `tasks/28-delivery-run.md`; INTERFACES 1.10.0
 (AM-4..AM-9).
 Provenance: pending pilot (<pilot-run-id>)

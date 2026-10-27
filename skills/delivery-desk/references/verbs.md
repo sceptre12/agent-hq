@@ -3,7 +3,7 @@
 One section per B4 verb: requester and result reader, request `fields`, what the desk checks
 beyond the common 12 (`checks.md`), how it acts, and the `DONE` result fields (B6). The machine
 form of fields and results is `schemas.json`; part B4-B6 and the B9 additions
-(`architecture/delivery-workflow/interfaces/part-b-desk.md:77-143`, `:175-188`, INTERFACES 1.9.0, AM-6 B-9a and f applied)
+(`architecture/delivery-workflow/interfaces/part-b-desk.md:77-143`, `:175-188`, INTERFACES 1.10.0, AM-6 B-9a and f applied)
 are the authority; bare ids (D3,
 M24, N11, ...) resolve in `references/source-keys.md`. "Act" lines name the
 command family the desk uses under the operator's own auth; where INTERFACES fixes only the
@@ -143,9 +143,11 @@ the branch, labels, template), `harness-api` (read-only verbs), `jira`.
 
 ### `ci-status` `{repo, pr}`
 - Requester and reader: `ci-fix-loop` tick.
-- Act: `gh pr checks <pr> --repo=<gh-repo> --json name,bucket` (bucket `pass|fail|pending|skipping|cancel` maps to
-  `success|failure|pending|skipped|cancelled`).
-- Result: `head`, `checks[] {name, state}`, `state`, the aggregate over the profile
+- Act: `gh pr checks <pr> --repo=<gh-repo> --json name,bucket,link` (bucket `pass|fail|pending|skipping|cancel` maps to
+  `success|failure|pending|skipped|cancelled`); each check's `ci_run_id` is the run id in that
+  check's own `link` (`.../actions/runs/<ci_run_id>/job/<job-id>`).
+- Result: `head`, `checks[] {name, state, ci_run_id}` (`ci_run_id` per check: the run that produced
+  that check, the id `ci-logs` and `ci-rerun` take for it; INTERFACES 1.10.0 AM-10), `state`, the aggregate over the profile
   `ci.required_checks[]`: any `failure` -> `failure`; else any `pending`, or a required check
   missing from `checks[]` -> `pending`; else any `cancelled` -> `cancelled`; else `success` (a
   required `skipped` counts as `success`). The aggregate is never `skipped`.

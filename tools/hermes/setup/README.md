@@ -1,5 +1,7 @@
 # Hermes setup (templates and records)
 
+Install guide: `INSTALL.md` (install Hermes at the pin on a new machine, lock the config, verify it with `check-config`).
+
 Copied from the owner's working Hermes install so it can be rebuilt. Secrets and state are never copied: no auth.json,
 .env files, API keys, token profile dir, pairing, memories, databases, logs or caches. Live sources are under
 `~/claude-profiles/hermes` (checked byte-identical to the design-record copies in the hq source repo,

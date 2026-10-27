@@ -10,6 +10,7 @@
     "git_ref": {"type": "string", "pattern": "^[A-Za-z0-9._/][A-Za-z0-9._/-]*$", "$comment": "part B4 git ref charset with no leading - (no raw flag, ADR 0055 section 4; same rule as tools/delivery/desk-req-schema.sh ref); a leading - is schema at check 5"},
     "pr": {"type": "integer", "minimum": 0, "$comment": "part B4 int; minimum 0 matches desk-req-schema.sh int (>= 0); part B sets no other bound. Lexical rule (A.8 A.5 contract rule, PR10-R2; AM-5 numeric guards): an int is written as plain decimal digits, so -0 and exponent forms (1e3, 1E+3) are schema at check 5; JSON Schema cannot see the lexical form, so the desk applies it to the raw .req text"},
     "ci_run_id": {"type": "integer", "minimum": 0, "$comment": "part B4 int; minimum 0 matches desk-req-schema.sh int (>= 0); -0 and exponent forms are schema (see pr)"},
+    "ci_run_id_or_null": {"oneOf": [{"$ref": "#/definitions/ci_run_id"}, {"type": "null"}], "$comment": "AM-10 ci-status reply item only: null means this check has no CI run the desk can address (its link carries no /actions/runs/<id>: an external status context or a still-pending check); ci-logs and ci-rerun requests take ci_run_id, never null (a null there is schema; a ci-logs naming a check with null is policy)"},
     "sha40": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
     "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
     "fields_subtask": {"type": "string", "pattern": "^(st[0-9]+|pm)$"},
@@ -377,7 +378,7 @@
           "sender": {"type": "string", "minLength": 1},
           "utc": {"$ref": "#/definitions/utc"},
           "head": {"$ref": "#/definitions/sha40"},
-          "checks": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["name", "state", "ci_run_id"], "properties": {"name": {"type": "string"}, "state": {"$ref": "#/definitions/ci_state"}, "ci_run_id": {"$ref": "#/definitions/ci_run_id", "$comment": "AM-10: the id of the CI run on head that produced this check; the id ci-logs and ci-rerun take for it (one head's checks may come from several runs)"}}}},
+          "checks": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["name", "state", "ci_run_id"], "properties": {"name": {"type": "string"}, "state": {"$ref": "#/definitions/ci_state"}, "ci_run_id": {"$ref": "#/definitions/ci_run_id_or_null", "$comment": "AM-10: the Actions run that produced this check, or null; the id ci-logs and ci-rerun take for it (one head's checks may come from several runs)"}}}},
           "state": {"enum": ["success", "failure", "pending", "cancelled"], "$comment": "aggregate over ci.required_checks[]: any failure -> failure; else any pending or a required check absent -> pending; else any cancelled -> cancelled; else success (a required skipped counts as success); never skipped"}
         },
         "$comment": "DONE .out: envelope plus these fields; every field required, no other key"

@@ -243,17 +243,25 @@ done
 
 Run the loop once per profile; change `try` to the profile name. To take only some
 skills, list their names instead of `*(/)`. Run it only on a profile you have not
-`cprof link`ed: after `link`, the profile's `skills` is a link to `~/.claude/skills`,
-so the loop would write into your main setup.
+`cprof link`ed to `~/.claude`: after that link, the profile's `skills` is a link to
+`~/.claude/skills`, so the loop would write into your main setup.
 
-`cprof link` is the one cprof verb that does write into `~/.claude/skills`: it links
-the profile's `skills` to it, so skills added through the profile land in your main
-setup. For an isolated trial use the loop above, not `link`.
-If your main setup already has the skills you want, `cprof link try` links the profile's
-`skills`, `agents` and `plugins` to `~/.claude` and copies your MCP server list (without
-secret-looking keys). It brings your main plugins and MCP servers into the profile, and
-plugin installs made inside it then land in `~/.claude`. On a tiered profile it keeps the
-rendered `settings.json` and does not link `CLAUDE.md`. See `tools/claude-profile/README.md`.
+`cprof link <name> ~/.claude` is a cprof invocation that does write into
+`~/.claude/skills`: it links the profile's `skills` to it, so skills added through the
+profile land in your main setup. Bare `cprof link <name>`, with no second argument,
+defaults to `~/projects/agent-hq` instead of `~/.claude` — but that is **not** an escape
+from this caveat, it is the same footgun pointed at a different live checkout: it
+symlinks the profile's `skills` (and `agents`) straight into your `~/projects/agent-hq`
+working tree, so anything written through the profile (a skill install, an edit) lands
+in that checkout too, not in an isolated copy. Treat bare `cprof link <name>` as subject
+to the same caveat as `cprof link <name> ~/.claude`. For an isolated trial use the loop
+above, not `link`, either form.
+If your main setup already has the skills you want, `cprof link try ~/.claude` links the
+profile's `skills`, `agents` and `plugins` to `~/.claude` and copies your MCP server list
+(without secret-looking keys). It brings your main plugins and MCP servers into the
+profile, and plugin installs made inside it then land in `~/.claude`. On a tiered profile
+it keeps the rendered `settings.json` and does not link `CLAUDE.md`. See
+`tools/claude-profile/README.md`.
 
 ## Do not run the global config install
 

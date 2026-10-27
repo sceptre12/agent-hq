@@ -144,16 +144,23 @@ the branch, labels, template), `harness-api` (read-only verbs), `jira`.
 ### `ci-status` `{repo, pr}`
 - Requester and reader: `ci-fix-loop` tick.
 - Act: `gh pr checks <pr> --repo=<gh-repo> --json name,bucket,link` (bucket `pass|fail|pending|skipping|cancel` maps to
-  `success|failure|pending|skipped|cancelled`); each check's `ci_run_id` is the run id in that
-  check's own `link` (`.../actions/runs/<ci_run_id>/job/<job-id>`).
-- Result: `head`, `checks[] {name, state, ci_run_id}` (`ci_run_id` per check: the run that produced
-  that check, the id `ci-logs` and `ci-rerun` take for it; INTERFACES 1.10.0 AM-10), `state`, the aggregate over the profile
+  `success|failure|pending|skipped|cancelled`; gh field names: verify on the work machine, P0
+  re-measure). Parse rule for each check's `ci_run_id`: the decimal integer that directly follows
+  the first `/actions/runs/` in that check's own `link` (`.../actions/runs/<ci_run_id>/job/<job-id>`),
+  digits only, taken from that match and no other digits in the URL; no `/actions/runs/` match (an
+  external status context such as a scanner, or a still-pending check with no run) -> `null`.
+  Never guess a run id from any other URL shape.
+- Result: `head`, `checks[] {name, state, ci_run_id}`, `ci_run_id` per check: the Actions run that produced it, or null (the id `ci-logs` and `ci-rerun` take for it;
+  INTERFACES 1.10.0 AM-10), `state`, the aggregate over the profile
   `ci.required_checks[]`: any `failure` -> `failure`; else any `pending`, or a required check
   missing from `checks[]` -> `pending`; else any `cancelled` -> `cancelled`; else `success` (a
   required `skipped` counts as `success`). The aggregate is never `skipped`.
 
 ### `ci-logs` `{repo, ci_run_id, job}`
 - Requester and reader: `ci-fix-loop`.
+- Checks: `job` is the check `name` (part B6); valid only for a check whose `ci-status` reply
+  carried a non-null `ci_run_id`. A `job` that is not a job of run `ci_run_id` (the case of a
+  check with null) is `REJECTED policy`, detail `check <name> has no CI run`.
 - Act: resolve `job` to its job id in `gh run view <ci_run_id> --repo=<gh-repo> --json jobs`, then
   `gh run view <ci_run_id> --repo=<gh-repo> --job=<job-id> --log`; scan the output (each hit is masked as `[REDACTED]`, B7 split,
   INTERFACES 1.8.0 AM-8 V7); store it under `RUN_HOME/ci/` as a data file (name
@@ -165,7 +172,8 @@ the branch, labels, template), `harness-api` (read-only verbs), `jira`.
 - Checks: only a rerun of the failed jobs of an existing run on a PR head is granted; a run that
   is not a pull-request run (a merge, deploy or release pipeline) is trigger-prod risk and is
   refused `policy` (author default reading of "flakes only" and "never triggers prod"; the desk
-  has no request field that names the class).
+  has no request field that names the class). Valid only for a non-null `ci_run_id` from a
+  `ci-status` reply; a check with null has no run to rerun (a null request field is `schema`).
 - Act: `gh run rerun <ci_run_id> --repo=<gh-repo> --failed`; read the new attempt's run id.
 - Result: `ci_run_id` (the new run).
 

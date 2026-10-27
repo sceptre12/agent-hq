@@ -10,7 +10,7 @@ Tokens are the 14 D2.2 row 11 tokens, exactly. `signature = class + job`. Budget
 | `flake` | one `ci-rerun`, then human | Second failure of the same job: write the quarantine proposal (job, run ids, evidence) into `ci/<pr>.md`, a proposal never an edit, and end `CI: HUMAN flake`. The three Sonar sub-cases are this class (`provenance.md`); a failed retry of a capacity sub-case ends `CI: HUMAN infra-runner` instead. |
 | `infra-runner` | human | Runner or capacity fault outside the repo. |
 | `missing-secret-or-permission` | human, always | Excerpt and what was tried. Never request or supply a secret. |
-| `external-service` | human, always | Third party outage or quota. |
+| `external-service` | human, always | Third party outage or quota. Also a failing required check with `ci_run_id: null` (no Actions run, e.g. an external status context): set by SKILL.md step 2 without a diagnoser, one line `no-ci-run: <check name>` (AM-10). |
 | `policy` | human, always | Also the D23 stop token. |
 | `commit-message-format` | human | Not code-caused; a fix would rewrite pushed history, which needs force (never). `file_set` is empty. |
 | `label-policy` | human | Labels are set by people. |

@@ -27,6 +27,8 @@ context so any project can be picked back up quickly, and so lessons compound ov
   (recipe: `tools/brain/templates/member-CLAUDE.md`, Memory section).
 - **End of any session?** Run the Compound reflection (see `STANDARDS.md` §8 and
   Hermes skill `learnings/learnings-methodology`).
+- **Try it on your machine?** Follow `tools/onboarding.md`: an isolated profile with an
+  Anthropic token or AWS Bedrock credentials, leaving `~/.claude` untouched.
 - **Setting up Hermes on a new machine?** Follow `tools/hermes/setup/INSTALL.md` (install at the pin,
   lock the config, verify with `check-config`).
 - **All conventions** (naming, doc format, commits, how projects are added) live in

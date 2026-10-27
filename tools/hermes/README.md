@@ -7,6 +7,7 @@ Builds the read-only snapshot of hq `main` that Hermes reads, its `MANIFEST.tsv`
 never fetch, never read a token and never write under the hq repo.
 
 The Hermes setup templates and records (launcher, hook, plist, config extract) are in `setup/`; see `setup/README.md`.
+To install and lock down Hermes on a new machine, follow `setup/INSTALL.md`; `setup/check-config` verifies the locked `config.yaml` against `setup/required-config.tsv`.
 
 ## Files
 

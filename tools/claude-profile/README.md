@@ -38,6 +38,8 @@ An unknown mode fails with `unknown auth mode: '<x>' (oauth|bedrock)`, exit 1, a
     and export `CLAUDE_CODE_USE_BEDROCK=1` with the usual `CLAUDE_CONFIG_DIR` and DISABLE vars. `AWS_PROFILE`, `AWS_REGION`, the `AWS_*`
     keys and `AWS_BEARER_TOKEN_BEDROCK` pass through untouched (from the shell or `profile.env`); `launch` strips the Anthropic vars
     even if `profile.env` sets them. `off` restores everything (`CLAUDE_CODE_USE_BEDROCK` is tracked).
+  - `use` honours `profile.env`, including auth vars; `launch` strips them. Do not put Anthropic keys in a bedrock profile's `profile.env`;
+    `cprof doctor` warns when one is set.
   - No `AWS_REGION`/`AWS_DEFAULT_REGION`: `cprof: WARN: no AWS_REGION/AWS_DEFAULT_REGION in this shell; Claude Code falls back to the AWS profile's region, then us-east-1` (stderr, exit 0).
   - Models: set `ANTHROPIC_MODEL` and all three `ANTHROPIC_DEFAULT_{OPUS,SONNET,HAIKU}_MODEL` to Bedrock ids in `profile.env` (ids are
     account-specific; the `us.` inference-profile prefix is for US regions, `eu.`/`apac.`/`global.` elsewhere, see `ANTHROPIC_BEDROCK_REGION_PREFIX`).

@@ -32,6 +32,7 @@ _cprof_render_ins() {   # <profile-dir> <tier> <overlay>: sets the caller's ins,
   if [[ $mode == bedrock ]]; then
     region=$(_cprof_aws_region); ins+=($hq/tiers/auth-bedrock.json)
     _cprof_region_valid "$region" || { _cprof_err "AWS region '${region:-unset}' is not a region id; export AWS_REGION (or AWS_DEFAULT_REGION) before rendering a bedrock profile (the sandbox host list needs it)"; return 1; }
+    _cprof_region_valid "${CPROF_SSO_REGION:-$region}" || { _cprof_err "CPROF_SSO_REGION '$CPROF_SSO_REGION' is not a region id (same form as AWS_REGION, e.g. us-east-1)"; return 1; }
   fi
   [[ -n $3 ]] && ins+=($hq/tiers/overlays/$3.json)
   return 0
@@ -44,10 +45,14 @@ _cprof_render() {
   for tn in $ins; do [[ -r $tn ]] || { _cprof_err "missing render input: $tn"; return 1; }; done
   tn=$(jq -r '._tier // empty' $hq/tiers/$tier.json 2>/dev/null)
   [[ $tn == $tier ]] || { _cprof_err "$hq/tiers/$tier.json has _tier '$tn', expected '$tier'"; return 1; }
-  new=$(_cprof_render_inputs "$mode" "$region" $ins | jq -s "$_CPROF_MERGE") || { _cprof_err "settings merge failed"; return 1; }
+  new=$(setopt localoptions pipefail; _cprof_render_inputs "$mode" "$region" $ins | jq -s "$_CPROF_MERGE") || { _cprof_err "settings merge failed"; return 1; }
   if [[ -s $f ]]; then
     new=$(print -r -- "$new" | jq --arg tier "$tier" --slurpfile c $f "$_CPROF_KEEP") || { _cprof_err "cannot merge existing $f; left untouched"; return 1; }
   fi
+  # Fail closed: write only a JSON object; an executor render must keep a deny list and an enabled sandbox.
+  print -r -- "$new" | jq -e --arg tier "$tier" 'type=="object" and ($tier != "executor"
+    or (((.permissions.deny // [])|length) > 0 and .sandbox.enabled == true))' >/dev/null 2>&1 \
+    || { _cprof_err "render produced an invalid or weakened settings object; nothing written"; return 1; }
   ( umask 077; print -r -- "$new" > "$f.tmp.$$" && mv -f -- "$f.tmp.$$" "$f" ) || return 1
   _cprof_apply_excludes "$d/config" || return 1
   ( umask 077; print -r -- "$tier" > "$d/tier"

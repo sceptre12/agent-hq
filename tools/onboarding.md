@@ -167,6 +167,8 @@ that starts it.
    match your region (Claude Code also reads `ANTHROPIC_BEDROCK_REGION_PREFIX`).
    `profile.env` can also hold `AWS_PROFILE`. Keep `AWS_REGION` exported in your shell
    as well: the tiered render reads the region from the shell only.
+   `use` honours `profile.env`, including auth vars; `launch` strips them. Do not put
+   Anthropic keys in a bedrock profile's `profile.env`; `cprof doctor` warns when one is set.
 
 5. Dry-run, check and launch:
 
@@ -203,8 +205,20 @@ What changes in a Bedrock profile:
 
   These come from the AWS endpoint pages, not from the Claude Code docs, and are not yet
   tested in every region. The SSO hosts are added for every credential style (harmless).
-  A gateway set with `ANTHROPIC_BEDROCK_BASE_URL` gets no host; add it with an overlay. If the sandbox blocks a host, that is a design signal: report
-  it with the host name. Do not disable the sandbox.
+  A gateway set with `ANTHROPIC_BEDROCK_BASE_URL` gets no host; add it with an overlay.
+  An overlay is `config/tiers/overlays/<project>.json` (see `config/tiers/overlays/README.md`).
+  It may only ADD denies and sandbox allowances. Render with
+  `cprof new <name> --auth bedrock --tier executor --overlay <project>`. Example:
+
+  ```json
+  {
+    "_overlay": "<project>",
+    "sandbox": { "network": { "allowedDomains": ["bedrock-gateway.example.com"] } }
+  }
+  ```
+
+  If the sandbox blocks a host, that is a design signal: report it with the host name.
+  Do not disable the sandbox.
 - WebSearch is not available on Bedrock (Claude Code docs, read 2026-10-26).
 - If you change `AWS_REGION` or `CPROF_SSO_REGION`, the next `cprof launch` sees the
   render as stale and re-renders it for the new region before starting, unless

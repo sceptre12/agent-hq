@@ -84,6 +84,15 @@ out=$(R AWS_REGION=bogus 'cprof new e3 --auth bedrock --tier executor; print RC=
 out=$(R AWS_REGION=us-east-1 'cprof new d1 --auth bedrock --tier desk; print RC=$?'); S2=$P/d1/config/settings.json
 [[ $out == *"RC=0" && $(jq -r '.sandbox.enabled // "none"' $S2) == none && $(<$P/d1/auth) == bedrock && $(<$P/d1/tier) == desk \
    && $(doms $S2) == *bedrock-runtime.us-east-1.amazonaws.com* ]] && ok "a6e desk + bedrock renders (no sandbox.enabled), auth file present" || bad "a6e: $out"
+out=$(R AWS_REGION=us-east-1 CPROF_SSO_REGION='a/b&c' 'cprof new e4 --auth bedrock --tier executor; print RC=$?')
+[[ $out == *"CPROF_SSO_REGION 'a/b&c' is not a region id"*"RC=1" && ! -e $P/e4 ]] && ok "a6f CPROF_SSO_REGION='a/b&c' refused, no profile left" || bad "a6f: $out"
+out=$(R AWS_REGION=us-east-1 CPROF_SSO_REGION='*' 'cprof new e4 --auth bedrock --tier executor; print RC=$?')
+[[ $out == *"CPROF_SSO_REGION"*"RC=1" && ! -e $P/e4 ]] && ok "a6g CPROF_SSO_REGION='*' refused, no profile left" || bad "a6g: $out"
+# a6h: an invalid auth fragment must write nothing (new: no profile; sync of an existing profile: settings.json unchanged).
+HB=$T/hqbad; cp -R $HQ $HB; head -c 40 $HQ/config/tiers/auth-bedrock.json > $HB/config/tiers/auth-bedrock.json; h0=$(sha $S)
+out=$(R AWS_REGION=us-east-1 CPROF_HQ_CONFIG=$HB/config 'cprof new e4 --auth bedrock --tier executor; print RC=$?; cprof sync e1 --force; print RC=$?')
+[[ $out == *"RC=1"*"RC=1" && ! -e $P/e4 && $(sha $S) == $h0 && $(tail -1 $P/e1/tier.src) == "rendered $h0" ]] \
+  && ok "a6h invalid fragment: nothing written (no new profile, e1 settings.json unchanged)" || bad "a6h: $out"
 
 # ---- launch
 out=$(R AWS_REGION=us-east-1 'cprof launch e1 --dry-run; print RC=$?')

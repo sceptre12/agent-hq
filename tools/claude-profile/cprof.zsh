@@ -233,8 +233,10 @@ cprof — isolated per-shell Claude Code profiles
   cprof sync <name> [--force]       re-render a tiered profile (refuses a hand-edited render, exit 3;
                                     --force discards ALL hand edits except claudeMdExcludes, backup written)
   cprof trust ls | baseline [--note "<text>"]   trust ledger (_trust/ledger.jsonl)
-  cprof link <name>                 link a profile to the main profile ($HOME/.claude): skills/agents/plugins (+CLAUDE.md,
-                                    settings.json on plain profiles), merge .mcpServers; replaced entries are backed up
+  cprof link <name> [<source-root>] link a profile to <source-root> (default $HOME/projects/agent-hq; pass
+                                    $HOME/.claude for the old personal-linking behavior, or any other root):
+                                    skills/agents/plugins (+CLAUDE.md, settings.json on plain profiles), merge
+                                    .mcpServers; replaced entries are backed up; missing entries skip gracefully
   cprof use <name>                  enter profile in THIS shell (cd to its workspace)
   cprof off                         restore the shell exactly
   cprof ls                          list profiles and templates

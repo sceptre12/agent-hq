@@ -382,3 +382,77 @@ Everything above this section is unchanged; oauth profiles behave exactly as bef
 
 `tools/claude-profile/test_cprof-auth.zsh` (hermetic, same harness as `test_cprof.zsh`) covers the contracts above; the existing
 `test_cprof.zsh`, `test_cprof-link.zsh` and `test_cprof-checks.zsh` pass unchanged.
+
+## Extension (2026-10-27): dynamic `cprof link` source root
+
+**Status: task-specified amendment (dispatched change request, 2026-10-27); code and this amendment land together.**
+Ask: `cprof link`'s source was hardcoded to `$HOME/.claude` (part B, above). The owner now treats agent-hq itself
+(`~/projects/agent-hq`) as the primary thing to link a profile against day to day, while still needing the old
+personal-profile behavior (linking against `$HOME/.claude`) on demand. This amends part B's link map and part E's
+exit codes only; parts C (auth boundary), D (backup/idempotency), F (doctor), G (tiered launch re-render) and H
+(non-goals) are otherwise unchanged — `doctor`'s link rows still report against the literal `$HOME/.claude` convention
+regardless of which root a given `link` invocation used, per H.5 ("no other `~/.claude` content" scope).
+
+### What changes vs. the 2026-10-21 design
+
+- `cprof link <name>` takes an optional second positional argument, `<source-root>`: `cprof link <name> [<source-root>]`.
+  Default (no second arg): `$HOME/projects/agent-hq`, not `$HOME/.claude`. Pass `$HOME/.claude` explicitly to get the
+  2026-10-21 behavior back verbatim, or any other directory.
+- Per-entry resolution is now a function of `<source-root>`, not a literal `$HOME/.claude/<entry>` join: `_cprof_link_src`
+  tries `<source-root>/config/<entry>` first when `<source-root>/config` is a directory, else `<source-root>/<entry>`.
+  This covers agent-hq's own layout (`config/CLAUDE.md`, `config/settings.json`, top-level `skills/`, `agents/`, no
+  `plugins/`) and `$HOME/.claude`'s flat layout (every entry directly under the root) with one rule. An entry absent
+  under both locations skips exactly as before (`skip: <entry> (none in <source-root>)`), so `plugins` skips gracefully
+  when linking from agent-hq.
+- The `.mcpServers` source is likewise derived from `<source-root>`, not hardcoded to `$HOME/.claude.json`: it is the
+  sibling file named after the root's own last path component (`${root:h}/${root:t}.json`) — `$HOME/.claude` →
+  `$HOME/.claude.json` (unchanged for that root), `~/projects/agent-hq` → `~/projects/agent-hq.json` (does not exist, so
+  this step skips gracefully: `skip: .mcpServers (no <path>)`, counted as skipped same as any other absent entry).
+- An explicit `<source-root>` that is not a directory errors immediately (`no such source: '<source-root>'`, exit 1,
+  nothing changed) before any profile or `jq` check runs. The default root is never validated this way: if
+  `~/projects/agent-hq` does not exist on a given machine, every entry and `.mcpServers` simply skip (same as any other
+  absent source), rather than the whole verb erroring — the hard error is reserved for an explicit, caller-provided
+  mistake, per the existing part E rule that usage-shaped errors are checked first.
+
+### Components
+
+- `tools/claude-profile/cprof-link.zsh`: new `_cprof_link_src <root> <entry>` helper (prints the resolved path, returns 1
+  if absent under both locations); `_cprof_link` gains the `root=$2` parameter, the explicit-root directory check, and
+  computes `main_cj` from `root` instead of a hardcoded assignment. `_cprof_doctor_links` is unchanged (doctor keeps
+  reporting against `$HOME/.claude`, per H.5).
+- `cprof.zsh` help text: `cprof link <name> [<source-root>]` line updated to describe the new default and override.
+- `tools/claude-profile/README.md` and `tools/onboarding.md`: usage and prose updated for the new default and the
+  `cprof link <name> ~/.claude` form of the old behavior.
+- Tests: `test_cprof-link.zsh` updated — every pre-existing case that relied on the old bare-`cprof link <name>` default
+  now passes `$M` (the test harness's fake `$HOME/.claude`) as an explicit second argument, preserving the exact
+  assertions from the 2026-10-21 design; new cases cover the agent-hq-shaped default (via a fake tree at
+  `$HOME/projects/agent-hq` inside the hermetic `$HOME`), `plugins`/`.claude.json` skipping gracefully from that tree, and
+  an explicit nonexistent `<source-root>` erroring.
+
+### Interfaces (exact messages)
+
+- New skip line, entry: `skip: <entry> (none in <source-root>)` (replaces the old `skip: <entry> (none in $HOME/.claude)`
+  wording with the resolved root; unchanged when `<source-root>` is `$HOME/.claude`).
+- New skip line, `.mcpServers` when the sibling json is entirely absent: `skip: .mcpServers (no <path>)` (distinct from
+  the existing `skip: .mcpServers (none in <path>)`, which still fires when the file exists but has no `.mcpServers` key).
+- New usage error: `no such source: '<source-root>'` (exit 1) for an explicit root that is not a directory.
+- Usage line: `usage: cprof link <name> [<source-root>]` (was `usage: cprof link <name>`).
+- Everything else in part E (`linked:`, `ok:`, `kept:`, `copied:`, `stripped:`, `backup:`, the summary line and its exit
+  codes) is byte-for-byte unchanged.
+
+### Non-goals
+
+1. No change to `_cprof_doctor_links`: doctor's link rows stay a report against the literal `$HOME/.claude` convention,
+   independent of whatever root a `link` invocation used — this amendment only touches the `link` verb itself.
+2. No new env-var override for the default root (e.g. no `CPROF_LINK_ROOT`): the default is the literal
+   `$HOME/projects/agent-hq` path, matching how the 2026-10-21 design hardcoded `$HOME/.claude` directly; tests get
+   hermeticity by pointing `$HOME` itself at a temp dir and building the fake agent-hq tree under it, not by adding a
+   second knob.
+3. No change to `cprof new --tier`'s `CPROF_HQ_CONFIG`-based hq config lookup (`cprof-tiers.zsh`): that is a separate,
+   pre-existing override for a different purpose (tier rendering) and is untouched here.
+
+### Verification
+
+`tools/claude-profile/test_cprof-link.zsh` (hermetic, same harness as `test_cprof.zsh`) covers the contracts above; the
+full existing suite (`test_cprof.zsh`, `test_cprof-link.zsh`, `test_cprof-checks.zsh`, `test_cprof-auth.zsh`) passes
+unchanged in behavior for every case that still applies.

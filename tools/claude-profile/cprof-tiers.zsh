@@ -17,7 +17,7 @@ def un(p; a; b): ((((a|getpath(p))//[]) + ((b|getpath(p))//[])) | unique) as $u
     | un(["permissions","deny"]; $a; $x)
     | un(["sandbox","network","allowedDomains"]; $a; $x)
     | un(["sandbox","filesystem","allowWrite"]; $a; $x))
-| del(._tier, ._source, ._overlay, ._note)'
+| del(._tier, ._source, ._overlay, ._note, ._auth)'
 # Keep what the profile already holds: claudeMdExcludes always; skipDangerousModePermissionPrompt only for non-executor
 # tiers (executor: the fragment's true wins; the harness only ever writes true, so that write is absorbed).
 _CPROF_KEEP='($c[0]) as $c
@@ -25,22 +25,40 @@ _CPROF_KEEP='($c[0]) as $c
 | (if ($tier != "executor" and ($c|has("skipDangerousModePermissionPrompt"))) then .skipDangerousModePermissionPrompt = $c.skipDangerousModePermissionPrompt else . end)'
 
 # _cprof_render <profile-dir> <tier> [overlay]: writes config/settings.json, tier, tier.src.
+# Inputs, in merge order: hq settings, tier fragment, auth fragment (bedrock profiles only; <region> substituted), overlay.
+_cprof_render_ins() {   # <profile-dir> <tier> <overlay>: sets the caller's ins, mode, region; 1 if a bedrock render has no valid region
+  local hq=$(_cprof_hqcfg)
+  mode=$(_cprof_auth_mode "$1"); region=; ins=($hq/settings.json $hq/tiers/$2.json)
+  if [[ $mode == bedrock ]]; then
+    region=$(_cprof_aws_region); ins+=($hq/tiers/auth-bedrock.json)
+    _cprof_region_valid "$region" || { _cprof_err "AWS region '${region:-unset}' is not a region id; export AWS_REGION (or AWS_DEFAULT_REGION) before rendering a bedrock profile (the sandbox host list needs it)"; return 1; }
+    _cprof_region_valid "${CPROF_SSO_REGION:-$region}" || { _cprof_err "CPROF_SSO_REGION '$CPROF_SSO_REGION' is not a region id (same form as AWS_REGION, e.g. us-east-1)"; return 1; }
+  fi
+  [[ -n $3 ]] && ins+=($hq/tiers/overlays/$3.json)
+  return 0
+}
 _cprof_render() {
-  local d=$1 tier=$2 ov=$3 hq f new tn; local -a ins
+  local d=$1 tier=$2 ov=$3 hq f new tn mode region; local -a ins
   _cprof_need_jq || return 1
   hq=$(_cprof_hqcfg); f=$d/config/settings.json
-  ins=($hq/settings.json $hq/tiers/$tier.json); [[ -n $ov ]] && ins+=($hq/tiers/overlays/$ov.json)
+  _cprof_render_ins "$d" "$tier" "$ov" || return 1
   for tn in $ins; do [[ -r $tn ]] || { _cprof_err "missing render input: $tn"; return 1; }; done
   tn=$(jq -r '._tier // empty' $hq/tiers/$tier.json 2>/dev/null)
   [[ $tn == $tier ]] || { _cprof_err "$hq/tiers/$tier.json has _tier '$tn', expected '$tier'"; return 1; }
-  new=$(jq -s "$_CPROF_MERGE" $ins) || { _cprof_err "settings merge failed"; return 1; }
+  new=$(setopt localoptions pipefail; _cprof_render_inputs "$mode" "$region" $ins | jq -s "$_CPROF_MERGE") || { _cprof_err "settings merge failed"; return 1; }
   if [[ -s $f ]]; then
     new=$(print -r -- "$new" | jq --arg tier "$tier" --slurpfile c $f "$_CPROF_KEEP") || { _cprof_err "cannot merge existing $f; left untouched"; return 1; }
   fi
+  # Fail closed: write only a JSON object; an executor render must keep a deny list and an enabled sandbox.
+  print -r -- "$new" | jq -e --arg tier "$tier" 'type=="object" and ($tier != "executor"
+    or (((.permissions.deny // [])|length) > 0 and .sandbox.enabled == true))' >/dev/null 2>&1 \
+    || { _cprof_err "render produced an invalid or weakened settings object; nothing written"; return 1; }
   ( umask 077; print -r -- "$new" > "$f.tmp.$$" && mv -f -- "$f.tmp.$$" "$f" ) || return 1
   _cprof_apply_excludes "$d/config" || return 1
   ( umask 077; print -r -- "$tier" > "$d/tier"
-    { for tn in $ins; do print -r -- "$(_cprof_sha $tn) $tn"; done; print -r -- "rendered $(_cprof_sha $f)"; } > "$d/tier.src" )
+    { for tn in $ins; do print -r -- "$(_cprof_sha $tn) $tn"; done
+      [[ $mode == bedrock ]] && print -r -- "region $region${CPROF_SSO_REGION:+ sso=$CPROF_SSO_REGION}"
+      print -r -- "rendered $(_cprof_sha $f)"; } > "$d/tier.src" )
 }
 
 # _cprof_tier_md <profile-dir> <tier> <name> <force>: install the tier's CLAUDE.md template into workspace/.
@@ -70,12 +88,13 @@ _cprof_handedit_err() {
 }
 # _cprof_tier_stale <profile-dir>: needs tier/ov from _cprof_tier_state. Exit 0 = stale (prints the changed inputs), 1 = fresh.
 _cprof_tier_stale() {
-  local hq=$(_cprof_hqcfg) p line; local -a ins cur rec chg
-  ins=($hq/settings.json $hq/tiers/$tier.json); [[ -n $ov ]] && ins+=($hq/tiers/overlays/$ov.json)
+  local p line mode region; local -a ins cur rec chg
+  _cprof_render_ins "$1" "$tier" "$ov" 2>/dev/null || { print -r -- "region unset"; return 0; }   # a bedrock profile with no region: stale, and render will say why
   for p in $ins; do cur+=("$(_cprof_sha $p) $p"); done
+  [[ $mode == bedrock ]] && cur+=("region $region${CPROF_SSO_REGION:+ sso=$CPROF_SSO_REGION}")
   for line in "${(@f)$(<"$1/tier.src")}"; do [[ $line == rendered\ * ]] || rec+=("$line"); done
   [[ "${(F)cur}" == "${(F)rec}" ]] && return 1
-  for line in $cur; do (( ${rec[(Ie)$line]} )) || chg+=(${line#* }); done
+  for line in $cur; do (( ${rec[(Ie)$line]} )) && continue; [[ $line == region\ * ]] && chg+=(region) || chg+=(${line#* }); done
   print -r -- "${${(j:, :)chg}:-inputs changed}"
 }
 # _cprof_launch_fresh <name> <profile-dir> <dry>: launch step G. Returns 1 to abort the launch.
@@ -118,7 +137,7 @@ _cprof_sync() {
 
 # Launch (D3): the `use` environment in a subshell (never touches the caller's shell), then exec claude.
 _cprof_launch() {
-  local _cp_name=$1 _cp_dry=0 _cp_d _cp_tier _cp_tok _cp_a _cp_i; local -a _cp_args _cp_flag
+  local _cp_name=$1 _cp_dry=0 _cp_d _cp_tier _cp_tok _cp_a _cp_i _cp_mode; local -a _cp_args _cp_flag
   local _cp_acc='{"crossSessionInbound":"accept"}'
   [[ -n $_cp_name ]] || { _cprof_err "usage: cprof launch <name> [--dry-run] [-- <claude args>]"; return 1; }
   shift; _cprof_valid_name "$_cp_name" || return 1
@@ -130,7 +149,9 @@ _cprof_launch() {
     esac
   done
   _cp_d=$(_cprof_root)/$_cp_name
-  [[ -d $_cp_d/config && -f $_cp_d/token ]] || { _cprof_err "no such profile (or no token): $_cp_name"; return 1; }
+  [[ -d $_cp_d/config ]] || { _cprof_err "no such profile (or no token): $_cp_name"; return 1; }
+  _cp_mode=$(_cprof_auth_mode "$_cp_d")
+  _cprof_auth_token "$_cp_d" "$_cp_mode" _cp_tok || return 1
   [[ -f $_cp_d/tier ]] || { _cprof_err "'$_cp_name' has no tier file; create it with 'cprof new --tier' (or use 'cprof use')"; return 2; }
   _cp_tier=$(<"$_cp_d/tier"); _cp_tier=${_cp_tier//[[:space:]]/}
   case $_cp_tier in
@@ -148,20 +169,16 @@ _cprof_launch() {
     fi
     _cprof_err "refused: '$_cp_a' contradicts the $_cp_tier tier of '$_cp_name' (D3: the flag comes from the tier file)"; return 2
   done
-  _cp_tok=$(<"$_cp_d/token") 2>/dev/null || { _cprof_err "cannot read token file for '$_cp_name'"; return 1; }
-  _cp_tok=${_cp_tok//[[:space:]]/}
-  [[ -n $_cp_tok ]] || { _cprof_err "token file for '$_cp_name' is empty; run 'cprof token $_cp_name'"; return 1; }
   (( _cp_dry )) || (( ${+commands[claude]} )) || { _cprof_err "claude not found on PATH"; return 1; }
   _cprof_launch_fresh "$_cp_name" "$_cp_d" $_cp_dry || return 1
   (
     if [[ -f $_cp_d/profile.env ]]; then () { setopt localoptions allexport; source "$1"; } "$_cp_d/profile.env"; fi
-    unset -- $_CPROF_HIGHER_AUTH
-    export CLAUDE_CONFIG_DIR=$_cp_d/config CLAUDE_CODE_OAUTH_TOKEN=$_cp_tok
+    _cprof_auth_apply "$_cp_mode" "$_cp_tok"; _cp_tok=   # also strips profile.env's higher-precedence auth vars (M1)
+    export CLAUDE_CONFIG_DIR=$_cp_d/config
     export CLAUDE_CODE_DISABLE_AUTO_MEMORY=1 CLAUDE_CODE_DISABLE_OFFICIAL_MARKETPLACE_AUTOINSTALL=1
-    _cp_tok=
     builtin cd -- "$_cp_d/workspace" || { _cprof_err "cannot cd to $_cp_d/workspace"; exit 1; }
     if (( _cp_dry )); then
-      print -r -- "dry-run env: CLAUDE_CONFIG_DIR=$CLAUDE_CONFIG_DIR CLAUDE_CODE_OAUTH_TOKEN=<token> CLAUDE_CODE_DISABLE_AUTO_MEMORY=1 CLAUDE_CODE_DISABLE_OFFICIAL_MARKETPLACE_AUTOINSTALL=1"
+      print -r -- "dry-run env: CLAUDE_CONFIG_DIR=$CLAUDE_CONFIG_DIR $(_cprof_auth_dryrun "$_cp_mode") CLAUDE_CODE_DISABLE_AUTO_MEMORY=1 CLAUDE_CODE_DISABLE_OFFICIAL_MARKETPLACE_AUTOINSTALL=1"
       print -r -- "dry-run: cd $PWD && exec claude ${(j: :)_cp_flag} --settings '$_cp_acc'${_cp_args:+ ${(j: :)${(@q)_cp_args}}}"
       exit 0
     fi
@@ -171,7 +188,7 @@ _cprof_launch() {
 
 # doctor: one tier row per profile that has a `tier` file.
 _cprof_doctor_tiers() {
-  local d n tier src cur rec flag deny sb sd
+  local d n tier src cur rec flag deny sb sd am
   print -r -- "-- tier rows (profiles with a tier file) --"
   (( ${+commands[jq]} )) || { print -r -- "WARN: tier rows skipped: jq not installed"; return 0; }
   for d in "$(_cprof_root)"/*(N/); do
@@ -181,7 +198,8 @@ _cprof_doctor_tiers() {
     [[ -f $d/tier.src ]] && rec=$(sed -n 's/^rendered //p' "$d/tier.src")
     [[ -n $rec && $rec == $cur ]] && src="render matches" || src="render MISMATCH"
     [[ $tier == executor ]] && flag=--dangerously-skip-permissions || flag="--permission-mode auto"
-    print -r -- "$n: tier=$tier; $src; launch=$flag"
+    [[ $(_cprof_auth_mode "$d") == bedrock ]] && am="; auth=bedrock" || am=
+    print -r -- "$n: tier=$tier$am; $src; launch=$flag"
     if [[ $tier == executor ]]; then
       deny=$(jq '.permissions.deny // [] | length' "$d/config/settings.json" 2>/dev/null)
       sb=$(jq -r '.sandbox.enabled // false' "$d/config/settings.json" 2>/dev/null)

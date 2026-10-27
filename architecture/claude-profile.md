@@ -315,3 +315,70 @@ and checked first.
 6. No `CLAUDE.md` link on tiered profiles (owner ruling 2026-10-21, "1": keep the global CLAUDE.md
    excluded, matching the ratified tier design). Mechanism is SKIP in `link`, not an added exclude
    entry; the part C measurement is why an exclude would not have covered a link.
+
+## Extension (2026-10-26): `--auth bedrock`
+
+**Status: owner ruling 2026-10-26 (AskUserQuestion); code and this amendment go through the PR gate.**
+Option chosen, verbatim: "Add Bedrock mode to cprof (Recommended)". The option described: a small code change plus tests;
+`cprof new <name> --auth bedrock`; `use`/`launch` export `CLAUDE_CODE_USE_BEDROCK=1` and pass `AWS_PROFILE`/`AWS_REGION`
+through; a bedrock sandbox fragment for the Bedrock and STS endpoints; this design record amended; a PR through the gate.
+Everything above this section is unchanged; oauth profiles behave exactly as before.
+
+### What changes vs the 2026-10-01 token-only design
+
+- 2026-10-01 is token-only: every profile has `token`, and `use` unsets `CLAUDE_CODE_USE_{BEDROCK,VERTEX,FOUNDRY}`.
+  A bedrock profile instead has `<profile>/auth` = `bedrock` (mode 600) and no `token`; an absent `auth` file means oauth.
+- Bedrock mode unsets `ANTHROPIC_AUTH_TOKEN ANTHROPIC_API_KEY CLAUDE_CODE_OAUTH_TOKEN CLAUDE_CODE_USE_VERTEX CLAUDE_CODE_USE_FOUNDRY`
+  and exports `CLAUDE_CODE_USE_BEDROCK=1`; `AWS_*` and `AWS_BEARER_TOKEN_BEDROCK` pass through from the shell or `profile.env`.
+- Why unset although Bedrock ranks first: with `CLAUDE_CODE_USE_BEDROCK` set, cloud-provider credentials rank first, then
+  `ANTHROPIC_AUTH_TOKEN`, `ANTHROPIC_API_KEY`, `apiKeyHelper`, `CLAUDE_CODE_OAUTH_TOKEN`, profile, `/login`; and a managed policy can
+  refuse a Bedrock session while an Anthropic key or token is present (Claude Code docs, read 2026-10-26). A stray Anthropic
+  credential must not leak into the profile either.
+
+### Components
+
+- New `tools/claude-profile/cprof-auth.zsh` (sourced by `cprof.zsh` before `cprof-tiers.zsh`): mode file read/validate, region
+  lookup and check, render-input substitution, token write/read (moved from `cprof.zsh`), `_cprof_auth_apply` shared by `use` and `launch`,
+  dry-run words.
+- New `config/tiers/auth-bedrock.json`: `_auth` marker plus seven `sandbox.network.allowedDomains` (allowances only, like an overlay):
+  `bedrock-runtime.<region>`, `bedrock.<region>`, `sts.<region>`, `sts`, `sso.<sso_region>`, `oidc.<sso_region>`,
+  `portal.sso.<sso_region>` (all `.amazonaws.com`).
+- Render inputs, in merge order: hq `settings.json`, `tiers/<tier>.json`, `tiers/auth-bedrock.json` (bedrock only), overlay.
+  `<region>` = `AWS_REGION` > `AWS_DEFAULT_REGION`, the variables Claude Code itself reads, so the host list and the model calls
+  use one region (no cprof-only region override). `<sso_region>` = `CPROF_SSO_REGION`, else the region: Claude Code takes the SSO
+  region from the AWS profile, which cprof cannot read, so this one override stays.
+  Inputs on disk are never modified; `_auth` is dropped from the output like `_tier`. Oauth renders are byte-identical to before.
+- `tier.src` gains `region <r>[ sso=<s>]` before `rendered <sha>` (bedrock only). Staleness (part G) compares it too, so a changed
+  region or SSO region is a stale input named `region` and re-renders at launch.
+
+### Interfaces (exact messages)
+
+- `new`: `unknown auth mode: '<x>' (oauth|bedrock)` (exit 1, no dir); success ends
+  `(auth: bedrock, no token; AWS credentials come from your shell)`; no valid region on a tiered render:
+  `AWS region '<x|unset>' is not a region id; export AWS_REGION (or AWS_DEFAULT_REGION) before rendering a bedrock profile (the sandbox host list needs it)`
+  (exit 1, no profile left). Region regex `^[a-z]{2}(-gov)?-[a-z]+-[0-9]$`.
+- `CPROF_SSO_REGION`, when set, must match the same regex before any substitution; otherwise the render refuses with
+  `CPROF_SSO_REGION '<v>' is not a region id (same form as AWS_REGION, e.g. us-east-1)` (exit 1, no profile left; tests a6f, a6g).
+- `_cprof_render` fails closed: the merge pipeline runs under `pipefail`, the result must be a JSON object, and an executor render
+  must keep a non-empty `permissions.deny` and `sandbox.enabled == true`; otherwise
+  `render produced an invalid or weakened settings object; nothing written` (exit 1; test a6h). The guard covers every render,
+  oauth included, plus `sync --force` and the launch re-render.
+  Follow-up: the guard does not yet check `allowUnsandboxedCommands` or a wildcard `allowedDomains` entry coming from an overlay.
+- `use`/`launch` with no region: `cprof: WARN: no AWS_REGION/AWS_DEFAULT_REGION in this shell; Claude Code falls back to the AWS profile's region, then us-east-1` (exit 0).
+- `token`: `'<name>' uses --auth bedrock; it has no token` (exit 1). `ls`: `[bedrock]`.
+- `launch --dry-run` env words: `CLAUDE_CODE_USE_BEDROCK=1 AWS_REGION=<r|unset> AWS_PROFILE=<p|unset>`; oauth keeps `CLAUDE_CODE_OAUTH_TOKEN=<token>`.
+- `doctor`: tier row `<name>: tier=<t>; auth=bedrock; ...`; auth-vars section prints
+  `ok: CLAUDE_CODE_USE_BEDROCK=1 (active profile uses --auth bedrock)` or `WARN: active profile is bedrock but CLAUDE_CODE_USE_BEDROCK is not 1`.
+
+### Non-goals
+
+1. No Vertex or Foundry mode.
+2. No AWS credential storage in the profile: cprof writes no AWS key, token or config; the shell (or the owner's `profile.env`) supplies them.
+3. No change to oauth profiles: no `auth` file, same token path, same render bytes, same messages.
+4. The host list is derived from the AWS General Reference endpoint pages, not from the Claude Code docs (which name none);
+   it must be live-tested per region, and a sandbox block is reported as a design signal, never worked around.
+
+### Verification
+
+`tools/claude-profile/test_cprof-auth.zsh` (hermetic, same harness as `test_cprof.zsh`) covers the contracts above; the existing
+`test_cprof.zsh`, `test_cprof-link.zsh` and `test_cprof-checks.zsh` pass unchanged.

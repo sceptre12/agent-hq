@@ -2,7 +2,7 @@
 # Source from ~/.zshrc:  source ~/projects/agent-hq/tools/claude-profile/cprof.zsh
 # Profile root: ${CPROF_ROOT:-$HOME/claude-profiles}
 #   <root>/_templates/<t>/   optional seeds copied into a new profile's config/
-#   <root>/<name>/{config,workspace,token,profile.env}   (config/settings.json gets claudeMdExcludes)
+#   <root>/<name>/{config,workspace,token,auth,profile.env}   (token absent for --auth bedrock; config/settings.json gets claudeMdExcludes)
 # State lives in non-exported globals so it never reaches claude's environment.
 
 typeset -gA _CPROF_PRE_VAL _CPROF_PRE_EXP _CPROF_TRK_SET _CPROF_TRK_VAL _CPROF_TRK_EXP
@@ -23,6 +23,7 @@ _CPROF_HIGHER_AUTH=(
 
 # claudeMdExcludes + doctor live in a sibling file (keeps each file under the 300-line limit).
 source "${${(%):-%x}:A:h}/cprof-checks.zsh"
+source "${${(%):-%x}:A:h}/cprof-auth.zsh"     # auth modes oauth|bedrock + token I/O (architecture/claude-profile.md Extension 2026-10-26)
 source "${${(%):-%x}:A:h}/cprof-tiers.zsh"   # tier verbs: render/launch/sync/trust (permission-tiers P2)
 source "${${(%):-%x}:A:h}/cprof-link.zsh"    # link verb + doctor link rows (architecture/claude-profile.md Extension 2026-10-21)
 
@@ -49,25 +50,14 @@ _cprof_scalars() {
   done
 }
 
-# Read a token from stdin (silent on a tty), strip whitespace, write chmod-600 via umask.
-_cprof_write_token() {
-  local file=$1 tok
-  read -rs "tok?OAuth token (input hidden): " || true
-  [[ -t 0 ]] && print
-  tok=${tok//[[:space:]]/}
-  [[ -n $tok ]] || { _cprof_err "empty token, nothing written"; return 1; }
-  rm -f -- "$file"
-  ( umask 077; print -r -- "$tok" > "$file" ) || return 1
-  tok=
-}
-
 _cprof_new() {
-  local name tmpl root d tier ov force=0
+  local name tmpl root d tier ov force=0 auth=oauth
   name=$1; shift
-  [[ -n $name ]] || { _cprof_err "usage: cprof new <name> [--template T] [--tier executor|desk [--overlay P]] (--tier executor renders <owner> from CPROF_OWNER, a GitHub account name [A-Za-z0-9-]; it fails closed if CPROF_OWNER is unset, empty or malformed)"; return 1; }
+  [[ -n $name ]] || { _cprof_err "usage: cprof new <name> [--template T] [--auth oauth|bedrock] [--tier executor|desk [--overlay P]] (--tier executor renders <owner> from CPROF_OWNER, a GitHub account name [A-Za-z0-9-]; it fails closed if CPROF_OWNER is unset, empty or malformed; --auth bedrock reads no token and needs AWS_REGION for a tiered render)"; return 1; }
   while (( $# )); do
     case $1 in
       --template) tmpl=$2; shift 2 || { _cprof_err "--template needs a value"; return 1; } ;;
+      --auth) auth=$2; shift 2 || { _cprof_err "--auth needs a value"; return 1; } ;;
       --tier) tier=$2; shift 2 || { _cprof_err "--tier needs a value"; return 1; } ;;
       --overlay) ov=$2; shift 2 || { _cprof_err "--overlay needs a value"; return 1; } ;;
       --force) force=1; shift ;;
@@ -75,6 +65,7 @@ _cprof_new() {
     esac
   done
   _cprof_valid_name "$name" || return 1
+  _cprof_auth_valid "$auth" || return 1
   [[ -z $ov || -n $tier ]] || { _cprof_err "--overlay needs --tier"; return 1; }
   if [[ -n $tier ]]; then
     [[ $tier == (executor|desk) ]] || { _cprof_err "unknown tier: '$tier' (executor|desk)"; return 1; }
@@ -93,11 +84,12 @@ _cprof_new() {
   fi
   _cprof_apply_excludes "$d/config" || { rm -rf -- "$d"; return 1; }
   _cprof_onboarded "$d/config" || true
+  if [[ $auth == bedrock ]]; then ( umask 077; print -r -- bedrock > "$d/auth" ) || { rm -rf -- "$d"; return 1; }; fi
   if [[ -n $tier ]]; then   # before the token prompt, so a bad render never costs a paste
     { _cprof_render "$d" "$tier" "$ov" && _cprof_tier_md "$d" "$tier" "$name" "$force"; } || { rm -rf -- "$d"; return 1; }
   fi
-  _cprof_write_token "$d/token" || { rm -rf -- "$d"; return 1; }
-  print -r -- "created profile '$name' at $d"
+  if [[ $auth != bedrock ]]; then _cprof_write_token "$d/token" || { rm -rf -- "$d"; return 1; }; fi
+  print -r -- "created profile '$name' at $d${${(M)auth:#bedrock}:+ (auth: bedrock, no token; AWS credentials come from your shell)}"
 }
 
 _cprof_token() {
@@ -106,20 +98,21 @@ _cprof_token() {
   _cprof_valid_name "$name" || return 1
   d=$(_cprof_root)/$name
   [[ -d $d ]] || { _cprof_err "no such profile: $name"; return 1; }
+  [[ $(_cprof_auth_mode "$d") == bedrock ]] && { _cprof_err "'$name' uses --auth bedrock; it has no token"; return 1; }
   _cprof_write_token "$d/token" && print -r -- "token rotated for '$name' (takes effect on next 'cprof use $name')"
 }
 
 # Locals are _cp_-prefixed and profile.env is sourced from an anonymous function with no locals,
 # so a profile.env assigning name=, d=, n= or v= cannot clobber this function's state.
 _cprof_use() {
-  local _cp_name=$1 _cp_d _cp_n _cp_v _cp_tok
+  local _cp_name=$1 _cp_d _cp_n _cp_v _cp_tok _cp_mode
   local -A _cp_pre _cp_preexp
   [[ -n $_cp_name ]] || { _cprof_err "usage: cprof use <name>"; return 1; }
   _cprof_valid_name "$_cp_name" || return 1
   _cp_d=$(_cprof_root)/$_cp_name
-  [[ -d $_cp_d/config && -f $_cp_d/token ]] || { _cprof_err "no such profile (or no token): $_cp_name"; return 1; }
-  _cp_tok=$(<"$_cp_d/token") 2>/dev/null || { _cprof_err "cannot read token file for '$_cp_name'"; return 1; }
-  [[ -n ${_cp_tok//[[:space:]]/} ]] || { _cprof_err "token file for '$_cp_name' is empty; run 'cprof token $_cp_name'"; return 1; }
+  [[ -d $_cp_d/config ]] || { _cprof_err "no such profile (or no token): $_cp_name"; return 1; }
+  _cp_mode=$(_cprof_auth_mode "$_cp_d")
+  _cprof_auth_token "$_cp_d" "$_cp_mode" _cp_tok || return 1
   [[ -n $_CPROF_ACTIVE ]] && _cprof_off quiet
 
   # Snapshot 1: set-ness/value/exported-ness of every scalar name, and of the tracked vars.
@@ -139,9 +132,8 @@ _cprof_use() {
 
   _cprof_onboarded "$_cp_d/config" || true   # warns only; never fails use
   # Apply.
-  unset -- $_CPROF_HIGHER_AUTH
+  _cprof_auth_apply "$_cp_mode" "$_cp_tok"; _cp_tok=
   export CLAUDE_CONFIG_DIR=$_cp_d/config
-  export CLAUDE_CODE_OAUTH_TOKEN=${_cp_tok//[[:space:]]/}
   export CLAUDE_CODE_DISABLE_AUTO_MEMORY=1
   export CLAUDE_CODE_DISABLE_OFFICIAL_MARKETPLACE_AUTOINSTALL=1
   if [[ -f $_cp_d/profile.env ]]; then
@@ -199,7 +191,7 @@ _cprof_ls() {
   [[ -d $root ]] || { print -r -- "(no profiles; root $root does not exist)"; return 0; }
   for d in "$root"/*(N/); do
     name=${d:t}; [[ $name == _* ]] && continue
-    [[ -f $d/token ]] && tok=token || tok=NO-TOKEN
+    if [[ $(_cprof_auth_mode "$d") == bedrock ]]; then tok=bedrock; elif [[ -f $d/token ]]; then tok=token; else tok=NO-TOKEN; fi
     [[ $name == $_CPROF_ACTIVE ]] && mark='*' || mark=' '
     print -r -- "$mark $name  [$tok]"
   done
@@ -228,8 +220,10 @@ _cprof_rm() {
 _cprof_help() {
   cat <<'H'
 cprof — isolated per-shell Claude Code profiles
-  cprof new <name> [--template T] [--tier executor|desk [--overlay P] [--force]]
+  cprof new <name> [--template T] [--auth oauth|bedrock] [--tier executor|desk [--overlay P] [--force]]
                                     create profile; token read from stdin (hidden on a tty);
+                                    --auth bedrock: no token; use/launch set CLAUDE_CODE_USE_BEDROCK=1 and pass your AWS_*
+                                    vars through; a tiered render adds the Bedrock/STS/SSO hosts for AWS_REGION (required)
                                     --tier renders config/settings.json + tier/tier.src + CLAUDE.md
                                     --tier executor renders <owner> from CPROF_OWNER (a GitHub account name, [A-Za-z0-9-]);
                                     it fails closed if CPROF_OWNER is unset, empty or malformed
@@ -245,7 +239,7 @@ cprof — isolated per-shell Claude Code profiles
   cprof off                         restore the shell exactly
   cprof ls                          list profiles and templates
   cprof current                     print active profile name (nothing if none)
-  cprof token <name>                re-paste / rotate the token
+  cprof token <name>                re-paste / rotate the token (refused for --auth bedrock profiles)
   cprof excludes <name>             (re)apply claudeMdExcludes to a profile's settings.json
   cprof rm <name>                   delete a profile (asks to confirm)
   cprof doctor [--no-claude]        auth vars, walk-up scan, /context memory rows, init event

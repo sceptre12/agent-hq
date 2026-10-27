@@ -20,6 +20,9 @@ Copied from the owner's working Hermes install so it can be rebuilt. Secrets and
 | `SOUL.md` | Hermes charter; "hq" retargeted to "agent-hq" (skill name `hq-index` unchanged) | live `h1-home/SOUL.md` | none |
 | `config.active.yaml` | Active lines of the live `config.yaml` (comments stripped; header says so) | live `h1-home/config.yaml` | `__HOME__` |
 | `config-edits.md` | Key-to-value edits applied to the installer's `config.yaml` | record `evidence/h2a/config-edits.md` | `__HOME__` |
+| `INSTALL.md` | Install guide: install Hermes at the pin on a new machine, lock the config, verify it, keep it locked | this repo | none |
+| `check-config` | Read-only pre-flight check of `HERMES_HOME/config.yaml` against `required-config.tsv` (no Hermes code, no network, no token); test `tools/hermes/test_check-config.sh` | this repo | none |
+| `required-config.tsv` | The required config keys and values that `check-config` enforces, one row per key | this repo | none |
 
 ## Install layout
 

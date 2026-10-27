@@ -1,12 +1,11 @@
 #!/usr/bin/python3 -I
 # check-config: standalone pre-flight verifier for a Hermes config.yaml (no Hermes code, no network, no token, stdlib only).
-# Run as:  /usr/bin/python3 -I tools/hermes/setup/check-config [--home <HERMES_HOME>] [--tsv <path>] [--yaml <path>]
-# (the file needs no exec bit). Defaults: --home from $HERMES_HOME; yaml = <home>/config.yaml; tsv = required-config.tsv
-# beside this script. Prints one PASS/FAIL line per requirement row, then the no-always check, then the hook-file check.
-# Last line: `CHECK-CONFIG: PASS n=<checks>` (exit 0) or `CHECK-CONFIG: FAIL failed=<k> of <checks>` (exit 1), where
-# <checks> counts every PASS/FAIL line (SKIP lines are not counted). Exit 2 = usage or parse error, 3 = yaml/tsv unreadable.
-# Only keys named in the TSV are printed; other keys and map contents are never echoed (map values print as `{<n> key(s)}`).
-#
+# Run as `/usr/bin/python3 -I tools/hermes/setup/check-config` (no exec bit needed; options in USAGE). Prints one PASS/FAIL
+# line per requirement row, then the no-always check, then the hook-file checks (only when --home or $HERMES_HOME is set).
+# Last line: `CHECK-CONFIG: PASS n=<checks>` (exit 0) or `CHECK-CONFIG: FAIL failed=<k> of <checks>` (exit 1); <checks>
+# counts PASS/FAIL lines, not SKIP lines. Exit 2 = usage or parse error, 3 = yaml/tsv unreadable.
+# Only TSV keys and TSV (expected) values are printed; a live value never is: a FAIL shows its shape (absent, scalar,
+# list(n=<k>), map(n=<k>)), and set-eq shows `missing [<expected names>] extra n=<k>`. A non-mapping parent counts as present.
 # YAML SUBSET (anything else fails closed: `UNPARSEABLE line <n>: <reason>`, exit 2):
 #   - block mappings nested by exactly 2 spaces; `key: value` or `key:` (then a nested block, or null when none follows);
 #   - scalars: bare, "double-quoted" (\\ \" \n \t escapes), 'single-quoted' ('' escape); optional trailing ` # comment`
@@ -21,7 +20,7 @@
 import os, re, stat, sys
 
 USAGE = """usage: /usr/bin/python3 -I tools/hermes/setup/check-config [--home <HERMES_HOME>] [--tsv <path>] [--yaml <path>]
-  --home  Hermes home (default: $HERMES_HOME); config.yaml is read from it, and the hook file is checked
+  --home  Hermes home (default: $HERMES_HOME); config.yaml is read from it; with a home the hook file is checked
   --yaml  config file to check (default: <home>/config.yaml)
   --tsv   requirements file (default: required-config.tsv beside this script)
 Reads files only; never runs Hermes, never touches the network. Exit 0 pass, 1 fail, 2 usage/parse error, 3 unreadable."""
@@ -29,6 +28,8 @@ OPS = ("eq", "set-eq", "empty-map", "has-hook", "unset-or-eq")
 HOOK_MATCHER = "read_file|write_file|patch|search_files"
 KEY_RE = re.compile(r'^([A-Za-z_][A-Za-z0-9_.\-]*|"[^"\\]*"|\'[^\']*\')[ ]*:(?:[ ]+(.*))?$')
 ABSENT = object()
+class NotMap(object):                          # a dotted key whose parent exists but is not a mapping
+    def __init__(self, v): self.v = v
 
 class ParseError(Exception):
     def __init__(self, n, why):
@@ -183,15 +184,17 @@ def parse_yaml(text):
 def lookup(doc, dotted):
     d = doc
     for k in dotted.split("."):
-        if not isinstance(d, dict) or k not in d: return ABSENT
+        if not isinstance(d, dict): return NotMap(d)
+        if k not in d: return ABSENT
         d = d[k]
     return d
 
-def show(v):
+def show(v):                                   # the shape of a live value, never the value itself
+    if isinstance(v, NotMap): return show(v.v)
     if v is ABSENT: return "absent"
-    if isinstance(v, dict): return "{%d key(s)}" % len(v)
-    if isinstance(v, list): return "[" + ", ".join(sshow(x) if isinstance(x, tuple) else "<map>" for x in v) + "]"
-    return sshow(v)[:80]
+    if isinstance(v, dict): return "map(n=%d)" % len(v)
+    if isinstance(v, list): return "list(n=%d)" % len(v)
+    return "scalar"
 
 def hook_ok(e, cmd):
     if not isinstance(e, dict): return False
@@ -206,12 +209,12 @@ def check(doc, key, op, want, raw):
     if op == "empty-map": return got == {}, show(got)
     if op == "set-eq":
         if not isinstance(got, list) or not all(isinstance(x, tuple) for x in got):
-            return False, show(got) if not isinstance(got, list) else "a list with non-scalar items"
+            return False, show(got) + (" with non-scalar items" if isinstance(got, list) else "")
         g, w = set(got), set(want)
-        miss, extra = sorted(sshow(x) for x in w - g), sorted(sshow(x) for x in g - w)
-        return not miss and not extra, "%d item(s), missing [%s], extra [%s]" % (len(got), ", ".join(miss), ", ".join(extra))
+        miss, extra = sorted(sshow(x) for x in w - g), len(g - w)
+        return not miss and not extra, "%s, missing [%s] extra n=%d" % (show(got), ", ".join(miss), extra)
     cmd = raw.replace("__HOME__", os.environ.get("HOME", ""))
-    if not isinstance(got, list): return False, show(got) if not isinstance(got, dict) else "a mapping, not a list"
+    if not isinstance(got, list): return False, show(got)
     return any(hook_ok(e, cmd) for e in got), "no matching entry among %d" % len(got)
 
 def read_tsv(path):
@@ -284,7 +287,7 @@ def main(argv):
     report(n_always == 0, "no-always", "%d line(s)" % n_always)
     hooks = [r for r in rows if r[1] == "has-hook"]
     hp = hooks[0][3].replace("__HOME__", os.environ.get("HOME", "")) if hooks else ""
-    if not opts.get("--home"): print("SKIP hook-file (no --home)")
+    if not home: print("SKIP hook-file (no --home or $HERMES_HOME)")
     elif not hp or not os.path.lexists(hp): print("SKIP hook-file (not present)")
     else:
         st = os.lstat(hp)

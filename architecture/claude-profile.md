@@ -274,10 +274,15 @@ with no claude session open on that profile (claude rewrites `.claude.json`).
 
 ### F. Doctor
 
+*(Amended by Extension (2026-10-27), below: `linked` now compares against the root recorded in a
+profile's `link-src` file, falling back to `$HOME/.claude` when `link-src` is absent — see M2 in
+that section.)*
+
 New section after the tier rows (style of `cprof-tiers.zsh:132-155`), one row per non-`_` profile:
 `-- link rows (main-profile links) --` then
 `<name>: CLAUDE.md=linked skills=linked agents=linked plugins=linked settings.json=rendered; mcpServers=in-sync(4)`.
-Values: `linked` (symlink to the exact `$HOME/.claude` target), `other-link`, `file`, `-`
+Values: `linked` (symlink to the exact target recorded in the profile's `link-src` file, falling
+back to `$HOME/.claude` when `link-src` is absent), `other-link`, `file`, `-`
 (absent; expected for `CLAUDE.md` on a tiered profile, which `link` skips), `rendered` (tiered profile's real file, expected). `mcpServers=missing:<names>` when
 main has servers the profile lacks, `absent` when main has none. No jq → one
 `WARN: link rows skipped: jq not installed` line. Informational: an unlinked profile shows

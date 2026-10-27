@@ -6,7 +6,7 @@
 # the code reads is unset in each child, so the result does not depend on the caller's profile or AWS shell state.
 SRC=${0:A:h}
 _TRK=(${(f)"$(zsh -fc "source $SRC/cprof.zsh; print -l \${_CPROF_TRACKED:#PS1}" 2>/dev/null)"}); CLEAN=()
-for _v in $_TRK AWS_REGION AWS_DEFAULT_REGION AWS_PROFILE CPROF_AWS_REGION CPROF_SSO_REGION CPROF_OWNER; do CLEAN+=(-u $_v); done
+for _v in $_TRK AWS_REGION AWS_DEFAULT_REGION AWS_PROFILE CPROF_SSO_REGION CPROF_OWNER; do CLEAN+=(-u $_v); done
 _tb=${TMPDIR:-/tmp}; T=$(mktemp -d "${_tb%/}/test_cprof-auth.XXXXXX") || exit 1
 trap 'chmod -R u+rwx "$T" 2>/dev/null; rm -rf "$T"' EXIT
 mkdir -p $T/bin $T/home $T/root

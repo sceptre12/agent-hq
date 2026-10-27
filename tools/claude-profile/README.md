@@ -1,7 +1,8 @@
 # cprof — isolated per-shell Claude Code profiles
 
-Design: `architecture/claude-profile.md`. Each profile has its own OAuth token and clean
-`CLAUDE_CONFIG_DIR`; it applies to one shell and `cprof off` restores that shell exactly.
+Design: `architecture/claude-profile.md`. Each profile has its own OAuth token (or, with
+`--auth bedrock`, the shell's AWS credentials) and a clean `CLAUDE_CONFIG_DIR`; it applies to one
+shell and `cprof off` restores that shell exactly. First-time walkthrough: `tools/onboarding.md`.
 
 ## Install (once, by hand)
 
@@ -11,7 +12,7 @@ Add this line to `~/.zshrc` (agents do not edit dotfiles):
 
 ## Usage
 
-    cprof new <name> [--template T]   # prompts for the token (hidden); piping it also works
+    cprof new <name> [--template T] [--auth oauth|bedrock]   # oauth prompts for the token (hidden); bedrock reads none
     cprof use <name>                  # this shell only; cd's into the profile workspace
     cprof off                         # restore env, prompt, and directory
     cprof excludes <name>             # re-apply claudeMdExcludes to an existing profile
@@ -24,6 +25,33 @@ with `claude setup-token`. Never pass a token in argv.
 
 `cprof current` prints the active name, or nothing. The `[cprof:<name>]` prompt prefix is cosmetic
 and Warp may ignore it; trust `cprof current` and `${+CLAUDE_CONFIG_DIR}`.
+
+## Auth modes (`--auth`; architecture/claude-profile.md Extension 2026-10-26)
+
+Code lives in `cprof-auth.zsh`. `<profile>/auth` holds the mode (mode 600); no file means `oauth`, so existing profiles are unchanged.
+An unknown mode fails with `unknown auth mode: '<x>' (oauth|bedrock)`, exit 1, and no profile dir.
+
+- **oauth** (default): the token file, as above. `use`/`launch` export `CLAUDE_CODE_OAUTH_TOKEN` and unset the higher-precedence auth vars.
+- **bedrock**: `new` writes `auth` = `bedrock`, prompts for no token and writes no token file; it ends
+  `(auth: bedrock, no token; AWS credentials come from your shell)`.
+  - `use` and `launch` unset `ANTHROPIC_AUTH_TOKEN ANTHROPIC_API_KEY CLAUDE_CODE_OAUTH_TOKEN CLAUDE_CODE_USE_VERTEX CLAUDE_CODE_USE_FOUNDRY`
+    and export `CLAUDE_CODE_USE_BEDROCK=1` with the usual `CLAUDE_CONFIG_DIR` and DISABLE vars. `AWS_PROFILE`, `AWS_REGION`, the `AWS_*`
+    keys and `AWS_BEARER_TOKEN_BEDROCK` pass through untouched (from the shell or `profile.env`); `launch` strips the Anthropic vars
+    even if `profile.env` sets them. `off` restores everything (`CLAUDE_CODE_USE_BEDROCK` is tracked).
+  - No `AWS_REGION`/`AWS_DEFAULT_REGION`: `cprof: WARN: no AWS_REGION/AWS_DEFAULT_REGION in this shell; Claude Code falls back to the AWS profile's region, then us-east-1` (stderr, exit 0).
+  - Models: set `ANTHROPIC_MODEL` and all three `ANTHROPIC_DEFAULT_{OPUS,SONNET,HAIKU}_MODEL` to Bedrock ids in `profile.env` (ids are
+    account-specific; the `us.` inference-profile prefix is for US regions, `eu.`/`apac.`/`global.` elsewhere, see `ANTHROPIC_BEDROCK_REGION_PREFIX`).
+  - Tiered render inputs: hq `settings.json`, `tiers/<tier>.json`, `tiers/auth-bedrock.json`, [overlay]. The fragment adds sandbox hosts only
+    (Bedrock runtime and control plane, STS, SSO/OIDC/portal); its `<region>` comes from `AWS_REGION` > `AWS_DEFAULT_REGION` (the same
+    variables Claude Code reads; there is no cprof-only region override). `<sso_region>` comes from `CPROF_SSO_REGION` (default: the
+    region): Claude Code reads the SSO region from the AWS profile, which cprof cannot read, so this override stays. No valid region id:
+    `AWS region '<x|unset>' is not a region id; export AWS_REGION (or AWS_DEFAULT_REGION) ...`, exit 1, no profile left.
+    The tiered render reads the region from the shell only, not from `profile.env`.
+  - `tier.src` gains `region <r>[ sso=<s>]` before `rendered <sha>`; a changed region counts as a stale input (`region`) and re-renders at launch,
+    unless `settings.json` was hand-edited (then launch warns `not re-rendered`; run `cprof sync <name> --force`).
+  - `launch --dry-run` shows `CLAUDE_CODE_USE_BEDROCK=1 AWS_REGION=<r|unset> AWS_PROFILE=<p|unset>`, never a token.
+  - `cprof token <name>`: `'<name>' uses --auth bedrock; it has no token`, exit 1. `ls` shows `[bedrock]` instead of `[token]`.
+  - `doctor`: the tier row gains `; auth=bedrock`; with a bedrock profile active, `CLAUDE_CODE_USE_BEDROCK=1` is `ok` in the auth-vars section (WARN if not 1).
 
 ## Tier verbs (permission-tiers P2; `architecture/permission-tiers.md` Components 3, D2, D3)
 

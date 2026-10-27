@@ -15,9 +15,10 @@ _cprof_auth_mode() {
   print -r -- "${m:-oauth}"
 }
 
-# Region for the sandbox host list and the launch warning: CPROF_AWS_REGION, else AWS_REGION, else AWS_DEFAULT_REGION
-# (Claude Code's own order, minus its AWS-profile and us-east-1 fallbacks, which cprof cannot see).
-_cprof_aws_region() { print -r -- "${CPROF_AWS_REGION:-${AWS_REGION:-${AWS_DEFAULT_REGION-}}}"; }
+# Region for the sandbox host list and the launch warning: AWS_REGION, else AWS_DEFAULT_REGION (Claude Code's own order,
+# minus its AWS-profile and us-east-1 fallbacks, which cprof cannot see). No cprof-only override: the host list and Claude Code
+# must read the same region.
+_cprof_aws_region() { print -r -- "${AWS_REGION:-${AWS_DEFAULT_REGION-}}"; }
 _cprof_region_valid() { [[ $1 =~ '^[a-z]{2}(-gov)?-[a-z]+-[0-9]$' ]] }
 
 # _cprof_render_inputs <mode> <region> <file>...: cat the render inputs; in bedrock mode substitute the auth fragment's

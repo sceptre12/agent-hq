@@ -1,7 +1,7 @@
 {
   "_auth": "bedrock",
   "_source": "architecture/claude-profile.md Extension 2026-10-26 (owner ruling: Bedrock mode in cprof). Hosts: AWS General Reference endpoint pages for Bedrock, STS and IAM Identity Center, read 2026-10-26 (desk RESEARCH xProfWorker1-20261026T234500Z-30); the Claude Code docs name no Bedrock hostnames.",
-  "_note": "Rendered only into --auth bedrock profiles, after the tier fragment and before the overlay. <region> and <sso_region> are substituted at render from AWS_REGION (CPROF_AWS_REGION) and CPROF_SSO_REGION. Adds allowances only, the same constraint as an overlay. portal.sso is the SSO token-refresh host (AWS-doc derived, not Claude-Code documented): live-test per region and report a block as a design signal.",
+  "_note": "Rendered only into --auth bedrock profiles, after the tier fragment and before the overlay. <region> and <sso_region> are substituted at render from AWS_REGION (else AWS_DEFAULT_REGION) and CPROF_SSO_REGION. Adds allowances only, the same constraint as an overlay. portal.sso is the SSO token-refresh host (AWS-doc derived, not Claude-Code documented): live-test per region and report a block as a design signal.",
   "sandbox": {
     "network": {
       "allowedDomains": [

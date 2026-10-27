@@ -31,7 +31,7 @@ _cprof_render_ins() {   # <profile-dir> <tier> <overlay>: sets the caller's ins,
   mode=$(_cprof_auth_mode "$1"); region=; ins=($hq/settings.json $hq/tiers/$2.json)
   if [[ $mode == bedrock ]]; then
     region=$(_cprof_aws_region); ins+=($hq/tiers/auth-bedrock.json)
-    _cprof_region_valid "$region" || { _cprof_err "AWS region '${region:-unset}' is not a region id; export AWS_REGION (or CPROF_AWS_REGION) before rendering a bedrock profile (the sandbox host list needs it)"; return 1; }
+    _cprof_region_valid "$region" || { _cprof_err "AWS region '${region:-unset}' is not a region id; export AWS_REGION (or AWS_DEFAULT_REGION) before rendering a bedrock profile (the sandbox host list needs it)"; return 1; }
   fi
   [[ -n $3 ]] && ins+=($hq/tiers/overlays/$3.json)
   return 0

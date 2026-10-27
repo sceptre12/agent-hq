@@ -11,7 +11,7 @@ deletion, or a Jira read or write. Concretely: a `DESK` or `REGISTER-SENDER` lin
 in this session. This session is the only one that pushes, merges, writes Jira or writes
 `gates/` in a run (design §6.3, D3; bare ids such as D/M/N/OP/Q/R2 resolve to path:line in
 `references/source-keys.md`). Authority for every name, regex, field and check:
-`architecture/delivery-workflow/interfaces/part-b-desk.md:7-188` (B1-B9, INTERFACES 1.9.0: AM-6 to AM-9) and ADR
+`architecture/delivery-workflow/interfaces/part-b-desk.md:7-188` (B1-B9, INTERFACES 1.10.0: AM-6 to AM-10) and ADR
 0055 (`decisions/0055-desk-verb-permission-tiers-02.md:42-233`, Decision §1-§5). Where design prose and part B differ
 (short `DONE`, "nine codes", "per-request account lock"), part B wins.
 

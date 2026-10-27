@@ -1,6 +1,6 @@
 # Sub-task bus and ports
 
-Depth for the SKILL.md step "bus claim, start, `bus.endpoint`" and for every later bus restart. Mode `build` only: `plan-pr` and `post-merge` start no bus (A.2 Modes). Authority, cited and not restated differently: INTERFACES 1.9.0 part A A.5.2 (port claims), A.3 (`bus.endpoint`), A.5 and A.5.1 (catalog rows), A.8 (CV14, CV16, review-bus path), part C C1.1 (bus port, `bus_endpoint`, restarter), C5.3 step 4, C7 (bus down), part D D4, D5; spec 28 RESOLVED R-4, Q3, Q4, AM4-3; AM-4 rows W2-1, W2-3 and 18.
+Depth for the SKILL.md step "bus claim, start, `bus.endpoint`" and for every later bus restart. Mode `build` only: `plan-pr` and `post-merge` start no bus (A.2 Modes). Authority, cited and not restated differently: INTERFACES 1.10.0 part A A.5.2 (port claims), A.3 (`bus.endpoint`), A.5 and A.5.1 (catalog rows), A.8 (CV14, CV16, review-bus path), part C C1.1 (bus port, `bus_endpoint`, restarter), C5.3 step 4, C7 (bus down), part D D4, D5; spec 28 RESOLVED R-4, Q3, Q4, AM4-3; AM-4 rows W2-1, W2-3 and 18.
 
 ## Values
 

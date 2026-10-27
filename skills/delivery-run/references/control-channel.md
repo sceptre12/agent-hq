@@ -1,6 +1,6 @@
 # Control channel: inbox, outbox, `REGISTER`, desk requests, `RELEASE` and `INVALIDATE`
 
-Depth for the SKILL.md steps "`REGISTER` line and the `register.consumed` wait", "`RELEASE` wait", the desk sends, and the inbox read on every tick. Authority (INTERFACES 1.9.0): part C C5.1 (layout, inbox, outbox, `REGISTER`, `MERGED`), C5.2 (channel per backend), C6 (`RELEASE`, `INVALIDATE`), C8 (AM-5: CV9, CV15, the `verdict` type; its writers per AM-6 (a) and AM-7 touch-up 7); the C5.1 outbox stop carrier (AM-9 G1/6); part B B1 (registration, host-sends rule, `.out` polling, applied-result scan), B4 (verbs); spec 28 RESOLVED Q5, PC-W2-8; AM-4 rows W2-4, W2-5.
+Depth for the SKILL.md steps "`REGISTER` line and the `register.consumed` wait", "`RELEASE` wait", the desk sends, and the inbox read on every tick. Authority (INTERFACES 1.10.0): part C C5.1 (layout, inbox, outbox, `REGISTER`, `MERGED`), C5.2 (channel per backend), C6 (`RELEASE`, `INVALIDATE`), C8 (AM-5: CV9, CV15, the `verdict` type; its writers per AM-6 (a) and AM-7 touch-up 7); the C5.1 outbox stop carrier (AM-9 G1/6); part B B1 (registration, host-sends rule, `.out` polling, applied-result scan), B4 (verbs); spec 28 RESOLVED Q5, PC-W2-8; AM-4 rows W2-4, W2-5.
 
 ## Layout the lead uses (C5.1)
 

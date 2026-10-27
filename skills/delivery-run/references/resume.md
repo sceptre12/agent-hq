@@ -1,6 +1,6 @@
 # Resume, reconcile, lock and hand-over
 
-Depth for the SKILL.md steps "lifetime `substate.lock` and seed copy" and "reconcile (also on a first start)", and for every restart. Authority (INTERFACES 1.9.0; stop carrier and `stop_reason` writers INTERFACES 1.9.0 AM-9): part C C5.3 (brief, triggers, steps 1-6 with 3a and 3b, hand-over, order after `TaskStop`, bus paging); part A A.3 (lock and break, seed, `stop_reason`, `interfaces_version`), A.4 (resume encoding by rename), A.5 (`catalog.sh audit`, exit 5 per the I script table), A.8 (`RESUME` gate, AM-6 (f); `stale-session`); part B B1 (re-attach, applied-result scan); spec 28 RESOLVED Q2, PC-W2-8; AM-4 row W2-5.
+Depth for the SKILL.md steps "lifetime `substate.lock` and seed copy" and "reconcile (also on a first start)", and for every restart. Authority (INTERFACES 1.10.0; stop carrier and `stop_reason` writers INTERFACES 1.9.0 AM-9): part C C5.3 (brief, triggers, steps 1-6 with 3a and 3b, hand-over, order after `TaskStop`, bus paging); part A A.3 (lock and break, seed, `stop_reason`, `interfaces_version`), A.4 (resume encoding by rename), A.5 (`catalog.sh audit`, exit 5 per the I script table), A.8 (`RESUME` gate, AM-6 (f); `stale-session`); part B B1 (re-attach, applied-result scan); spec 28 RESOLVED Q2, PC-W2-8; AM-4 row W2-5.
 
 ## Brief and triggers (C5.3)
 

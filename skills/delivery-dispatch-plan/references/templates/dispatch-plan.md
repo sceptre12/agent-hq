@@ -68,7 +68,7 @@ Text diagram. One DAG wave `01-build.md` per sub-task, then `02-integrate.md` (C
 Every lane, dev-server and bus port is claimed at launch per INTERFACES A.5.2 (`port-check.sh --claim`, then `catalog.sh register port`), never auto-picked; on a refusal exactly one retry at candidate + 10, claimed before bind; a second refusal stops the line and is reported to the lead; for a lane it maps to C2 reason `lane-unavailable` (INTERFACES A.5.2, AM-3, owner OQ-2).
 
 ### P8 Port table (INTERFACES A.5.2 candidate formula; one +10 retry, AM-3 OQ-2)
-`candidate = <base> + 20·k` (INTERFACES 1.9.0 A.5.2, AM-4 W2-3; the one +10 retry lands on an odd ten no candidate uses); `<base>` is the profile key `ports.bus_base` (bus, review-bus) or `ports.lane_base` (lanes); either absent means `FILL_IN_BEFORE_DISPATCH`, which fails the pre-dispatch checklist. Fixed app ports keep their app port, `k` = `-`, outside the formula (W2-3). Bus rule: `st<N>` bus `k = 2N`, review bus `k = 2N + 1`; lane binds by the per-bind index, consecutive in table order from 0 across all lanes (A.5.2).
+`candidate = <base> + 20·k` (INTERFACES 1.10.0 A.5.2, AM-4 W2-3; the one +10 retry lands on an odd ten no candidate uses); `<base>` is the profile key `ports.bus_base` (bus, review-bus) or `ports.lane_base` (lanes); either absent means `FILL_IN_BEFORE_DISPATCH`, which fails the pre-dispatch checklist. Fixed app ports keep their app port, `k` = `-`, outside the formula (W2-3). Bus rule: `st<N>` bus `k = 2N`, review bus `k = 2N + 1`; lane binds by the per-bind index, consecutive in table order from 0 across all lanes (A.5.2).
 
 | subtask | role (`bus\|review-bus\|lane/<name>`) | base_key (`ports.bus_base\|ports.lane_base`) | k | candidate |
 |---|---|---|---|---|

@@ -357,6 +357,13 @@ Everything above this section is unchanged; oauth profiles behave exactly as bef
   `(auth: bedrock, no token; AWS credentials come from your shell)`; no valid region on a tiered render:
   `AWS region '<x|unset>' is not a region id; export AWS_REGION (or AWS_DEFAULT_REGION) before rendering a bedrock profile (the sandbox host list needs it)`
   (exit 1, no profile left). Region regex `^[a-z]{2}(-gov)?-[a-z]+-[0-9]$`.
+- `CPROF_SSO_REGION`, when set, must match the same regex before any substitution; otherwise the render refuses with
+  `CPROF_SSO_REGION '<v>' is not a region id (same form as AWS_REGION, e.g. us-east-1)` (exit 1, no profile left; tests a6f, a6g).
+- `_cprof_render` fails closed: the merge pipeline runs under `pipefail`, the result must be a JSON object, and an executor render
+  must keep a non-empty `permissions.deny` and `sandbox.enabled == true`; otherwise
+  `render produced an invalid or weakened settings object; nothing written` (exit 1; test a6h). The guard covers every render,
+  oauth included, plus `sync --force` and the launch re-render.
+  Follow-up: the guard does not yet check `allowUnsandboxedCommands` or a wildcard `allowedDomains` entry coming from an overlay.
 - `use`/`launch` with no region: `cprof: WARN: no AWS_REGION/AWS_DEFAULT_REGION in this shell; Claude Code falls back to the AWS profile's region, then us-east-1` (exit 0).
 - `token`: `'<name>' uses --auth bedrock; it has no token` (exit 1). `ls`: `[bedrock]`.
 - `launch --dry-run` env words: `CLAUDE_CODE_USE_BEDROCK=1 AWS_REGION=<r|unset> AWS_PROFILE=<p|unset>`; oauth keeps `CLAUDE_CODE_OAUTH_TOKEN=<token>`.

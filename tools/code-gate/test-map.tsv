@@ -3,6 +3,7 @@
 # seconds (positive integer; default 120); when several rows name the same test the largest value wins, and the
 # CODE_GATE_TIMEOUT environment variable, if set, overrides every map value. See run-mapped-tests.sh / cg_timeout_for.
 
+config/tiers/auth-bedrock.json	tools/claude-profile/test_cprof-auth.zsh
 skills/release-track/scripts/check-zephyr-disallowed.sh	skills/release-track/scripts/test_zephyr-guard.sh
 skills/release-track/scripts/zephyr-guard.sh	skills/release-track/scripts/test_zephyr-guard.sh
 skills/security-audit/validate-coverage-ledger.cjs	skills/security-audit/tests/test_validate-coverage-ledger.sh
@@ -11,11 +12,16 @@ skills/wave-execution/references/example-spec/tests/run.sh	skills/wave-execution
 tools/check-doc-length.sh	tools/test_check-doc-length.sh
 tools/check-file-length.sh	tools/test_check-file-length.sh
 tools/check-invariants.sh	tools/test_check-invariants.sh
+tools/claude-profile/cprof-auth.zsh	tools/claude-profile/test_cprof-auth.zsh
+tools/claude-profile/cprof-auth.zsh	tools/claude-profile/test_cprof.zsh
+tools/claude-profile/cprof-checks.zsh	tools/claude-profile/test_cprof-auth.zsh
 tools/claude-profile/cprof-checks.zsh	tools/claude-profile/test_cprof-checks.zsh
 tools/claude-profile/cprof-checks.zsh	tools/claude-profile/test_cprof-link.zsh
 tools/claude-profile/cprof-checks.zsh	tools/claude-profile/test_cprof.zsh
 tools/claude-profile/cprof-link.zsh	tools/claude-profile/test_cprof-link.zsh
+tools/claude-profile/cprof-tiers.zsh	tools/claude-profile/test_cprof-auth.zsh
 tools/claude-profile/cprof-tiers.zsh	tools/claude-profile/test_cprof.zsh
+tools/claude-profile/cprof.zsh	tools/claude-profile/test_cprof-auth.zsh
 tools/claude-profile/cprof.zsh	tools/claude-profile/test_cprof-link.zsh
 tools/claude-profile/cprof.zsh	tools/claude-profile/test_cprof.zsh
 tools/code-gate/check-review.sh	tools/code-gate/test_check-review.sh

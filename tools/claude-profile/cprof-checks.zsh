@@ -70,9 +70,14 @@ _cprof_doctor() {
   else print -r -- "CLAUDE_CONFIG_DIR: (unset)"; fi
   print -r -- "prompt prefix is cosmetic (Warp may ignore PS1); trust 'cprof current' and CLAUDE_CONFIG_DIR."
 
-  print -r -- "-- higher-precedence auth vars (must be unset) --"
+  print -r -- "-- higher-precedence auth vars (must be unset; CLAUDE_CODE_USE_BEDROCK=1 is expected on an active --auth bedrock profile) --"
   hit=0
+  local bed=0; [[ -n $_CPROF_ACTIVE && $(_cprof_auth_mode "$(_cprof_root)/$_CPROF_ACTIVE") == bedrock ]] && bed=1
   for n in $_CPROF_HIGHER_AUTH; do
+    if (( bed )) && [[ $n == CLAUDE_CODE_USE_BEDROCK ]]; then
+      [[ ${CLAUDE_CODE_USE_BEDROCK-} == 1 ]] && print -r -- "ok: CLAUDE_CODE_USE_BEDROCK=1 (active profile uses --auth bedrock)" || { print -r -- "WARN: active profile is bedrock but CLAUDE_CODE_USE_BEDROCK is not 1"; hit=1; }
+      continue
+    fi
     (( ${+parameters[$n]} )) && { print -r -- "WARN: $n is set"; hit=1; }
   done
   (( hit )) || print -r -- "ok: none set"

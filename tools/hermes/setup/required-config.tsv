@@ -19,6 +19,6 @@ approvals.unattended_mode	eq	deny
 approvals.deny	set-eq	["git push*", "git commit*", "rm -rf*", "curl*", "wget*", "*| sh*", "*| bash*", "security *", "launchctl*"]
 mcp_servers	empty-map	{}
 hooks.pre_tool_call	has-hook	__HOME__/claude-profiles/hermes/bin/pre-tool-call.sh
-curator.enabled	unset-or-eq	false
+curator.enabled	eq	false
 hooks_auto_accept	unset-or-eq	false
 model.provider	eq	anthropic

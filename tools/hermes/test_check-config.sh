@@ -27,7 +27,7 @@ eq "fixture: exit 0" "$rc" 0
 eq "fixture: last line" "$(printf '%s\n' "$out" | tail -n 1)" "CHECK-CONFIG: PASS n=$NCHK"
 eq "fixture: no FAIL lines" "$(printf '%s\n' "$out" | grep -c '^FAIL' | tr -d ' ')" 0
 eq "fixture: one PASS per TSV row + no-always" "$(printf '%s\n' "$out" | grep -c '^PASS' | tr -d ' ')" "$NCHK"
-has "fixture: hook file skipped without --home" "$out" "SKIP hook-file (no --home)"
+has "fixture: hook file skipped without --home or HERMES_HOME" "$out" 'SKIP hook-file (no --home or $HERMES_HOME)'
 run "$FH/config.yaml" --home "$FH"
 has "fixture --home: hook file absent is skipped" "$out" "SKIP hook-file (not present)"
 eq "fixture --home: exit 0" "$rc" 0
@@ -38,6 +38,11 @@ chmod 555 "$HP"; run "$FH/config.yaml" --home "$FH"
 has "hook 555: PASS hook-mode" "$out" "PASS hook-mode"; eq "hook 555: exit 0" "$rc" 0
 chmod 755 "$HP"; run "$FH/config.yaml" --home "$FH"
 has "hook 755: FAIL hook-mode" "$out" "FAIL hook-mode"; eq "hook 755: exit 1" "$rc" 1
+# M3: $HERMES_HOME alone (no --home, no --yaml) runs the hook checks too
+chmod 555 "$HP"
+out="$(env -i PATH=/usr/bin:/bin HOME="$FH" HERMES_HOME="$FH" /usr/bin/python3 -I "$CC" 2>/dev/null)"; rc=$?
+eq "HERMES_HOME only: exit 0" "$rc" 0; has "HERMES_HOME only: PASS hook-mode" "$out" "PASS hook-mode"
+eq "HERMES_HOME only: last line" "$(printf '%s\n' "$out" | tail -n 1)" "CHECK-CONFIG: PASS n=$((NCHK + 2))"
 rm -f "$HP"
 
 # --- 2. mutations: each fails exactly its own row
@@ -64,6 +69,19 @@ mutate "hook command path differs" hooks.pre_tool_call 's|bin/pre-tool-call.sh|b
 mutate "always on a data line" no-always 's/busy_input_mode: interrupt/busy_input_mode: always/'
 mutate "quoted true is not bool true" memory.memory_enabled 's/memory_enabled: true/memory_enabled: "true"/'
 mutate "curator enabled true" curator.enabled '/^curator:/,/^[a-z]/s/  enabled: false/  enabled: true/'
+mutate "curator block deleted (unset = curator on)" curator.enabled '/^curator:/{N;d;}'
+mutate "curator: true (non-mapping parent)" curator.enabled '/^curator:/{N;s/.*/curator: true/;}'
+has "non-mapping parent: shape scalar" "$out" "FAIL curator.enabled: want eq false, got scalar"
+# A3: unset-or-eq also FAILs when the parent exists but is not a mapping
+printf 'x.y\tunset-or-eq\tfalse\n' >"$FX/u.tsv"; printf 'x: true\n' >"$FX/u.yaml"; run "$FX/u.yaml" --tsv "$FX/u.tsv"
+eq "unset-or-eq, scalar parent: exit 1" "$rc" 1; has "unset-or-eq, scalar parent: FAIL" "$out" "FAIL x.y: want unset-or-eq false, got scalar"
+# M1: a live value is never echoed on FAIL (only its shape; set-eq names come from the expected set only)
+mutate "secret as extra toolset" agent.disabled_toolsets 's/discord_admin\]/discord_admin, sk-ant-ZZZ]/'
+eq "secret toolset: not echoed" "$(printf '%s\n' "$out" | grep -c 'sk-ant-ZZZ' | tr -d ' ')" 0
+has "secret toolset: extra count" "$out" "missing [] extra n=1"
+mutate "secret as model.provider" model.provider '/^model:/,/^[a-z]/s/  provider: "anthropic"/  provider: "sk-ant-ZZZ"/'
+eq "secret provider: not echoed" "$(printf '%s\n' "$out" | grep -c 'sk-ant-ZZZ' | tr -d ' ')" 0
+has "secret provider: shape only" "$out" "FAIL model.provider: want eq anthropic, got scalar"
 # failClosed spelling is accepted
 sed 's/fail_closed: true/failClosed: true/' "$FH/config.yaml" >"$FX/fc.yaml"; run "$FX/fc.yaml"
 eq "failClosed spelling accepted: exit 0" "$rc" 0

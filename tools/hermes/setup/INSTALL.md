@@ -81,7 +81,9 @@ wc -l ~/claude-profiles/hermes/install/install.sh    # the reviewed copy is 1049
 ```
 
 If the line count differs, upstream changed the script since it was reviewed: read the whole diff against the
-reviewed copy (or the whole script) before running it.
+reviewed copy (or the whole script) before running it. Running it runs upstream code with your user's rights; reading it and
+checking its line count is the only guard here. A pinned sha256 of the script is **UNVERIFIED**, because the installer
+changes upstream.
 
 Run it with the code dir, the commit pin and the data dir:
 
@@ -109,8 +111,9 @@ stat -f %Lp ~/claude-profiles/hermes/h1-home                          # 700 (re-
 ls -d ~/claude-profiles/hermes/h1-home/tools/python-3.14.7+20260901-darwin-arm64   # the dir hermes-up expects
 ```
 
-Then verify that the installer started nothing, and turn off the update check before anything else runs.
-That the installer starts no process, gateway, LaunchAgent or cron job is **UNVERIFIED** (the docs mention
+Then verify that the installer started nothing, and turn off the update check before anything else runs. This is
+the first use of Hermes's config CLI from the code dir: that this entry point accepts `config set` the way the
+documented `hermes config set` does is **UNVERIFIED**. That the installer starts no process, gateway, LaunchAgent or cron job is **UNVERIFIED** (the docs mention
 `hermes gateway install` but not whether `install.sh` runs it):
 
 ```sh
@@ -126,12 +129,11 @@ If any process or job shows up, stop it (`kill <pid>`, `launchctl bootout gui/$(
 ## 3. Lock the config
 
 Apply every key in `setup/config-edits.md` to the installer's `config.yaml`. Edit in place; never add a
-second copy of a key. Run Hermes's own config CLI from the code dir with `HERMES_HOME` set. That this entry
-point accepts `config set` the way the documented `hermes config set` does is **UNVERIFIED**. The config CLI
-(`config set`, `get`, `unset`, `check`, `edit`) is the only thing ever run outside `hermes-up`; never run `chat` or
+second copy of a key. Run Hermes's own config CLI from the code dir with `HERMES_HOME` set (the entry point is
+**UNVERIFIED**, step 2). The config CLI (`config set`, `get`, `unset`, `check`, `edit`) is the only thing ever run outside `hermes-up`; never run `chat` or
 `gateway` through this entry point.
 
-Scalar keys, with `hermes config set` (dotted keys go to `config.yaml`, values are type-checked):
+Scalar keys, with `hermes config set` (dotted keys go to `config.yaml`, values are type-checked: Hermes docs, config CLI, read 2026-10-26):
 
 ```sh
 export HERMES_HOME=~/claude-profiles/hermes/h1-home
@@ -165,8 +167,8 @@ $HC config set model.default claude-sonnet-4-6
 $HC config unset model.base_url
 ```
 
-The live extract (`config.active.yaml`) shows a `model.base_url` of `https://openrouter.ai/api/v1`, left from an
-earlier setup. An Anthropic-token backend needs no `base_url`; a gateway user sets it deliberately.
+The live extract (`config.active.yaml`) shows an OpenRouter `model.base_url` (`https://openrouter.ai/api/v1`); an
+Anthropic-token backend needs none, and a gateway user sets it deliberately.
 `check-config` enforces `model.provider` only, so confirm the rest by hand (verify below).
 
 Non-scalar keys: `agent.disabled_toolsets`, `approvals.deny`, `mcp_servers` and `hooks.pre_tool_call`. The
@@ -206,15 +208,17 @@ The full check is step 5.
 
 ## 4. Install the launchers, the hook and the home files
 
-Copy the scripts into `~/claude-profiles/hermes/bin` with the modes from `setup/README.md` (Install layout).
-`hermes-gw` has three `<auth-profile>` placeholders. The `sed` fills them all with `$AP`; left unfilled it
-still fails closed.
+Install the scripts into `~/claude-profiles/hermes/bin` with the modes from `setup/README.md` (Install layout).
+`install -m 555` replaces a file that is already installed read-only (mode 555), so the same lines work for a
+re-install; a plain `cp` onto it fails with `Permission denied`. `hermes-gw` has three `<auth-profile>`
+placeholders. The `sed` fills them all with `$AP`; left unfilled it still fails closed.
 
 ```sh
 mkdir -p ~/claude-profiles/hermes/bin
-cp tools/hermes/setup/hermes-up tools/hermes/setup/pre-tool-call.sh ~/claude-profiles/hermes/bin/
-sed "s/<auth-profile>/$AP/g" tools/hermes/setup/hermes-gw > ~/claude-profiles/hermes/bin/hermes-gw
-chmod 555 ~/claude-profiles/hermes/bin/hermes-up ~/claude-profiles/hermes/bin/hermes-gw ~/claude-profiles/hermes/bin/pre-tool-call.sh
+install -m 555 tools/hermes/setup/hermes-up ~/claude-profiles/hermes/bin/hermes-up
+install -m 555 tools/hermes/setup/pre-tool-call.sh ~/claude-profiles/hermes/bin/pre-tool-call.sh
+sed "s/<auth-profile>/$AP/g" tools/hermes/setup/hermes-gw > ~/claude-profiles/hermes/install/hermes-gw
+install -m 555 ~/claude-profiles/hermes/install/hermes-gw ~/claude-profiles/hermes/bin/hermes-gw
 ```
 
 The charter, the work dir and the `.env`. `.env` holds only `API_SERVER_KEY`: `hermes-up` refuses any other key.
@@ -231,7 +235,7 @@ server is enabled (the docs name `API_SERVER_ENABLED=true` too) is not covered b
 **UNVERIFIED**: `hermes-up` refuses any `.env` key other than `API_SERVER_KEY`. `hooks/` and `plugins/` under
 `HERMES_HOME` must be absent or empty. The hook lives in `hermes/bin`, outside `HERMES_HOME`.
 
-Record your consent for the hook, once, before the first start. `seed-hook-allowlist` checks that no Hermes
+Record your consent for the hook before the first start, and again after any change to `pre-tool-call.sh`. `seed-hook-allowlist` checks that no Hermes
 process is running and that the hook is mode 555 with the pinned sha256. It then writes
 `shell-hooks-allowlist.json`. Never use `hooks_auto_accept`, `--accept-hooks` or `HERMES_ACCEPT_HOOKS` instead.
 
@@ -265,19 +269,21 @@ file (regular file, mode 555).
 ```
 
 Pass: one `PASS <key>` line per check, and the last line is `CHECK-CONFIG: PASS n=23` (20 TSV rows, `no-always`,
-`hook-file`, `hook-mode`; measured on a fixture of `config.active.yaml`). Without the hook installed, the hook
-lines print `SKIP hook-file (not present)` and are not counted. Exit codes: 0 pass, 1 fail, 2 usage or parse
+`hook-file`, `hook-mode`; measured on a fixture of `config.active.yaml`, which passes only after its `__HOME__`
+is replaced with the absolute home path). Without the hook installed, the hook lines print
+`SKIP hook-file (not present)` and are not counted; with neither `--home` nor `$HERMES_HOME` set they print
+`SKIP hook-file (no --home or $HERMES_HOME)`. Exit codes: 0 pass, 1 fail, 2 usage or parse
 error, 3 unreadable.
 
 Failure lines, and what they mean:
 
 | Line | Meaning |
 |---|---|
-| `FAIL <key>: want eq <value>, got <value>` | a scalar differs; `got absent` means the key is missing |
-| `FAIL <key>: want set-eq [...], got <n> item(s), missing [...], extra [...]` | a list (`disabled_toolsets`, `approvals.deny`) differs; order is ignored |
-| `FAIL mcp_servers: want empty-map {}, got {<n> key(s)}` | an MCP server is configured (names are never printed) |
+| `FAIL <key>: want eq <value>, got <shape>` | the key differs from `<value>`; `<shape>` is `absent`, `scalar`, `list(n=<k>)` or `map(n=<k>)`, never the live value (it could be a secret) |
+| `FAIL <key>: want set-eq [...], got list(n=<k>), missing [...] extra n=<k>` | a list (`disabled_toolsets`, `approvals.deny`) differs; order is ignored; `missing` names expected items only, extras are only counted |
+| `FAIL mcp_servers: want empty-map {}, got map(n=<k>)` | an MCP server is configured (names are never printed) |
 | `FAIL hooks.pre_tool_call: want has-hook ..., got no matching entry among <n>` | no entry with this command, matcher, `fail_closed: true` |
-| `FAIL <key>: want unset-or-eq <value>, got <value>` | `memory.provider`, `curator.enabled` or `hooks_auto_accept` is set to something else |
+| `FAIL <key>: want unset-or-eq <value>, got <shape>` | `memory.provider` or `hooks_auto_accept` is set to something else |
 | `FAIL no-always: <n> line(s)` | a data line contains `always` |
 | `FAIL hook-file: not a regular file` / `FAIL hook-mode: mode <m>, want 555` | the installed hook is a symlink or has the wrong mode |
 | `UNPARSEABLE line <n>: <reason>` (exit 2) | the file uses YAML outside the subset `check-config` reads (header of `check-config`) |
@@ -379,8 +385,11 @@ Verify: `plutil -lint` prints `OK`; `launchctl print` shows the job; after this 
 - `updates.check` is false, so updates happen only when you choose. An update moves the code off the pin and
   `hermes-up` refuses (`code sha ... != pin 908e4a4`). Moving the pin is a design change: edit `PIN` in `hermes-up`
   through an agent-hq design record, then repeat steps 2-5.
-- Any change to `pre-tool-call.sh` changes its sha256. Re-pin `HOOK_SHA256` in `seed-hook-allowlist` and re-run it
-  (`setup/README.md`).
+- Any change to `pre-tool-call.sh` changes its sha256. Re-pin `HOOK_SHA256` in `seed-hook-allowlist`, re-install
+  the hook with the `install -m 555` line from step 4 (a `cp` onto the mode-555 file fails), then re-run
+  `seed-hook-allowlist` (`setup/README.md`).
+- Re-installing `hermes-up` or `hermes-gw` (for example after a re-pin, steps 2-5) uses the same `install -m 555`
+  lines from step 4.
 - The 25-name toolset list lives in three places that must agree: `required-config.tsv`, `config-edits.md` and
   `GW_TOOLSETS` in `hermes-up`. `bash tools/hermes/test_check-config.sh` checks the TSV against `hermes-up` and
   against `config.active.yaml`, not against `config-edits.md`. Compare that file by eye when the list changes.

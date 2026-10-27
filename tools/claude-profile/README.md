@@ -81,23 +81,32 @@ Code lives in `cprof-tiers.zsh` (sourced by `cprof.zsh`); needs `jq`. HQ config 
   Re-render fails: `re-render failed; not launching (a stale executor could be missing a deny)`, exit 1. `--dry-run` + stale: writes nothing, prints `dry-run: render stale (<inputs>); would re-render`.
 - `link <name> [<source-root>]` (Extension B-F, dynamic source Extension 2026-10-27; needs `jq`; run it with no claude session
   open on that profile) links a profile to `<source-root>` (never `$CLAUDE_CONFIG_DIR`), default `$HOME/projects/agent-hq`;
-  pass `$HOME/.claude` to get the old personal-profile-linking behavior, or any other root. Each entry resolves to
-  `<source-root>/config/<entry>` first if `<source-root>/config` is a directory (agent-hq's layout: `CLAUDE.md` and
-  `settings.json` live under `config/`), else `<source-root>/<entry>` (agent-hq's `skills`/`agents` live at the root; a flat
-  root like `$HOME/.claude` resolves every entry this way). `skills`, `agents`, `plugins` always; `CLAUDE.md` and
-  `settings.json` on plain profiles. On a tiered profile `CLAUDE.md` is skipped
+  pass `$HOME/.claude` to get the old personal-profile-linking behavior, or any other root. `<source-root>` is canonicalized
+  (symlinks resolved, repeated/trailing slashes collapsed) before use. If no `<source-root>` is given and the default does
+  not exist, `link` prints an explicit WARN and every entry skips gracefully (exit 0) rather than failing silently. Each
+  entry resolves independently: `<source-root>/config/<entry>` first, else `<source-root>/<entry>` when that entry isn't
+  found under `config/` — the fallback is evaluated per entry, not once for the whole root, so a root could mix layouts.
+  This covers agent-hq's layout (`CLAUDE.md` and `settings.json` live under `config/`; `skills`/`agents` live at the root)
+  and a flat root like `$HOME/.claude` (every entry resolves via the second form) with one rule. `skills`, `agents`,
+  `plugins` always; `CLAUDE.md` and `settings.json` on plain profiles. On a tiered profile `CLAUDE.md` is skipped
   (`skip: CLAUDE.md (tiered: global rules file stays excluded)`) and the rendered `settings.json` is kept (`kept: ...`). An
   entry missing under `<source-root>` skips gracefully (`skip: <entry> (none in <source-root>)`) — e.g. `plugins` when
   linking from agent-hq, which has no `plugins/` directory. It also merges `.mcpServers` of `<source-root>`'s sibling
   `*.json` file (named after the root's own basename — `$HOME/.claude` → `$HOME/.claude.json`; agent-hq has no such file,
   so this step skips gracefully too: `skip: .mcpServers (no <path>)`) into the profile's `.claude.json` (main wins per key,
   profile-only servers and every other key survive; env/header keys matching `SECRET|TOKEN|KEY|PASSWORD|AUTH`
-  are dropped and named as `stripped: <server>.env.<KEY>`, values never printed). Anything replaced is moved to `<profile>/config-backup-<UTC stamp>/` (700, `backup: <dir>` printed);
+  are dropped and named as `stripped: <server>.env.<KEY>`, values never printed — but `command`/`args`/`url` fields are
+  never scrubbed, so merging from any root other than `$HOME/.claude` prints an explicit WARN immediately before the
+  merge). Anything replaced is moved to `<profile>/config-backup-<UTC stamp>/` (700, `backup: <dir>` printed);
   an already-correct link prints `ok:` and a re-run prints `0 linked`, creates no backup and leaves `.claude.json` byte-identical.
-  Never touches `token`, `profile.env`, `tier`, `tier.src`, `workspace/`. Exit 1: usage, invalid name, nonexistent explicit `<source-root>`,
+  Never touches `token`, `profile.env`, `tier`, `tier.src`, `workspace/`; it does write one new file, `<profile>/link-src`
+  (the resolved root, plus the root's git HEAD if it is a git working tree) as an audit trail of what was linked and when.
+  Exit 1: usage, invalid name, nonexistent explicit `<source-root>`,
   no such profile, `jq` missing, unreadable/invalid JSON, backup/link/merge failure.
-  `doctor` adds a `-- link rows (main-profile links) --` row per profile, always against `$HOME/.claude` regardless of what
-  root `link` last used (`linked`, `other-link`, `file`, `-`, `rendered`; `mcpServers=in-sync(N)|missing:<names>|absent`).
+  `doctor` adds a `-- link rows (main-profile links) --` row per profile, comparing each entry against the root recorded
+  in that profile's `link-src` (falling back to `$HOME/.claude` if the profile was never linked, or predates this field)
+  (`linked`, `other-link`, `file`, `-`, `rendered`; `mcpServers=in-sync(N)|missing:<names>|absent`, always against
+  `$HOME/.claude.json`'s key list regardless of root).
 - `sync` re-renders using the tier from the `tier` file and the overlay from `tier.src`; exit 3 if `settings.json` was hand-edited since the last render
   (hand-edited since last render: `--force` discards ALL hand edits except claudeMdExcludes; a `config/settings.json.bak-<UTC stamp>` backup, mode 600, is written first and printed as `backup: <path>`).
   Existing `claudeMdExcludes` are kept; `skipDangerousModePermissionPrompt` is `true` for executor (fragment wins) and omitted for desk unless already present.

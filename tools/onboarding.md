@@ -246,11 +246,16 @@ skills, list their names instead of `*(/)`. Run it only on a profile you have no
 `cprof link`ed to `~/.claude`: after that link, the profile's `skills` is a link to
 `~/.claude/skills`, so the loop would write into your main setup.
 
-`cprof link <name> ~/.claude` is the one cprof invocation that does write into
+`cprof link <name> ~/.claude` is a cprof invocation that does write into
 `~/.claude/skills`: it links the profile's `skills` to it, so skills added through the
-profile land in your main setup. For an isolated trial use the loop above, not `link`.
-(Bare `cprof link <name>`, with no second argument, defaults to `~/projects/agent-hq`
-instead — it is unaffected by this caveat.)
+profile land in your main setup. Bare `cprof link <name>`, with no second argument,
+defaults to `~/projects/agent-hq` instead of `~/.claude` — but that is **not** an escape
+from this caveat, it is the same footgun pointed at a different live checkout: it
+symlinks the profile's `skills` (and `agents`) straight into your `~/projects/agent-hq`
+working tree, so anything written through the profile (a skill install, an edit) lands
+in that checkout too, not in an isolated copy. Treat bare `cprof link <name>` as subject
+to the same caveat as `cprof link <name> ~/.claude`. For an isolated trial use the loop
+above, not `link`, either form.
 If your main setup already has the skills you want, `cprof link try ~/.claude` links the
 profile's `skills`, `agents` and `plugins` to `~/.claude` and copies your MCP server list
 (without secret-looking keys). It brings your main plugins and MCP servers into the

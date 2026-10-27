@@ -2,7 +2,7 @@
 # Source from ~/.zshrc:  source ~/projects/agent-hq/tools/claude-profile/cprof.zsh
 # Profile root: ${CPROF_ROOT:-$HOME/claude-profiles}
 #   <root>/_templates/<t>/   optional seeds copied into a new profile's config/
-#   <root>/<name>/{config,workspace,token,profile.env}   (config/settings.json gets claudeMdExcludes)
+#   <root>/<name>/{config,workspace,token,auth,profile.env}   (token absent for --auth bedrock; config/settings.json gets claudeMdExcludes)
 # State lives in non-exported globals so it never reaches claude's environment.
 
 typeset -gA _CPROF_PRE_VAL _CPROF_PRE_EXP _CPROF_TRK_SET _CPROF_TRK_VAL _CPROF_TRK_EXP

@@ -531,9 +531,17 @@ the agent-hq default showing `linked` rather than `other-link` (M3, exercising t
 before a non-default-root `.mcpServers` merge (M5). The full existing suite (`test_cprof.zsh`, `test_cprof-link.zsh`,
 `test_cprof-checks.zsh`, `test_cprof-auth.zsh`) passes unchanged in behavior for every case that still applies.
 
-## Extension (2026-10-28): self-contained `profile.env` for `--auth bedrock`
+## Extension (2026-10-27): self-contained `profile.env` for `--auth bedrock`
 
-**Status: task-specified fix for a real-world failure; code and this amendment land together.** A profile created
+**Status: task-specified fix for a real-world failure; code and this amendment land together.**
+**Fix-up pass (2026-10-27, same day): a 7-agent pr-review panel on the original diff returned READY WITH CONDITIONS
+(0 Blocking, 5 Medium, 2 Advisory); every finding (M1-M5, A1-A2) was applied before merge and is folded into this
+section below in place, not as a separate extension — same precedent as the 2026-10-27 `cprof link` fix-up pass
+above.** M1 adds the `doctor` cross-check against `aws configure list-profiles` (Components, Interfaces below). M3/M4
+replace the Anthropic model-var glob scan with a second explicit allowlist, matching the AWS allowlist's style
+(Components below). M5 corrects the no-`AWS_PROFILE` WARN quote in Interfaces to include the `cprof: ` prefix every
+`_cprof_err` message actually carries.
+A profile created
 with `cprof new xTest --auth bedrock` (no `--tier`, no `profile.env`) inherited `AWS_PROFILE` from an unrelated,
 already-running shell that happened to be pointed at a sandbox AWS account; an org-level SCP there explicitly denied
 `bedrock:InvokeModelWithResponseStream`, so Claude Code failed with a 403, even though a different, valid AWS
@@ -569,13 +577,27 @@ fixed once at the tool level, not patched per-profile.
   predates this fix) is made easy to spot. No repair subcommand: the WARN names the fix directly — add
   `AWS_PROFILE=<profile>` (and `AWS_REGION=<region>`) to the profile's `profile.env` by hand; re-running `cprof new`
   is not needed and would refuse anyway (`new` fails if the profile directory already exists).
+- **Fix-up pass (M1):** a present `AWS_PROFILE=` line only proves the name was recorded, never that the profile
+  still resolves — a renamed/removed AWS profile would otherwise go stale with no WARN, the exact failure class this
+  extension exists to close. When `aws` is on `PATH`, `doctor` now also cross-checks the recorded value against
+  `aws configure list-profiles` and WARNs (never fails) if it is not found; the check is skipped gracefully, with no
+  WARN at all, when the AWS CLI is not installed (`doctor` must not require it).
 
 ### Components
 
 - `tools/claude-profile/cprof-auth.zsh`: new `_CPROF_BEDROCK_SNAPSHOT_VARS` (`AWS_PROFILE AWS_REGION
-  AWS_DEFAULT_REGION`), `_cprof_bedrock_snapshot <profile-dir>` (atomic tmp+mv write, `umask 077`, mirroring
-  `cprof-link.zsh`'s `link-src` audit-write style) and `_cprof_doctor_bedrock_env` (the new doctor section, iterating
-  every profile under `cprof_root` the same way `_cprof_doctor_tiers`/`_cprof_doctor_links` already do).
+  AWS_DEFAULT_REGION`) and a second explicit allowlist, `_CPROF_BEDROCK_SNAPSHOT_ANTHROPIC_VARS` (`ANTHROPIC_MODEL
+  ANTHROPIC_DEFAULT_OPUS_MODEL ANTHROPIC_DEFAULT_SONNET_MODEL ANTHROPIC_DEFAULT_HAIKU_MODEL
+  ANTHROPIC_DEFAULT_FABLE_MODEL`; fix-up pass M3/M4 — this replaces an earlier dynamic glob scan of the whole
+  parameter table, which made `profile.env` content shell-session-dependent in a way the AWS half wasn't, and was
+  narrower in the test harness than in the glob's actual runtime match set; verified against the installed Claude
+  Code CLI and the published environment-variables reference as the full current set of Anthropic model-override
+  vars, excluding `ANTHROPIC_DEFAULT_MODEL` — a different "default model for new sessions" setting, not an alias
+  pin — and the deprecated `ANTHROPIC_SMALL_FAST_MODEL`), `_cprof_bedrock_snapshot <profile-dir>` (atomic tmp+mv
+  write, `umask 077`, mirroring `cprof-link.zsh`'s `link-src` audit-write style, now iterating both allowlists the
+  same way) and `_cprof_doctor_bedrock_env` (the new doctor section, iterating every profile under `cprof_root` the
+  same way `_cprof_doctor_tiers`/`_cprof_doctor_links` already do; fix-up pass M1 adds the `aws configure
+  list-profiles` cross-check, guarded by `${+commands[aws]}`).
 - `tools/claude-profile/cprof.zsh`: `_cprof_new` calls `_cprof_bedrock_snapshot` right after writing `auth` = `bedrock`
   (before any tier render or token prompt, matching the existing fail-fast-before-the-token-paste ordering); a
   snapshot write failure removes the half-created profile dir, same as every other `new --auth bedrock` failure mode.
@@ -587,15 +609,19 @@ fixed once at the tool level, not patched per-profile.
 
 ### Interfaces (exact messages)
 
-- New WARN at `new --auth bedrock` with no `AWS_PROFILE` in the creating shell: `WARN: no AWS_PROFILE in this shell
-  to snapshot into '<name>/profile.env'; set AWS_PROFILE before 'cprof new <name> --auth bedrock', or add it to
-  <path>/profile.env by hand` (stderr; `new` still exits 0 and the profile is created).
+- New WARN at `new --auth bedrock` with no `AWS_PROFILE` in the creating shell (via `_cprof_err`, which always
+  prepends `cprof: `, fix-up pass M5): `cprof: WARN: no AWS_PROFILE in this shell to snapshot into
+  '<name>/profile.env'; set AWS_PROFILE before 'cprof new <name> --auth bedrock', or add it to <path>/profile.env by
+  hand` (stderr; `new` still exits 0 and the profile is created).
 - `doctor`, new section header: `-- bedrock profile.env rows (auth=bedrock profiles only) --`; per profile:
   `WARN: <name> has no profile.env; AWS_PROFILE will come from whatever shell happens to run 'cprof use/launch
   <name>' -- re-running 'cprof new' is not needed, just add AWS_PROFILE=<profile> (and AWS_REGION=<region>) to
   <path>/profile.env by hand, or re-run 'cprof new' in a shell that already has AWS_PROFILE exported`, or
-  `WARN: <name> has profile.env but no AWS_PROFILE in it; add AWS_PROFILE=<profile> to <path>/profile.env by hand`;
-  `ok: every bedrock profile has profile.env with AWS_PROFILE` when none apply.
+  `WARN: <name> has profile.env but no AWS_PROFILE in it; add AWS_PROFILE=<profile> to <path>/profile.env by hand`,
+  or (fix-up pass M1, only when `aws` is on `PATH` and the recorded name doesn't resolve) `WARN: <name>'s profile.env
+  AWS_PROFILE ('<value>') not found in 'aws configure list-profiles'; the AWS profile may have been renamed or
+  removed`; `ok: every bedrock profile has profile.env with AWS_PROFILE` when none apply. These three `doctor` rows
+  print via plain `print`, not `_cprof_err`, so (unlike the `new`-time WARN above) they carry no `cprof: ` prefix.
 
 ### Non-goals
 
@@ -610,15 +636,20 @@ fixed once at the tool level, not patched per-profile.
 ### Verification
 
 `tools/claude-profile/test_cprof-auth.zsh`: new cases cover a successful snapshot of `AWS_PROFILE`/`AWS_REGION`/
-`ANTHROPIC_DEFAULT_OPUS_MODEL` at `new --auth bedrock`; the no-`AWS_PROFILE` WARN with a partial `profile.env`
-written; the nothing-to-snapshot case writing no `profile.env` at all; a real precedence test (an ambient, conflicting
-`AWS_PROFILE` exported in the test shell, then `cprof use`/`cprof launch` on a profile whose `profile.env` sets a
-different `AWS_PROFILE`, confirming the profile's value wins in both paths); and the three new `doctor` rows (missing
-`profile.env`, present-but-incomplete `profile.env`, and the clean `ok` case). The test harness's `CLEAN` env list
-gained `ANTHROPIC_DEFAULT_{OPUS,SONNET,HAIKU}_MODEL` so the snapshot's own hermeticity isn't broken by whatever
-Bedrock model vars happen to be set in the machine actually running the tests. The full existing suite
-(`test_cprof.zsh`, `test_cprof-link.zsh`, `test_cprof-checks.zsh`, `test_cprof-auth.zsh`) passes unchanged in behavior
-for every case that still applies. A real-world manual check (not just the hermetic suite) also confirmed the fix:
-a scratch profile created with a realistic `AWS_PROFILE` snapshotted it into `profile.env`; a subshell exporting a
-different, conflicting `AWS_PROFILE` and then running `cprof use` on that profile ended with the profile's own value
-in effect, and `cprof off` restored the subshell's original value exactly.
+`ANTHROPIC_MODEL`/`ANTHROPIC_DEFAULT_OPUS_MODEL`/`ANTHROPIC_DEFAULT_FABLE_MODEL` at `new --auth bedrock` (fix-up pass
+M3/M4: exercises the full explicit Anthropic allowlist, not just the three names the pre-fix-up glob happened to
+also match); the no-`AWS_PROFILE` WARN with a partial `profile.env` written; the nothing-to-snapshot case writing no
+`profile.env` at all; a real precedence test (an ambient, conflicting `AWS_PROFILE` exported in the test shell, then
+`cprof use`/`cprof launch` on a profile whose `profile.env` sets a different `AWS_PROFILE`, confirming the profile's
+value wins in both paths); the three original `doctor` rows (missing `profile.env`, present-but-incomplete
+`profile.env`, and the clean `ok` case); and, fix-up pass M1, three more `doctor` cases using a fake `aws` stub on
+its own `PATH` entry: the cross-check WARN when `aws` is present and the recorded name isn't in `aws configure
+list-profiles`, no WARN when it is, and no WARN at all (check skipped) when `aws` is not on `PATH`. The test
+harness's `CLEAN` env list is now byte-for-byte the same as `_CPROF_BEDROCK_SNAPSHOT_ANTHROPIC_VARS`
+(`ANTHROPIC_MODEL ANTHROPIC_DEFAULT_{OPUS,SONNET,HAIKU,FABLE}_MODEL`) so the snapshot's own hermeticity isn't broken
+by whatever Bedrock model vars happen to be set in the machine actually running the tests. The full existing suite
+(`test_cprof.zsh`, `test_cprof-link.zsh`, `test_cprof-checks.zsh`, `test_cprof-auth.zsh`) passes. A real-world manual
+check (not just the hermetic suite) also confirmed the original fix: a scratch profile created with a realistic
+`AWS_PROFILE` snapshotted it into `profile.env`; a subshell exporting a different, conflicting `AWS_PROFILE` and then
+running `cprof use` on that profile ended with the profile's own value in effect, and `cprof off` restored the
+subshell's original value exactly.

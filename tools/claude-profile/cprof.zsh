@@ -86,7 +86,7 @@ _cprof_new() {
   _cprof_onboarded "$d/config" || true
   if [[ $auth == bedrock ]]; then
     ( umask 077; print -r -- bedrock > "$d/auth" ) || { rm -rf -- "$d"; return 1; }
-    _cprof_bedrock_snapshot "$d" || { rm -rf -- "$d"; return 1; }   # self-contained profile.env (A3-style audit, architecture/claude-profile.md Extension 2026-10-28)
+    _cprof_bedrock_snapshot "$d" || { rm -rf -- "$d"; return 1; }   # self-contained profile.env (A3-style audit, architecture/claude-profile.md Extension 2026-10-27)
   fi
   if [[ -n $tier ]]; then   # before the token prompt, so a bad render never costs a paste
     { _cprof_render "$d" "$tier" "$ov" && _cprof_tier_md "$d" "$tier" "$name" "$force"; } || { rm -rf -- "$d"; return 1; }

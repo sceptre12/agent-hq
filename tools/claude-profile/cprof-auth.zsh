@@ -74,7 +74,7 @@ _cprof_auth_dryrun() {
 }
 
 # _cprof_bedrock_snapshot <profile-dir>: at `new --auth bedrock`, captures the CREATING shell's AWS_PROFILE,
-# AWS_REGION, AWS_DEFAULT_REGION and any ANTHROPIC_DEFAULT_*_MODEL vars into <profile-dir>/profile.env, so the
+# AWS_REGION, AWS_DEFAULT_REGION and any Anthropic model-override vars into <profile-dir>/profile.env, so the
 # profile is self-contained instead of depending on whatever AWS_PROFILE a LATER shell happens to have exported
 # already (the real-world bug this closes: a profile with no profile.env let an unrelated already-running shell's
 # AWS_PROFILE -- pointed at an SCP-denied sandbox account -- pass straight through untouched). Mirrors
@@ -83,16 +83,20 @@ _cprof_auth_dryrun() {
 # written; a missing AWS_PROFILE gets a WARN (matching the M4/M5 WARN style in cprof-link.zsh) instead of a blank
 # or wrong line, and nothing is written at all when there is truly nothing to snapshot.
 _CPROF_BEDROCK_SNAPSHOT_VARS=(AWS_PROFILE AWS_REGION AWS_DEFAULT_REGION)
+# Explicit allowlist, not a glob/pattern scan of the parameter table -- same reasoning as the AWS array above: a
+# dynamic scan makes profile.env content shell-session-dependent in a way the AWS half isn't, and is easy to lose
+# track of (fix-up pass, pr-review M3/M4). Verified against the installed Claude Code CLI and
+# code.claude.com/en/docs/claude-code/env-vars (2026-10-27): ANTHROPIC_MODEL plus every current
+# ANTHROPIC_DEFAULT_<alias>_MODEL pin (opus/sonnet/haiku/fable). Excludes ANTHROPIC_DEFAULT_MODEL (a different
+# "default model for new sessions" setting, not an alias pin) and the deprecated ANTHROPIC_SMALL_FAST_MODEL.
+_CPROF_BEDROCK_SNAPSHOT_ANTHROPIC_VARS=(ANTHROPIC_MODEL ANTHROPIC_DEFAULT_OPUS_MODEL ANTHROPIC_DEFAULT_SONNET_MODEL ANTHROPIC_DEFAULT_HAIKU_MODEL ANTHROPIC_DEFAULT_FABLE_MODEL)
 _cprof_bedrock_snapshot() {
   local d=$1 n v out=
-  local -a anth
   for n in $_CPROF_BEDROCK_SNAPSHOT_VARS; do
     v=${(P)n-}
     [[ -n $v ]] && out+="$n=${(qq)v}"$'\n'
   done
-  anth=(${(k)parameters[(R)scalar*]})
-  anth=(${(M)anth:#ANTHROPIC_DEFAULT_*_MODEL})
-  for n in $anth; do
+  for n in $_CPROF_BEDROCK_SNAPSHOT_ANTHROPIC_VARS; do
     v=${(P)n-}
     [[ -n $v ]] && out+="$n=${(qq)v}"$'\n'
   done
@@ -108,8 +112,13 @@ _cprof_bedrock_snapshot() {
 # spotted: it silently inherits whatever AWS_PROFILE the shell running `cprof use`/`launch` happens to have,
 # the exact failure mode this extension closes for every *new* bedrock profile. No repair subcommand: the fix
 # is a one-line manual edit, named explicitly below, not something cprof should re-render on your behalf.
+# Fix-up pass (pr-review M1): a present AWS_PROFILE= line only proves the NAME was recorded, never that the
+# profile still resolves in ~/.aws/config -- a renamed/removed AWS profile would otherwise go stale with no WARN,
+# the same failure class this whole extension exists to close. When `aws` is on PATH, cross-check the recorded
+# value against `aws configure list-profiles` and WARN (never fail) if it is not found; skip this check
+# gracefully, with no WARN at all, when `aws` is not installed (doctor must not require the AWS CLI).
 _cprof_doctor_bedrock_env() {
-  local d n ln ap; local -a lines
+  local d n ln ap apval; local -a lines
   print -r -- "-- bedrock profile.env rows (auth=bedrock profiles only) --"
   local hit=0
   for d in "$(_cprof_root)"/*(N/); do
@@ -121,7 +130,16 @@ _cprof_doctor_bedrock_env() {
     fi
     ap=; lines=(${(f)"$(<$d/profile.env)"}) 2>/dev/null
     for ln in $lines; do [[ $ln == AWS_PROFILE=* ]] && { ap=1; break }; done
-    [[ -n $ap ]] || { print -r -- "WARN: $n has profile.env but no AWS_PROFILE in it; add AWS_PROFILE=<profile> to $d/profile.env by hand"; hit=1; }
+    if [[ -z $ap ]]; then
+      print -r -- "WARN: $n has profile.env but no AWS_PROFILE in it; add AWS_PROFILE=<profile> to $d/profile.env by hand"
+      hit=1
+    elif (( ${+commands[aws]} )); then
+      apval=$(() { setopt localoptions allexport; unset AWS_PROFILE; source "$1" 2>/dev/null; print -r -- "${AWS_PROFILE-}"; } "$d/profile.env")
+      if [[ -n $apval ]] && ! aws configure list-profiles 2>/dev/null | grep -qxF -- "$apval"; then
+        print -r -- "WARN: $n's profile.env AWS_PROFILE ('$apval') not found in 'aws configure list-profiles'; the AWS profile may have been renamed or removed"
+        hit=1
+      fi
+    fi
   done
   (( hit )) || print -r -- "ok: every bedrock profile has profile.env with AWS_PROFILE"
   return 0

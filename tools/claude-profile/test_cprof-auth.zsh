@@ -1,15 +1,19 @@
 #!/usr/bin/env zsh
 # tools/claude-profile/test_cprof-auth.zsh — tests for cprof's `--auth oauth|bedrock` (cprof-auth.zsh + the auth paths in
 # cprof.zsh, cprof-tiers.zsh render/stale/launch/sync and cprof-checks.zsh doctor). Contract: architecture/claude-profile.md,
-# Extension 2026-10-26 and Extension 2026-10-28 (profile.env snapshot + precedence + doctor). Hermetic: HOME and CPROF_ROOT
+# Extension 2026-10-26 and Extension 2026-10-27 (profile.env snapshot + precedence + doctor). Hermetic: HOME and CPROF_ROOT
 # live in a mktemp dir, zsh -f skips the user's config, a fake hq tree is used via CPROF_HQ_CONFIG, and real claude is never
 # run (stub on PATH). Every cprof-managed var and every AWS/region/model var the code reads is unset in each child, so the
-# result does not depend on the caller's profile or AWS shell state (ANTHROPIC_DEFAULT_*_MODEL is cleared too: the 2026-10-28
-# snapshot reads it from the creating shell, and a real Bedrock-backed test run otherwise leaks its own model id in).
+# result does not depend on the caller's profile or AWS shell state. Both snapshot halves (cprof-auth.zsh
+# _CPROF_BEDROCK_SNAPSHOT_VARS and _CPROF_BEDROCK_SNAPSHOT_ANTHROPIC_VARS) are explicit allowlists, not a glob/pattern
+# scan, so this CLEAN list below is deliberately kept byte-for-byte identical to that second array: ANTHROPIC_MODEL and
+# every current ANTHROPIC_DEFAULT_<alias>_MODEL pin (opus/sonnet/haiku/fable), cleared so a real Bedrock-backed shell
+# running these tests can't leak its own model ids in.
 SRC=${0:A:h}
 _TRK=(${(f)"$(zsh -fc "source $SRC/cprof.zsh; print -l \${_CPROF_TRACKED:#PS1}" 2>/dev/null)"}); CLEAN=()
 for _v in $_TRK AWS_REGION AWS_DEFAULT_REGION AWS_PROFILE CPROF_SSO_REGION CPROF_OWNER \
-  ANTHROPIC_DEFAULT_OPUS_MODEL ANTHROPIC_DEFAULT_SONNET_MODEL ANTHROPIC_DEFAULT_HAIKU_MODEL; do CLEAN+=(-u $_v); done
+  ANTHROPIC_MODEL ANTHROPIC_DEFAULT_OPUS_MODEL ANTHROPIC_DEFAULT_SONNET_MODEL ANTHROPIC_DEFAULT_HAIKU_MODEL \
+  ANTHROPIC_DEFAULT_FABLE_MODEL; do CLEAN+=(-u $_v); done
 _tb=${TMPDIR:-/tmp}; T=$(mktemp -d "${_tb%/}/test_cprof-auth.XXXXXX") || exit 1
 trap 'chmod -R u+rwx "$T" 2>/dev/null; rm -rf "$T"' EXIT
 mkdir -p $T/bin $T/home $T/root
@@ -107,12 +111,14 @@ out=$(R AWS_REGION=us-east-1 STUBOUT=$T/stub.out 'cprof launch e1; print RC=$?')
 [[ $out == *"RC=0" && $(<$T/stub.out) == "BR=1 AK=unset TOK=unset AP=team CFG=$P/e1/config" ]] \
   && ok "a8 launch: claude sees USE_BEDROCK=1, no API key/token, profile.env AWS_PROFILE, CFG" || bad "a8: $out $(<$T/stub.out 2>/dev/null)"
 
-# ---- self-contained profile.env snapshot at `new --auth bedrock` (architecture/claude-profile.md Extension 2026-10-28)
-out=$(R AWS_PROFILE=snaptest AWS_REGION=us-west-2 ANTHROPIC_DEFAULT_OPUS_MODEL=opus-x 'cprof new bsnap --auth bedrock; print RC=$?')
+# ---- self-contained profile.env snapshot at `new --auth bedrock` (architecture/claude-profile.md Extension 2026-10-27)
+out=$(R AWS_PROFILE=snaptest AWS_REGION=us-west-2 ANTHROPIC_MODEL=sonnet-x ANTHROPIC_DEFAULT_OPUS_MODEL=opus-x \
+  ANTHROPIC_DEFAULT_FABLE_MODEL=fable-x 'cprof new bsnap --auth bedrock; print RC=$?')
 C=$(<$P/bsnap/profile.env 2>/dev/null)
 [[ $out == *"RC=0" && -f $P/bsnap/profile.env && $(stat -f %Lp $P/bsnap/profile.env) == 600 \
-   && $C == *"AWS_PROFILE='snaptest'"* && $C == *"AWS_REGION='us-west-2'"* && $C == *"ANTHROPIC_DEFAULT_OPUS_MODEL='opus-x'"* ]] \
-  && ok "a15 new --auth bedrock snapshots AWS_PROFILE/AWS_REGION/ANTHROPIC_DEFAULT_*_MODEL into profile.env (600)" || bad "a15: $out C=[$C]"
+   && $C == *"AWS_PROFILE='snaptest'"* && $C == *"AWS_REGION='us-west-2'"* && $C == *"ANTHROPIC_MODEL='sonnet-x'"* \
+   && $C == *"ANTHROPIC_DEFAULT_OPUS_MODEL='opus-x'"* && $C == *"ANTHROPIC_DEFAULT_FABLE_MODEL='fable-x'"* ]] \
+  && ok "a15 new --auth bedrock snapshots AWS_PROFILE/AWS_REGION/ANTHROPIC_MODEL/ANTHROPIC_DEFAULT_*_MODEL (incl. fable) via explicit allowlists into profile.env (600)" || bad "a15: $out C=[$C]"
 out=$(R AWS_REGION=us-west-2 'cprof new bnoap --auth bedrock; print RC=$?'); C=$(<$P/bnoap/profile.env 2>/dev/null)
 [[ $out == *"WARN: no AWS_PROFILE in this shell to snapshot"*"RC=0" && -f $P/bnoap/profile.env \
    && $C != *AWS_PROFILE* && $C == *"AWS_REGION='us-west-2'"* ]] \
@@ -138,6 +144,26 @@ out=$(R 'cprof doctor --no-claude')
   && ok "a20b doctor warns when profile.env exists but lacks AWS_PROFILE" || bad "a20b: $out"
 [[ $out != *"WARN: bsnap has"* && $out != *"WARN: eprec has"* ]] \
   && ok "a20c doctor does not warn on bedrock profiles with AWS_PROFILE in profile.env" || bad "a20c: $out"
+
+# ---- doctor: cross-check profile.env's AWS_PROFILE against 'aws configure list-profiles' when aws is on PATH
+# (fix-up pass M1). A fake 'aws' stub on its own PATH entry keeps this hermetic in both directions: present with
+# the profile listed, present without it, and genuinely absent (restricted PATH, no homebrew/local bin dirs).
+mkdir -p $T/awsbin
+print -r -- '#!/bin/sh
+[ "$1" = "configure" ] && [ "$2" = "list-profiles" ] && printf "fromfile\nother-profile\n"' > $T/awsbin/aws
+chmod +x $T/awsbin/aws
+AWSPATH="$T/awsbin:$T/bin:/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin"
+NOAWSPATH="$T/bin:/usr/bin:/bin"
+R AWS_REGION=us-east-1 'cprof new bmiss --auth bedrock' >/dev/null
+print -r -- 'AWS_PROFILE=ghost' > $P/bmiss/profile.env
+out=$(R PATH="$AWSPATH" 'cprof doctor --no-claude')
+[[ $out == *"WARN: bmiss's profile.env AWS_PROFILE ('ghost') not found in 'aws configure list-profiles'"* ]] \
+  && ok "a21 doctor WARNs when aws is present and profile.env's AWS_PROFILE is not in 'aws configure list-profiles'" || bad "a21: $out"
+[[ $out != *"WARN: eprec's profile.env AWS_PROFILE"* ]] \
+  && ok "a22 doctor does not WARN when aws is present and profile.env's AWS_PROFILE resolves" || bad "a22: $out"
+out=$(R PATH="$NOAWSPATH" 'cprof doctor --no-claude')
+[[ $out != *"not found in 'aws configure list-profiles'"* ]] \
+  && ok "a23 doctor skips the aws cross-check gracefully (no WARN) when aws is not on PATH" || bad "a23: $out"
 
 # ---- region change -> stale -> re-render at launch / sync
 R AWS_REGION=us-east-1 'cprof new e9 --auth bedrock --tier executor' >/dev/null; S9=$P/e9/config/settings.json

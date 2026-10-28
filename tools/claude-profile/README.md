@@ -72,7 +72,7 @@ or `AWS_REGION` as a default for that profile; see the Bedrock walkthrough in
 - **bedrock**: `new` writes `auth` = `bedrock`, prompts for no token and writes no token file; it ends
   `(auth: bedrock, no token; AWS credentials come from your shell)`. It also snapshots the CREATING shell's
   `AWS_PROFILE`/`AWS_REGION`/`AWS_DEFAULT_REGION` and any `ANTHROPIC_DEFAULT_*_MODEL` vars into `profile.env`
-  (self-contained by default, Extension 2026-10-28), so the profile never has to rely on whatever a later shell
+  (self-contained by default, Extension 2026-10-27), so the profile never has to rely on whatever a later shell
   happens to have exported; no `AWS_PROFILE` to snapshot prints a WARN instead of a blank/wrong line, and the
   profile is still created (add it to `profile.env` by hand afterward, or re-run `new` in a shell that has one).
   - `use` and `launch` unset `ANTHROPIC_AUTH_TOKEN ANTHROPIC_API_KEY CLAUDE_CODE_OAUTH_TOKEN CLAUDE_CODE_USE_VERTEX CLAUDE_CODE_USE_FOUNDRY`

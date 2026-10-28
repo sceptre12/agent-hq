@@ -6,9 +6,6 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <title>Agent Delivery Workflow</title>
 <meta name="description" content="How a change request becomes a reviewed, tested, merged and released change with a team of software agents, and where people stay in the loop.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
 <style>
 /* Layout: one reading column (72ch) with full-bleed figures; a quiet blueprint palette, blue for the agents' work, amber for the few doors where a person decides. */
 :root {
@@ -17,8 +14,8 @@
   --s1: #3382e0;  /* chart slot 1: design reviews */
   --s2: #eb6834;  /* chart slot 2: waiting on a person */
   --s3: #1baf7a;  /* chart slot 3: build, test, merge, release */
-  --font-display: "Sora", "Avenir Next", "Segoe UI", system-ui, sans-serif; --font-body: "IBM Plex Sans", "Helvetica Neue", Arial, system-ui, sans-serif;
-  --font-data: "IBM Plex Sans", system-ui, sans-serif;
+  --font-display: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; --font-body: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-data: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -165,7 +162,7 @@ footer { padding-block: 32px 0; color: var(--muted); font-size: 0.88rem; }
   </div>
   <div class="idea">
     <p class="big">Describe what you want changed. The agent team plans it, builds it, checks it, gets it reviewed, merges it and releases it. A person decides only at four doors.</p>
-    <p>Everything between the doors runs on its own. The people's job is to say "yes, that is what I meant" at the start, "yes, that design is right" before building, "yes, this change can go in" before merging, and "yes, put it live" at the end.</p>
+    <p>Everything between the doors runs on its own. The people's job is to say "yes, that is what I meant" at the start, "yes, that design is right" before building, "yes, this change can go in" before merging, and "yes, put it live" at the end. In the first pilot run the "Change OK" door (a person reviewing the pull request) was waived; the other three doors ran.</p>
   </div>
   <figure>
     <svg class="diagram" viewBox="0 0 880 150" role="img" aria-label="A request enters on the left, passes through the agent team, and a released change exits on the right; four small doors along the path mark where a person decides."><defs>
@@ -193,7 +190,7 @@ footer { padding-block: 32px 0; color: var(--muted); font-size: 0.88rem; }
     <div class="card person">
       <div class="role">Person</div>
       <h3>The owner</h3>
-      <p>Asks for the change and decides at the doors. Types a decision once; the team reads it from a signed record.</p>
+      <p>Asks for the change and decides at the doors. Proposed for the next run: type a delegation once and the team reads it from a signed record. Today the owner types each decision at the desk.</p>
     </div>
     <div class="card">
       <div class="role">Agent, at the wall</div>
@@ -228,7 +225,7 @@ footer { padding-block: 32px 0; color: var(--muted); font-size: 0.88rem; }
         <marker id="arr2d" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="var(--door)"></path></marker></defs>
       <!-- owner -->
       <rect class="door-shape" x="20" y="30" width="120" height="50" rx="4"></rect><text class="t-door" x="80" y="51" text-anchor="middle">The owner</text><text class="t-door" x="80" y="68" text-anchor="middle" style="font-weight:400">a person</text>
-      <path class="wire-door" d="M140 55 H660 V150" marker-end="url(#arr2d)"></path><text class="t-sm" x="400" y="48" text-anchor="middle">types one line at each door, and one delegation line per run</text>
+      <path class="wire-door" d="M140 55 H660 V150" marker-end="url(#arr2d)"></path><text class="t-sm" x="400" y="48" text-anchor="middle">types one line at each door (a per-run delegation line is proposed)</text>
 
       <!-- sandbox region -->
       <rect class="region" x="170" y="90" width="420" height="305" rx="8"></rect><text class="t-title" x="380" y="108" text-anchor="middle">SEALED SANDBOX: NO INTERNET, NO NEW INSTALLS</text>
@@ -341,7 +338,7 @@ footer { padding-block: 32px 0; color: var(--muted); font-size: 0.88rem; }
   <div class="section-head">
     <div class="eyebrow">How quality is enforced</div>
     <h2>Nobody grades their own homework</h2>
-    <p>Every piece of code passes through four separate pairs of eyes before it can be merged, and the merge itself needs a signed record proving that it did.</p>
+    <p>Every piece of code is built by one agent, checked by a different one and reviewed by seven more before it can be merged, and the merge itself needs a signed record proving that it did.</p>
   </div>
   <figure>
     <div class="scroll">
@@ -374,7 +371,7 @@ footer { padding-block: 32px 0; color: var(--muted); font-size: 0.88rem; }
   <div class="section-head">
     <div class="eyebrow">What the pilot showed</div>
     <h2>One full run, measured end to end</h2>
-    <p>In October 2026 the whole line ran once, start to finish, on a small throwaway code base with a test space standing in for the work tracker and the build server. One request was split into three sub-tasks and built by three teams at the same time.</p>
+    <p>In October 2026 the whole line ran once, start to finish, on a small throwaway code base with a test space standing in for the work tracker and the build server. One request was split into two sub-tasks of four work items each, built by two teams at the same time, while a third lead handled the plan pull request.</p>
   </div>
   <div class="tiles">
     <div class="tile"><div class="v">8 of 8</div><div class="k">work items built right the first time</div></div>
@@ -394,7 +391,7 @@ footer { padding-block: 32px 0; color: var(--muted); font-size: 0.88rem; }
     <div class="axis"><span>0 h</span><span>8 h 54 min</span></div>
     <div class="chart-legend">
       <div class="lg"><i class="sw s1"></i><div class="lg-body"><div class="lg-head"><b>Design reviews, in sequence</b><span class="dur">4 h 14 min</span></div><small>Two architecture review loops, the work-split review, and waiting for merge order. Ran one after another.</small></div></div>
-      <div class="lg"><i class="sw s3"></i><div class="lg-body"><div class="lg-head"><b>Build, test, merge, release</b><span class="dur">2 h 41 min</span></div><small>The actual building took about 20 minutes per sub-task, with three sub-tasks side by side.</small></div></div>
+      <div class="lg"><i class="sw s3"></i><div class="lg-body"><div class="lg-head"><b>Build, test, merge, release</b><span class="dur">2 h 41 min</span></div><small>The actual building took about 20 minutes per sub-task, with two sub-tasks side by side.</small></div></div>
       <div class="lg"><i class="sw s2"></i><div class="lg-body"><div class="lg-head"><b>Waiting on a person</b><span class="dur">1 h 59 min</span></div><small>A missing setting at launch, a confirmation already given elsewhere, an install approval, a blocked merge.</small></div></div>
     </div>
     <details class="tbl">

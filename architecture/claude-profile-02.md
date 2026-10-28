@@ -10,7 +10,7 @@ launch re-render, whose lettered parts A-H (link map B, exit codes E, doctor F, 
 Option chosen, verbatim: "Add Bedrock mode to cprof (Recommended)". The option described: a small code change plus tests;
 `cprof new <name> --auth bedrock`; `use`/`launch` export `CLAUDE_CODE_USE_BEDROCK=1` and pass `AWS_PROFILE`/`AWS_REGION`
 through; a bedrock sandbox fragment for the Bedrock and STS endpoints; this design record amended; a PR through the gate.
-Everything in part 1 (`claude-profile.md`) is unchanged; oauth profiles behave exactly as before.
+Part 1 (`claude-profile.md`) is unchanged apart from pointer lines to this file; oauth profiles behave exactly as before.
 
 ### What changes vs the 2026-10-01 token-only design
 

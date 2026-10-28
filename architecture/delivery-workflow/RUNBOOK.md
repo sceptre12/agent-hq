@@ -22,7 +22,7 @@ Rules that never bend: no agent writes under `gates/`; the desk writes a gate fi
 
 ## 3. Prerequisites
 
-Machine setup is `tools/onboarding.md` (cprof, Anthropic or Bedrock login, Hermes is `tools/hermes/setup/INSTALL.md`). Tiers are `architecture/permission-tiers.md`: executor profiles for conductor and leads, one desk profile. Check every row before you open a session; the conductor's `INPUT-ERROR` is the backstop, not the detector (pilot F-01, F-02).
+Machine setup is `tools/onboarding.md` (cprof and the Anthropic or Bedrock login); Hermes is installed separately with `tools/hermes/setup/INSTALL.md`. Tiers are `architecture/permission-tiers.md`: executor profiles for conductor and leads, one desk profile. Check every row before you open a session; the conductor's `INPUT-ERROR` is the backstop, not the detector (pilot F-01, F-02).
 
 ```sh
 # profiles exist and are tiered (one executor per session you will open, one desk)
@@ -136,8 +136,8 @@ Any line outside the gate x verdict matrix is refused in the desk session and wr
 ## 5. What to watch while it runs
 
 - The conductor's status post, printed at the end of each of its turns: stage and per-sub-task state, the gate it waits on with the line to type, open escalations, stops with record paths, human steps, `state.md` path last. One post per gate and per new item; a wait is a post plus silence.
-- `RUN_HOME/state.md` `stage`: `1` intake, `2` architecture, `3` dispatch plan, `4` build, `4b` pre-PR gate, `5` PR and CI, `5a` awaiting your review, `5b` merge in flight, `5c` cleanup, `6` post-merge, `7` release, `8` capture, `done`.
-- `RUN_HOME/<subtask>/substate.md` `phase`: `seeded`, `building`, `integrating`, `prepr`, `pr-open`, `ci`, `merged`, `done`; `stop_reason` when set; `tick_utc` should move about every 10 minutes (the lead's merged tick). The conductor's 1-minute tick (`delivery-pipeline tick <RUN_HOME>`) is the one that notices files; the profile's 10-minute stall watchdog is separate and only covers a session's own subagents.
+- `RUN_HOME/state.md` `stage`: `1` intake, `2` architecture, `3` dispatch plan, `4` build, `4b` pre-PR gate, `5` PR and CI, `5a` awaiting your review, `5b` merge in flight, `5c` cleanup, `6` post-merge, `7` release, `8` capture, `done`, `stopped` (after a run-level stop).
+- `RUN_HOME/<subtask>/substate.md` `phase`: `seeded`, `building`, `integrating`, `prepr`, `pr-open`, `ci`, `merged`, `post-merge`, `release`, `done`; `stop_reason` when set; `tick_utc` should move about every 10 minutes (the lead's merged tick). The conductor's 1-minute tick (`delivery-pipeline tick <RUN_HOME>`) is the one that notices files; the profile's 10-minute stall watchdog is separate and only covers a session's own subagents.
 
 | Under `RUN_HOME` | What |
 |---|---|
@@ -146,7 +146,7 @@ Any line outside the gate x verdict matrix is refused in the desk session and wr
 | `desk/<id>.req`, `<id>.out` | every desk request and its result (0600) |
 | `<subtask>/substate.md`, `inbox/`, `outbox/`, `escalations/`, `gates/`, `slots/`, `dispatch/`, `bus/`, `lanes/`, `shepherd/ticks.md` | one lead's record |
 | `review/<subtask>/record-<head>.md`, `fix-*.md`, `verify-*.md`, `checklist-<subtask>.md`, `pr-body.md` | pre-PR gate output |
-| `ci/<pr>.md`, `merge-<sha>.md`, `cleanup-<run-id>-<subtask|final>.md`, `postmerge-<sha>.md`, `release-<sha>.md`, `plan-check.md` | stage records |
+| `ci/<pr>.md`, `merge-<sha>.md`, `cleanup-<run-id>-<subtask\|final>.md`, `postmerge-<sha>.md`, `release-<sha>.md`, `plan-check.md` | stage records |
 | `tickets.tsv`, `ticket-events.log` | tracker rows and events |
 | `catalog.tsv` | every worktree, port, bus, process the run created (cleanup reads only this) |
 | `capture/`, `retro.md`, `execution-log.md` | stage 8 |
@@ -156,7 +156,7 @@ Durations from pilot run 1 (two sub-tasks of four units each, three parallel lea
 
 ## 6. When it stops
 
-Every stop appears in the status post with its paths. Other sub-tasks keep running (D7). Your answer is one line, at the desk unless stated.
+Every stop appears in the status post with its paths. Other sub-tasks keep running. `D7` is the design rule "at most 3 review or CI rounds, then stop the sub-task and hand the open findings to a person" (`part-01-summary-and-process-map.md`); `S1`-`S8`, `G1`, `G3`-`G5` and `D23` are stop-the-line rows defined in `interfaces/part-a-state.md` A.3. Your answer is one line, at the desk unless stated.
 
 | Stop (post wording or `stop_reason`) | What it needs | Your line |
 |---|---|---|
@@ -166,10 +166,10 @@ Every stop appears in the status post with its paths. Other sub-tasks keep runni
 | `port-refused` | the sub-task, the candidate and its +10 retry are in the post; free the port or change `ports.bus_base` in the profile (then a profile refresh is a new H0) | `GATE <run-id> RESUME.<subtask> ok <text>` |
 | `INSTALL ... REJECTED` from the desk | stop-the-line for that dependency; decide the dependency policy outside the run (the review-bus lockfile restore is the known case) | nothing in the run until you have ruled; then `RESUME` as above |
 | `PLAN-CHECK: <n> findings` or `PLAN-REVIEW: STOP round-3` (stage 3) | read `RUN_HOME/plan-check.md` and the plan's review section | tell the conductor in its session: `re-invoke delivery-dispatch-plan` (round 4 runs only on your word) |
-| architecture loop NOT MET at round 3 | the H1 packet lists the open findings | `GATE <run-id> H1 ok|changes|reject <text>` |
+| architecture loop NOT MET at round 3 | the H1 packet lists the open findings | `GATE <run-id> H1 ok\|changes\|reject <text>` |
 | `POSTMERGE: STOP <reason>` | a destructive row, or a product decision | the three lines of section 4 step 10 |
 | `RELEASE: WAITING-HUMAN` | you perform the release step named | `GATE <run-id> H-prod.<step_id> ok <text>` |
-| desk `REJECTED <id> | <code>` on a conductor request | terminal (`sender`, `schema`, `hash`, `repo`, `policy`): read the `.out` `detail`; curable (`marker`, `order`, `stale-session`, `gate-missing`, `action-failed`): the conductor resends on its trigger | `action-failed`, `stale-session`, `gate-missing`: fix the cause (re-auth with `gh auth login` at the desk, type the gate) then tell the conductor `resend <id>` in its session |
+| desk `REJECTED <id> \| <code>` on a conductor request | terminal (`sender`, `schema`, `hash`, `repo`, `policy`): read the `.out` `detail`; curable (`marker`, `order`, `stale-session`, `gate-missing`, `action-failed`): the conductor resends on its trigger | `action-failed`, `stale-session`, `gate-missing`: fix the cause (re-auth with `gh auth login` at the desk, type the gate) then tell the conductor `resend <id>` in its session |
 | `REGISTER-SENDER` refused after a conductor restart | the registry still names the old sender | `REBIND <run-id> <new sender-id>` |
 | ledger refusal (`sum + 31 > 200`, or a fourth build lead) | wait for a `CLEANUP DONE`, or close a lead | nothing; the conductor retries each tick |
 | a `pm` second lead `stale-session` | the old `pm` lock is fresh; close the old session | `GATE <run-id> RESUME.pm ok <text>` once the lock is stale |
@@ -195,12 +195,12 @@ The final post leads with `RELEASE: LIVE` or `RELEASE: ROLLED-BACK` and lists yo
 - Restore the profile's per-ticket fields to `FILL_IN_BEFORE_DISPATCH` by hand (the post names them).
 - Delete what the cleanup kept and reported: remote branches the desk classifier left (`gh api -X DELETE repos/<owner>/<repo>/git/refs/heads/<branch>` at the desk), local unit branches, worktrees under `worktree_base`, buses (`pm2 jlist` should list none of the run's `swarm-mcp-*` apps). Check `catalog.tsv` has no `live` or `planned` row left.
 - Archive `RUN_HOME` and `$DELIVERY_ROOT/desk-inbox/<id>.req` copies (no target is named yet; pick one).
-- Learnings: the capture agent's drafts under `RUN_HOME/capture/` are the input. Tell Hermes through its API door (`tools/brain/templates/member-CLAUDE.md` Memory section: "remember this: ..."), or write the generalised lesson under hq `learnings/` and import with `tools/hermes/import-learnings` (`tools/hermes/README.md` §import-learnings).
+- Learnings: the capture agent's drafts under `RUN_HOME/capture/` are the input. Tell Hermes through its API door (see the Memory section of `tools/brain/templates/member-CLAUDE.md`: "remember this: ..."), or write the generalised lesson under hq `learnings/` and import with `tools/hermes/import-learnings` (`tools/hermes/README.md` §import-learnings).
 - Close the sessions: conductor, each lead, the desk.
 
 ## 9. Known gaps (pilot run 1) and the proposed trust bootstrap
 
-Known gaps, from `retros/2026-10-27-delivery-pilot-run-1.md`:
+Known gaps, from `retros/2026-10-27-delivery-pilot-run-1.md` (in the private hq repo, not this one):
 - Setup misses cost about 70 minutes: `DELIVERY_ROOT` unset in two sessions, no pattern file, unseeded tracker options, a review-bus copy without `node_modules`. Nothing refuses H0 until they exist; section 3 is manual.
 - The desk's auto-mode classifier denied `gh pr merge` and `git push --delete` even after the owner authorised them in chat; a typed line never lifts a classifier verdict. Harness `allow` rules are PROPOSED and unmeasured.
 - Per-session confirmations: the conductor held a ticket request about 35 minutes for a confirmation the owner had already given at the desk; gate delegation typed at the desk did not reach other sessions and missed two gate classes.
@@ -208,7 +208,7 @@ Known gaps, from `retros/2026-10-27-delivery-pilot-run-1.md`:
 - `retro.md` can reach `stage: done` with a read-back mismatch unresolved; tickets reach Done only at close-out.
 - H-pr was waived in the pilot (private repo, no branch protection); this runbook describes the designed flow, which the pilot did not exercise.
 
-Proposed trust bootstrap (`hq/architecture/trust-bootstrap.md`, DRAFT, not ratified, not implemented; nothing below works today):
+Proposed trust bootstrap (`architecture/trust-bootstrap.md` in the private hq repo, not this one; DRAFT, not ratified, not implemented; nothing below works today):
 - PROPOSED one owner-typed line at the desk before H0 that names delegate sessions and the gate and ruling classes they may answer for this run; the desk would write a hashed `RUN_HOME/gates/DELEGATION.<run-id>.md` every session reads, so a delegate's `GATE` line over `SendMessage` counts as the owner's for those classes, `reject` and run abandon staying owner-only:
   ```
   DELEGATE <run-id> to=<session-id>[,<session-id>] gates=<class>[,<class>] rulings=<class>[,<class>] until=run-end <text>

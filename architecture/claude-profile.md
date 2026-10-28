@@ -9,7 +9,7 @@ Part 1 of 2; continues in `architecture/claude-profile-02.md` (Extensions 2026-1
 
 Status: ratified 2026-10-01 (owner approval via ExitPlanMode; Fable T6 ratification with
 amendments, folded in below). Source plan: `~/.claude/plans/sunny-leaping-rocket.md`.
-Extension 2026-10-21 (`cprof link` + tiered launch re-render): **RATIFIED 2026-10-21 — Fable T6/T5 RATIFY-WITH-EDITS (edits applied 23e329b2); owner ratified, verbatim: "1" (option 1: as written)** — see the last section; dispatch plan
+Extension 2026-10-21 (`cprof link` + tiered launch re-render): **RATIFIED 2026-10-21 — Fable T6/T5 RATIFY-WITH-EDITS (edits applied 23e329b2); owner ratified, verbatim: "1" (option 1: as written)** — see Extension (2026-10-21) below; dispatch plan
 `plans/cprof-link.md`. Everything above that section is the ratified 2026-10-01 design, unchanged.
 
 ## What This Is

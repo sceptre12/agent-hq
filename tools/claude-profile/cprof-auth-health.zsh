@@ -1,5 +1,5 @@
 # cprof AWS-profile health cache + live Bedrock probe + substitute search. Sourced by cprof.zsh.
-# Design: architecture/claude-profile-02.md, Extension 2026-10-28 ("self-heal `new --auth bedrock`
+# Design: architecture/claude-profile-03.md, Extension 2026-10-28 ("self-heal `new --auth bedrock`
 # against a broken ambient AWS profile"). Used by `_cprof_bedrock_snapshot` (cprof-auth.zsh, at
 # `cprof new ... --auth bedrock`) and `_cprof_doctor_bedrock_env` (both cprof-auth.zsh -- the latter
 # called from cprof-checks.zsh's `_cprof_doctor`) so `cprof new` and `cprof doctor` keep the same

@@ -12,6 +12,8 @@ skills/wave-execution/references/example-spec/tests/run.sh	skills/wave-execution
 tools/check-doc-length.sh	tools/test_check-doc-length.sh
 tools/check-file-length.sh	tools/test_check-file-length.sh
 tools/check-invariants.sh	tools/test_check-invariants.sh
+tools/claude-profile/cprof-auth-health.zsh	tools/claude-profile/test_cprof-auth-heal.zsh
+tools/claude-profile/cprof-auth.zsh	tools/claude-profile/test_cprof-auth-heal.zsh
 tools/claude-profile/cprof-auth.zsh	tools/claude-profile/test_cprof-auth.zsh
 tools/claude-profile/cprof-auth.zsh	tools/claude-profile/test_cprof.zsh
 tools/claude-profile/cprof-checks.zsh	tools/claude-profile/test_cprof-auth.zsh
@@ -21,6 +23,7 @@ tools/claude-profile/cprof-checks.zsh	tools/claude-profile/test_cprof.zsh
 tools/claude-profile/cprof-link.zsh	tools/claude-profile/test_cprof-link.zsh
 tools/claude-profile/cprof-tiers.zsh	tools/claude-profile/test_cprof-auth.zsh
 tools/claude-profile/cprof-tiers.zsh	tools/claude-profile/test_cprof.zsh
+tools/claude-profile/cprof.zsh	tools/claude-profile/test_cprof-auth-heal.zsh
 tools/claude-profile/cprof.zsh	tools/claude-profile/test_cprof-auth.zsh
 tools/claude-profile/cprof.zsh	tools/claude-profile/test_cprof-link.zsh
 tools/claude-profile/cprof.zsh	tools/claude-profile/test_cprof.zsh

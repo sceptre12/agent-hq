@@ -162,10 +162,15 @@ that starts it.
    This step also self-heals a broken `AWS_PROFILE` automatically — no flag, no setup. If the ambient
    profile turns out to be denied Bedrock access (e.g. an SCP-restricted sandbox account), `new` prints
    a WARN naming the problem and substitutes a working AWS profile it finds live, so `profile.env` ends
-   up pointing at something that actually works instead of faithfully recording a broken one. A result
-   this validated is cached in `<root>/.aws-profile-health`, so repeat `cprof new`/`cprof doctor` runs
-   with the same profile are instant; a live check may pop a normal browser SSO login if that profile's
-   cached token is stale, same as any other AWS CLI call.
+   up pointing at something that actually works instead of faithfully recording a broken one. The search
+   prefers a directly-usable profile over a raw, internal-only SSO session profile of the same identity
+   (one commented "do not use directly" in `~/.aws/config`, typically named `<profile>-sso`), and
+   independently re-verifies every candidate's identity live before accepting it — this confirms the
+   substitute can reach Bedrock, not that it has identical IAM access to whatever profile was ambient
+   before. A result this validated is cached in `<root>/.aws-profile-health` (keyed by profile and
+   region), so repeat `cprof new`/`cprof doctor` runs with the same profile and region are instant; a
+   live check may pop a normal browser SSO login if that profile's cached token is stale, same as any
+   other AWS CLI call.
 
 4. Choose models. Claude Code's Bedrock defaults are not pinned, so set model ids in
    `~/claude-profiles/try-bedrock/profile.env`. Model ids and inference profiles are

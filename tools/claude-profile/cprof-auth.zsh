@@ -128,13 +128,18 @@ _cprof_bedrock_snapshot() {
 # value against `aws configure list-profiles` and WARN (never fail) if it is not found; skip this check
 # gracefully, with no WARN at all, when `aws` is not installed (doctor must not require the AWS CLI).
 # Health-cache refresh (Extension 2026-10-28): once a recorded AWS_PROFILE resolves in
-# 'aws configure list-profiles', consult _cprof_aws_health_read (cprof-auth-health.zsh). A cache hit
-# (good or bad) is trusted with no live call -- `doctor` must stay fast on repeat runs. A cache miss
-# runs one live probe via _cprof_aws_bedrock_probe (same classification rules as `new`), which also
-# writes the cache -- this is what keeps the cache warm for profiles a recent `cprof new` never
-# touched. A browser SSO login prompt may occur on that probe (accepted, same ruling as `new`).
+# 'aws configure list-profiles', consult the cache via _cprof_aws_health_lookup
+# (cprof-auth-health.zsh -- fix-up pass A1: the one accessor the cache-hit and live-probe paths
+# both call, shared with `new`'s _cprof_aws_heal_profile). A cache hit (good or bad) is trusted with
+# no live call -- `doctor` must stay fast on repeat runs. A cache miss runs one live probe (same
+# classification rules as `new`), which also writes the cache -- this is what keeps the cache warm
+# for profiles a recent `cprof new` never touched. A browser SSO login prompt may occur on that
+# probe (accepted, same ruling as `new`). Fix-up pass M2: the region probed/cached is this AWS
+# profile's OWN configured region (_cprof_aws_profile_region), not profile.env's stored AWS_REGION
+# (a value snapshotted from whatever shell happened to run `new`, possibly unrelated to this AWS
+# profile) -- the same one rule `new`'s heal path uses, so the two paths can no longer disagree.
 _cprof_doctor_bedrock_env() {
-  local d n ln ap apval regval reg hst det; local -a lines
+  local d n ln ap apval reg hst det; local -a lines
   print -r -- "-- bedrock profile.env rows (auth=bedrock profiles only) --"
   local hit=0
   for d in "$(_cprof_root)"/*(N/); do
@@ -150,19 +155,15 @@ _cprof_doctor_bedrock_env() {
       print -r -- "WARN: $n has profile.env but no AWS_PROFILE in it; add AWS_PROFILE=<profile> to $d/profile.env by hand"
       hit=1
     elif (( ${+commands[aws]} )); then
-      lines=(${(f)"$(() { setopt localoptions allexport; unset AWS_PROFILE AWS_REGION; source "$1" 2>/dev/null; print -r -- "${AWS_PROFILE-}"; print -r -- "${AWS_REGION-}"; } "$d/profile.env")"})
-      apval=$lines[1]; regval=$lines[2]
+      lines=(${(f)"$(() { setopt localoptions allexport; unset AWS_PROFILE AWS_REGION; source "$1" 2>/dev/null; print -r -- "${AWS_PROFILE-}"; } "$d/profile.env")"})
+      apval=$lines[1]
       if [[ -n $apval ]] && ! aws configure list-profiles 2>/dev/null | grep -qxF -- "$apval"; then
         print -r -- "WARN: $n's profile.env AWS_PROFILE ('$apval') not found in 'aws configure list-profiles'; the AWS profile may have been renamed or removed"
         hit=1
       elif [[ -n $apval ]]; then
-        if _cprof_aws_health_read "$apval"; then
-          hst=$reply[1]; det=$reply[3]
-        else
-          reg=$regval; [[ -n $reg ]] || reg=$(_cprof_aws_region); [[ -n $reg ]] || reg=us-east-1
-          _cprof_aws_bedrock_probe "$apval" "$reg"
-          hst=$reply[1]; det=$reply[2]
-        fi
+        reg=$(_cprof_aws_profile_region "$apval")
+        _cprof_aws_health_lookup "$apval" "$reg"
+        hst=$reply[1]; det=$reply[2]
         if [[ $hst == bad ]]; then
           print -r -- "WARN: $n's profile.env AWS_PROFILE ('$apval') is cached bad for Bedrock ($det); see $(_cprof_root)/.aws-profile-health"
           hit=1

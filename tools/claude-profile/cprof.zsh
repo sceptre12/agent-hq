@@ -23,7 +23,7 @@ _CPROF_HIGHER_AUTH=(
 
 # claudeMdExcludes + doctor live in a sibling file (keeps each file under the 300-line limit).
 source "${${(%):-%x}:A:h}/cprof-checks.zsh"
-source "${${(%):-%x}:A:h}/cprof-auth.zsh"     # auth modes oauth|bedrock + token I/O (architecture/claude-profile.md Extension 2026-10-26)
+source "${${(%):-%x}:A:h}/cprof-auth.zsh"     # auth modes oauth|bedrock + token I/O (architecture/claude-profile-02.md Extension 2026-10-26)
 source "${${(%):-%x}:A:h}/cprof-tiers.zsh"   # tier verbs: render/launch/sync/trust (permission-tiers P2)
 source "${${(%):-%x}:A:h}/cprof-link.zsh"    # link verb + doctor link rows (architecture/claude-profile.md Extension 2026-10-21)
 
@@ -86,7 +86,7 @@ _cprof_new() {
   _cprof_onboarded "$d/config" || true
   if [[ $auth == bedrock ]]; then
     ( umask 077; print -r -- bedrock > "$d/auth" ) || { rm -rf -- "$d"; return 1; }
-    _cprof_bedrock_snapshot "$d" || { rm -rf -- "$d"; return 1; }   # self-contained profile.env (A3-style audit, architecture/claude-profile.md Extension 2026-10-27)
+    _cprof_bedrock_snapshot "$d" || { rm -rf -- "$d"; return 1; }   # self-contained profile.env (A3-style audit, architecture/claude-profile-02.md Extension 2026-10-27)
   fi
   if [[ -n $tier ]]; then   # before the token prompt, so a bad render never costs a paste
     { _cprof_render "$d" "$tier" "$ov" && _cprof_tier_md "$d" "$tier" "$name" "$force"; } || { rm -rf -- "$d"; return 1; }

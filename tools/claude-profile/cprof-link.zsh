@@ -1,6 +1,6 @@
 # cprof link: link a profile to a source root (default $HOME/projects/agent-hq; override with a 2nd
 # arg, e.g. $HOME/.claude for the old personal-linking behavior) + doctor link rows. Sourced by cprof.zsh.
-# Design: architecture/claude-profile.md "Extension (2026-10-21)" B-F; "Extension (2026-10-27)" dynamic
+# Design: architecture/claude-profile.md "Extension (2026-10-21)" B-F; architecture/claude-profile-02.md "Extension (2026-10-27)" dynamic
 # source root. Per entry, independently: <root>/config/<entry> first, else <root>/<entry> (agent-hq:
 # config/ holds CLAUDE.md + settings.json, skills/agents live at the root; $HOME/.claude: all flat).
 # Writes a new `link-src` file (resolved root + the root's git HEAD, if it is a git tree) next to

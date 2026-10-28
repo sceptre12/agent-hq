@@ -151,9 +151,17 @@ that starts it.
    It asks for no token. The last line ends with
    `(auth: bedrock, no token; AWS credentials come from your shell)`.
 
+   `new --auth bedrock` also snapshots this shell's `AWS_PROFILE`, `AWS_REGION`/`AWS_DEFAULT_REGION` and any
+   `ANTHROPIC_MODEL`/`ANTHROPIC_DEFAULT_*_MODEL` vars into `try-bedrock/profile.env` right away, so the profile is
+   self-contained from creation instead of depending on whatever a later shell's ambient AWS state happens to be.
+   No `AWS_PROFILE` exported here: `cprof: WARN: no AWS_PROFILE in this shell to snapshot into
+   'try-bedrock/profile.env'; set AWS_PROFILE before 'cprof new <name> --auth bedrock', or add it to
+   <path>/profile.env by hand` — the profile is still created; add `AWS_PROFILE` to `profile.env` by hand
+   afterward, or re-run `new` in a shell that has it exported.
+
 4. Choose models. Claude Code's Bedrock defaults are not pinned, so set model ids in
    `~/claude-profiles/try-bedrock/profile.env`. Model ids and inference profiles are
-   specific to your AWS account and region; check which ones yours has. Set all of
+   specific to your AWS account and region; check which ones yours has. Set all four of
    them: Claude Code also makes background calls with the Haiku id. One example:
 
    ```sh
@@ -161,6 +169,7 @@ that starts it.
    ANTHROPIC_DEFAULT_OPUS_MODEL=us.anthropic.claude-opus-4-8
    ANTHROPIC_DEFAULT_SONNET_MODEL=us.anthropic.claude-sonnet-4-6
    ANTHROPIC_DEFAULT_HAIKU_MODEL=us.anthropic.claude-haiku-4-5-20251001-v1:0
+   ANTHROPIC_DEFAULT_FABLE_MODEL=us.anthropic.claude-fable-4-5-20251001-v1:0
    ```
 
    The `us.` prefix is for US regions. Elsewhere use `eu.`, `apac.` or `global.` to
@@ -169,6 +178,10 @@ that starts it.
    as well: the tiered render reads the region from the shell only.
    `use` honours `profile.env`, including auth vars; `launch` strips them. Do not put
    Anthropic keys in a bedrock profile's `profile.env`; `cprof doctor` warns when one is set.
+
+   If any of these were already exported in this shell at step 3, they are already in `profile.env` from the
+   auto-snapshot above — edit the values there directly rather than re-exporting and re-running `new` (which
+   refuses: the profile directory already exists).
 
 5. Dry-run, check and launch:
 

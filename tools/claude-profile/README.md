@@ -4,6 +4,32 @@ Design: `architecture/claude-profile.md`. Each profile has its own OAuth token (
 `--auth bedrock`, the shell's AWS credentials) and a clean `CLAUDE_CONFIG_DIR`; it applies to one
 shell and `cprof off` restores that shell exactly. First-time walkthrough: `tools/onboarding.md`.
 
+## Why use cprof
+
+A profile is a disposable Claude Code identity: its own config dir, workspace, and auth, so a
+one-off or risky task never touches your main `~/.claude`. `--tier executor|desk` goes further
+and borrows agent-hq's own permission system for that profile — the deny-list and sandbox config
+in this repo's `config/settings.json` + `config/tiers/<tier>.json` — so the profile runs under
+the same guardrails this repo runs under, not whatever happens to be in your personal
+`~/.claude/settings.json`. `cprof link` wires a profile's skills/agents/config to a source
+checkout; it now defaults to agent-hq itself (`$HOME/projects/agent-hq`) instead of the old
+`$HOME/.claude` default, so a profile can pick up this repo's own skills and agents with one
+command — pass an explicit path (e.g. `~/.claude`) to link from your personal setup instead.
+
+## Quickstart
+
+```sh
+export CPROF_OWNER=<your-github-account>
+cprof new try --tier executor [--auth bedrock]   # drop --auth bedrock to use an OAuth token
+cprof link try                                   # links skills/agents/config from agent-hq
+cprof use try && cprof doctor && cprof off       # checks links, tier render, and auth vars
+cprof launch try                                 # full tiered session (or `cprof use try` + `claude`)
+cprof rm try                                     # when done with it (after `cprof off`)
+```
+
+See Install and Usage below for the full flag reference, and `tools/onboarding.md` for a
+first-time walkthrough with both OAuth and Bedrock credential setup.
+
 ## Install (once, by hand)
 
 Add this line to `~/.zshrc` (agents do not edit dotfiles):
@@ -30,6 +56,17 @@ and Warp may ignore it; trust `cprof current` and `${+CLAUDE_CONFIG_DIR}`.
 
 Code lives in `cprof-auth.zsh`. `<profile>/auth` holds the mode (mode 600); no file means `oauth`, so existing profiles are unchanged.
 An unknown mode fails with `unknown auth mode: '<x>' (oauth|bedrock)`, exit 1, and no profile dir.
+
+With `--auth bedrock`, cprof stores no Anthropic credential of any kind — no API key, no OAuth
+token file. Authentication is pure AWS: `use`/`launch` export `CLAUDE_CODE_USE_BEDROCK=1` and let
+`AWS_PROFILE`/`AWS_REGION`/the `AWS_*` keys pass through from the shell or `profile.env`. For the
+common case of an SSO-backed `credential_process` in `~/.aws/config` (no static keys on disk),
+that means re-auth is transparent: when the SSO token expires, the normal browser SSO prompt
+fires in whichever shell is driving AWS, and the profile picks up the refreshed credentials on
+the next call with no cprof-specific step. `profile.env` is where a Bedrock profile pins model
+ids (`ANTHROPIC_MODEL`, `ANTHROPIC_DEFAULT_{OPUS,SONNET,HAIKU}_MODEL`) and can carry `AWS_PROFILE`
+or `AWS_REGION` as a default for that profile; see the Bedrock walkthrough in
+`tools/onboarding.md` for setting these up end to end.
 
 - **oauth** (default): the token file, as above. `use`/`launch` export `CLAUDE_CODE_OAUTH_TOKEN` and unset the higher-precedence auth vars.
 - **bedrock**: `new` writes `auth` = `bedrock`, prompts for no token and writes no token file; it ends

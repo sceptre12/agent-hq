@@ -78,7 +78,7 @@ The owner's own interactive seat is outside the tiers.
    Simulator work; extra `allowedDomains` for a local Supabase).
    - Auth fragment: `config/tiers/auth-bedrock.json`, rendered only for `--auth bedrock` profiles, between
      the tier fragment and the overlay; allowances only; `<region>`/`<sso_region>` substituted at render
-     (design: `architecture/claude-profile.md`, Extension 2026-10-26).
+     (design: `architecture/claude-profile-02.md`, Extension 2026-10-26).
 3. **cprof tier verbs** (`tools/claude-profile/cprof.zsh`; Rule 10: PR + mapped tests,
    `test_cprof.zsh`, `tools/code-gate/test-map.tsv:8-9`):
    - `cprof new <name> --tier executor|desk [--overlay <project>]` — keeps today's hidden token

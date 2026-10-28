@@ -52,7 +52,7 @@ with `claude setup-token`. Never pass a token in argv.
 `cprof current` prints the active name, or nothing. The `[cprof:<name>]` prompt prefix is cosmetic
 and Warp may ignore it; trust `cprof current` and `${+CLAUDE_CONFIG_DIR}`.
 
-## Auth modes (`--auth`; architecture/claude-profile.md Extension 2026-10-26)
+## Auth modes (`--auth`; architecture/claude-profile-02.md Extension 2026-10-26)
 
 Code lives in `cprof-auth.zsh`. `<profile>/auth` holds the mode (mode 600); no file means `oauth`, so existing profiles are unchanged.
 An unknown mode fails with `unknown auth mode: '<x>' (oauth|bedrock)`, exit 1, and no profile dir.

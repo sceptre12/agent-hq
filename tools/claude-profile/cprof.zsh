@@ -23,7 +23,7 @@ _CPROF_HIGHER_AUTH=(
 
 # claudeMdExcludes + doctor live in a sibling file (keeps each file under the 300-line limit).
 source "${${(%):-%x}:A:h}/cprof-checks.zsh"
-source "${${(%):-%x}:A:h}/cprof-auth.zsh"     # auth modes oauth|bedrock + token I/O (architecture/claude-profile.md Extension 2026-10-26)
+source "${${(%):-%x}:A:h}/cprof-auth.zsh"     # auth modes oauth|bedrock + token I/O (architecture/claude-profile-02.md Extension 2026-10-26)
 source "${${(%):-%x}:A:h}/cprof-tiers.zsh"   # tier verbs: render/launch/sync/trust (permission-tiers P2)
 source "${${(%):-%x}:A:h}/cprof-link.zsh"    # link verb + doctor link rows (architecture/claude-profile.md Extension 2026-10-21)
 

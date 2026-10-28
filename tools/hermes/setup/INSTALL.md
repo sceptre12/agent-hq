@@ -163,7 +163,7 @@ command. `hermes-up` refuses if that variable is empty, unsets `ANTHROPIC_API_KE
 
 ```sh
 $HC config set model.provider anthropic
-$HC config set model.default claude-sonnet-4-6
+$HC config set model.default claude-sonnet-5-5
 $HC config unset model.base_url
 ```
 

@@ -1,5 +1,5 @@
 # cprof auth modes: `oauth` (default: the profile's token file) and `bedrock` (no token; Claude Code uses the AWS credential
-# chain of the calling shell). Sourced by cprof.zsh. Design: architecture/claude-profile.md, Extension 2026-10-26 (owner ruling
+# chain of the calling shell). Sourced by cprof.zsh. Design: architecture/claude-profile-02.md, Extension 2026-10-26 (owner ruling
 # "Add Bedrock mode to cprof"). `<profile>/auth` holds the mode; an absent file means oauth, so every existing profile is unchanged.
 
 # Unset in bedrock mode: Bedrock ranks first in Claude Code's auth precedence, but a stray Anthropic key or token must not

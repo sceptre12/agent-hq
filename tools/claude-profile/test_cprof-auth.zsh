@@ -1,6 +1,6 @@
 #!/usr/bin/env zsh
 # tools/claude-profile/test_cprof-auth.zsh — tests for cprof's `--auth oauth|bedrock` (cprof-auth.zsh + the auth paths in
-# cprof.zsh, cprof-tiers.zsh render/stale/launch/sync and cprof-checks.zsh doctor). Contract: architecture/claude-profile.md,
+# cprof.zsh, cprof-tiers.zsh render/stale/launch/sync and cprof-checks.zsh doctor). Contract: architecture/claude-profile-02.md,
 # Extension 2026-10-26. Hermetic: HOME and CPROF_ROOT live in a mktemp dir, zsh -f skips the user's config, a fake hq tree
 # is used via CPROF_HQ_CONFIG, and real claude is never run (stub on PATH). Every cprof-managed var and every AWS/region var
 # the code reads is unset in each child, so the result does not depend on the caller's profile or AWS shell state.

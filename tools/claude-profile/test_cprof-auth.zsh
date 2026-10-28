@@ -1,6 +1,6 @@
 #!/usr/bin/env zsh
 # tools/claude-profile/test_cprof-auth.zsh — tests for cprof's `--auth oauth|bedrock` (cprof-auth.zsh + the auth paths in
-# cprof.zsh, cprof-tiers.zsh render/stale/launch/sync and cprof-checks.zsh doctor). Contract: architecture/claude-profile.md,
+# cprof.zsh, cprof-tiers.zsh render/stale/launch/sync and cprof-checks.zsh doctor). Contract: architecture/claude-profile-02.md,
 # Extension 2026-10-26 and Extension 2026-10-27 (profile.env snapshot + precedence + doctor). Hermetic: HOME and CPROF_ROOT
 # live in a mktemp dir, zsh -f skips the user's config, a fake hq tree is used via CPROF_HQ_CONFIG, and real claude is never
 # run (stub on PATH). Every cprof-managed var and every AWS/region/model var the code reads is unset in each child, so the
@@ -111,7 +111,7 @@ out=$(R AWS_REGION=us-east-1 STUBOUT=$T/stub.out 'cprof launch e1; print RC=$?')
 [[ $out == *"RC=0" && $(<$T/stub.out) == "BR=1 AK=unset TOK=unset AP=team CFG=$P/e1/config" ]] \
   && ok "a8 launch: claude sees USE_BEDROCK=1, no API key/token, profile.env AWS_PROFILE, CFG" || bad "a8: $out $(<$T/stub.out 2>/dev/null)"
 
-# ---- self-contained profile.env snapshot at `new --auth bedrock` (architecture/claude-profile.md Extension 2026-10-27)
+# ---- self-contained profile.env snapshot at `new --auth bedrock` (architecture/claude-profile-02.md Extension 2026-10-27)
 out=$(R AWS_PROFILE=snaptest AWS_REGION=us-west-2 ANTHROPIC_MODEL=sonnet-x ANTHROPIC_DEFAULT_OPUS_MODEL=opus-x \
   ANTHROPIC_DEFAULT_FABLE_MODEL=fable-x 'cprof new bsnap --auth bedrock; print RC=$?')
 C=$(<$P/bsnap/profile.env 2>/dev/null)

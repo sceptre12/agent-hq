@@ -64,7 +64,7 @@ common case of an SSO-backed `credential_process` in `~/.aws/config` (no static 
 that means re-auth is transparent: when the SSO token expires, the normal browser SSO prompt
 fires in whichever shell is driving AWS, and the profile picks up the refreshed credentials on
 the next call with no cprof-specific step. `profile.env` is where a Bedrock profile pins model
-ids (`ANTHROPIC_MODEL`, `ANTHROPIC_DEFAULT_{OPUS,SONNET,HAIKU}_MODEL`) and can carry `AWS_PROFILE`
+ids (`ANTHROPIC_MODEL`, `ANTHROPIC_DEFAULT_{OPUS,SONNET,HAIKU,FABLE}_MODEL`) and can carry `AWS_PROFILE`
 or `AWS_REGION` as a default for that profile; see the Bedrock walkthrough in
 `tools/onboarding.md` for setting these up end to end.
 
@@ -85,7 +85,7 @@ or `AWS_REGION` as a default for that profile; see the Bedrock walkthrough in
   - `use` honours `profile.env`, including auth vars; `launch` strips them. Do not put Anthropic keys in a bedrock profile's `profile.env`;
     `cprof doctor` warns when one is set.
   - No `AWS_REGION`/`AWS_DEFAULT_REGION`: `cprof: WARN: no AWS_REGION/AWS_DEFAULT_REGION in this shell; Claude Code falls back to the AWS profile's region, then us-east-1` (stderr, exit 0).
-  - Models: set `ANTHROPIC_MODEL` and all three `ANTHROPIC_DEFAULT_{OPUS,SONNET,HAIKU}_MODEL` to Bedrock ids in `profile.env` (ids are
+  - Models: set `ANTHROPIC_MODEL` and all four `ANTHROPIC_DEFAULT_{OPUS,SONNET,HAIKU,FABLE}_MODEL` to Bedrock ids in `profile.env` (ids are
     account-specific; the `us.` inference-profile prefix is for US regions, `eu.`/`apac.`/`global.` elsewhere, see `ANTHROPIC_BEDROCK_REGION_PREFIX`).
   - Tiered render inputs: hq `settings.json`, `tiers/<tier>.json`, `tiers/auth-bedrock.json`, [overlay]. The fragment adds sandbox hosts only
     (Bedrock runtime and control plane, STS, SSO/OIDC/portal); its `<region>` comes from `AWS_REGION` > `AWS_DEFAULT_REGION` (the same

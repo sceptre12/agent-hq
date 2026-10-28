@@ -161,7 +161,7 @@ that starts it.
 
 4. Choose models. Claude Code's Bedrock defaults are not pinned, so set model ids in
    `~/claude-profiles/try-bedrock/profile.env`. Model ids and inference profiles are
-   specific to your AWS account and region; check which ones yours has. Set all of
+   specific to your AWS account and region; check which ones yours has. Set all four of
    them: Claude Code also makes background calls with the Haiku id. One example:
 
    ```sh
@@ -169,6 +169,7 @@ that starts it.
    ANTHROPIC_DEFAULT_OPUS_MODEL=us.anthropic.claude-opus-4-8
    ANTHROPIC_DEFAULT_SONNET_MODEL=us.anthropic.claude-sonnet-4-6
    ANTHROPIC_DEFAULT_HAIKU_MODEL=us.anthropic.claude-haiku-4-5-20251001-v1:0
+   ANTHROPIC_DEFAULT_FABLE_MODEL=us.anthropic.claude-fable-4-5-20251001-v1:0
    ```
 
    The `us.` prefix is for US regions. Elsewhere use `eu.`, `apac.` or `global.` to

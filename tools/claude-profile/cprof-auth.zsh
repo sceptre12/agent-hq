@@ -82,6 +82,12 @@ _cprof_auth_dryrun() {
 # only ever runs once, right after `new` creates a fresh profile dir). Only vars actually set in this shell are
 # written; a missing AWS_PROFILE gets a WARN (matching the M4/M5 WARN style in cprof-link.zsh) instead of a blank
 # or wrong line, and nothing is written at all when there is truly nothing to snapshot.
+# Self-heal (Extension 2026-10-28): the ambient AWS_PROFILE candidate is run through
+# _cprof_aws_heal_profile (cprof-auth-health.zsh) before being written. A cached-good or
+# freshly-validated-good candidate snapshots unchanged; a bad one (SCP-denied, the recurring
+# real-world bug) is swapped for a working substitute found live via the AWS profile health cache
+# and 'aws configure list-profiles', with a WARN naming the substitution; AWS_REGION/AWS_DEFAULT_REGION
+# and the Anthropic vars below are never touched by this.
 _CPROF_BEDROCK_SNAPSHOT_VARS=(AWS_PROFILE AWS_REGION AWS_DEFAULT_REGION)
 # Explicit allowlist, not a glob/pattern scan of the parameter table -- same reasoning as the AWS array above: a
 # dynamic scan makes profile.env content shell-session-dependent in a way the AWS half isn't, and is easy to lose
@@ -91,9 +97,13 @@ _CPROF_BEDROCK_SNAPSHOT_VARS=(AWS_PROFILE AWS_REGION AWS_DEFAULT_REGION)
 # "default model for new sessions" setting, not an alias pin) and the deprecated ANTHROPIC_SMALL_FAST_MODEL.
 _CPROF_BEDROCK_SNAPSHOT_ANTHROPIC_VARS=(ANTHROPIC_MODEL ANTHROPIC_DEFAULT_OPUS_MODEL ANTHROPIC_DEFAULT_SONNET_MODEL ANTHROPIC_DEFAULT_HAIKU_MODEL ANTHROPIC_DEFAULT_FABLE_MODEL)
 _cprof_bedrock_snapshot() {
-  local d=$1 n v out=
+  local d=$1 n v out= region
   for n in $_CPROF_BEDROCK_SNAPSHOT_VARS; do
     v=${(P)n-}
+    if [[ $n == AWS_PROFILE && -n $v ]]; then
+      region=$(_cprof_aws_region); [[ -n $region ]] || region=us-east-1
+      v=$(_cprof_aws_heal_profile "$v" "$region")
+    fi
     [[ -n $v ]] && out+="$n=${(qq)v}"$'\n'
   done
   for n in $_CPROF_BEDROCK_SNAPSHOT_ANTHROPIC_VARS; do
@@ -117,8 +127,19 @@ _cprof_bedrock_snapshot() {
 # the same failure class this whole extension exists to close. When `aws` is on PATH, cross-check the recorded
 # value against `aws configure list-profiles` and WARN (never fail) if it is not found; skip this check
 # gracefully, with no WARN at all, when `aws` is not installed (doctor must not require the AWS CLI).
+# Health-cache refresh (Extension 2026-10-28): once a recorded AWS_PROFILE resolves in
+# 'aws configure list-profiles', consult the cache via _cprof_aws_health_lookup
+# (cprof-auth-health.zsh -- fix-up pass A1: the one accessor the cache-hit and live-probe paths
+# both call, shared with `new`'s _cprof_aws_heal_profile). A cache hit (good or bad) is trusted with
+# no live call -- `doctor` must stay fast on repeat runs. A cache miss runs one live probe (same
+# classification rules as `new`), which also writes the cache -- this is what keeps the cache warm
+# for profiles a recent `cprof new` never touched. A browser SSO login prompt may occur on that
+# probe (accepted, same ruling as `new`). Fix-up pass M2: the region probed/cached is this AWS
+# profile's OWN configured region (_cprof_aws_profile_region), not profile.env's stored AWS_REGION
+# (a value snapshotted from whatever shell happened to run `new`, possibly unrelated to this AWS
+# profile) -- the same one rule `new`'s heal path uses, so the two paths can no longer disagree.
 _cprof_doctor_bedrock_env() {
-  local d n ln ap apval; local -a lines
+  local d n ln ap apval reg hst det; local -a lines
   print -r -- "-- bedrock profile.env rows (auth=bedrock profiles only) --"
   local hit=0
   for d in "$(_cprof_root)"/*(N/); do
@@ -134,10 +155,19 @@ _cprof_doctor_bedrock_env() {
       print -r -- "WARN: $n has profile.env but no AWS_PROFILE in it; add AWS_PROFILE=<profile> to $d/profile.env by hand"
       hit=1
     elif (( ${+commands[aws]} )); then
-      apval=$(() { setopt localoptions allexport; unset AWS_PROFILE; source "$1" 2>/dev/null; print -r -- "${AWS_PROFILE-}"; } "$d/profile.env")
+      lines=(${(f)"$(() { setopt localoptions allexport; unset AWS_PROFILE AWS_REGION; source "$1" 2>/dev/null; print -r -- "${AWS_PROFILE-}"; } "$d/profile.env")"})
+      apval=$lines[1]
       if [[ -n $apval ]] && ! aws configure list-profiles 2>/dev/null | grep -qxF -- "$apval"; then
         print -r -- "WARN: $n's profile.env AWS_PROFILE ('$apval') not found in 'aws configure list-profiles'; the AWS profile may have been renamed or removed"
         hit=1
+      elif [[ -n $apval ]]; then
+        reg=$(_cprof_aws_profile_region "$apval")
+        _cprof_aws_health_lookup "$apval" "$reg"
+        hst=$reply[1]; det=$reply[2]
+        if [[ $hst == bad ]]; then
+          print -r -- "WARN: $n's profile.env AWS_PROFILE ('$apval') is cached bad for Bedrock ($det); see $(_cprof_root)/.aws-profile-health"
+          hit=1
+        fi
       fi
     fi
   done

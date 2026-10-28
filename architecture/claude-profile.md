@@ -4,8 +4,8 @@ One-line summary: a sourceable zsh function, `cprof`, that scopes a single termi
 isolated Claude Code profile (own OAuth token, clean config dir, no auto-memory) and restores the
 shell exactly on `cprof off`. Script lives in hq; profiles live outside it.
 
-Part 1 of 2; continues in `architecture/claude-profile-02.md` (Extensions 2026-10-26 `--auth bedrock` and
-2026-10-27 dynamic `cprof link` source root, which amend parts B, E and F below).
+Part 1 of 2; continues in `architecture/claude-profile-02.md` (Extensions 2026-10-26 `--auth bedrock`,
+2026-10-27 dynamic `cprof link` source root, and 2026-10-28 `--auth bedrock` self-heal, which amend parts B, E and F below).
 
 Status: ratified 2026-10-01 (owner approval via ExitPlanMode; Fable T6 ratification with
 amendments, folded in below). Source plan: `~/.claude/plans/sunny-leaping-rocket.md`.

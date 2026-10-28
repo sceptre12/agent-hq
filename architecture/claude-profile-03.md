@@ -4,7 +4,8 @@ Part 3 of 3 of `architecture/claude-profile.md`; part 1 holds the status header 
 ratified 2026-10-01 design and Extension (2026-10-21) `cprof link`; part 2 (`architecture/claude-profile-02.md`) holds
 Extensions 2026-10-26 `--auth bedrock` and 2026-10-27 (dynamic `cprof link` source root; self-contained `profile.env`),
 which this extension builds on. Split out of part 2 on 2026-10-28 to keep each part under the 500-line cap (ADR 0029
-Clause 3); the text below is unchanged apart from this header.
+Clause 3); the text below is unchanged apart from this header and the test-file citations repointed to
+`test_cprof-auth-heal.zsh` after the 2026-10-28 test split (same PR).
 
 ## Extension (2026-10-28): self-heal `new --auth bedrock` against a broken ambient AWS profile
 
@@ -131,7 +132,7 @@ eliminated at the cost of not working.
 
 ### Verification
 
-`tools/claude-profile/test_cprof-auth.zsh`: hermetic cases (own isolated `CPROF_ROOT`, a mock `aws` on its own
+`tools/claude-profile/test_cprof-auth-heal.zsh`: hermetic cases (own isolated `CPROF_ROOT`, a mock `aws` on its own
 `PATH` entry answering `configure get credential_process`/`configure list-profiles`/`bedrock
 list-inference-profiles` purely from profile-name prefix and env vars, with a call log asserting both which
 profiles were live-probed and in what order) cover: a cached-`good` candidate snapshotting unchanged with no live
@@ -144,7 +145,7 @@ SCP-deny text is `bad`; `ExpiredToken`/`UnauthorizedSSOTokenError`/no-credential
 exit 0 is `good`); an inconclusive probe writing no cache row; and `cprof doctor` live-validating and caching a
 bedrock profile's `AWS_PROFILE` that `cprof new` never touched, then trusting that cache (no re-probe) on a later
 run. The full existing suite (`test_cprof.zsh`, `test_cprof-link.zsh`, `test_cprof-checks.zsh`,
-`test_cprof-auth.zsh`) passes unchanged.
+`test_cprof-auth.zsh`, `test_cprof-auth-heal.zsh`) passes unchanged.
 
 Fix-up pass additions: `h2c` proves a cached-`good` row under a different region is a cache miss, forcing a fresh
 live probe instead of being trusted (M1). `h8`/`h8b`/`h8c` are shaped directly like the real `~/.aws/config` (an

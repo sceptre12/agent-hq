@@ -1,4 +1,4 @@
-# claude-profile (`cprof`) — design record, part 2: Extensions 2026-10-26 and 2026-10-27
+# claude-profile (`cprof`) — design record, part 2: Extensions 2026-10-26, 2026-10-27 and 2026-10-28
 
 Part 2 of 2 of `architecture/claude-profile.md`; part 1 holds the status header (which governs this file), the
 ratified 2026-10-01 design (What This Is through Verification) and Extension (2026-10-21) `cprof link` + tiered
@@ -328,3 +328,141 @@ check (not just the hermetic suite) also confirmed the original fix: a scratch p
 `AWS_PROFILE` snapshotted it into `profile.env`; a subshell exporting a different, conflicting `AWS_PROFILE` and then
 running `cprof use` on that profile ended with the profile's own value in effect, and `cprof off` restored the
 subshell's original value exactly.
+
+## Extension (2026-10-28): self-heal `new --auth bedrock` against a broken ambient AWS profile
+
+**Status: owner-approved plan, code and this amendment land together.**
+The 2026-10-27 extension made every new bedrock profile self-contained by snapshotting whatever `AWS_PROFILE` was
+ambient at creation time. That closed the "no `profile.env` at all" bug, but not a sharper one: the owner's `adx-dev`
+AWS profile silently resolves to a sandboxed account (`202533503908`) with an org-level SCP that explicitly denies
+all Bedrock actions. Twice, a profile got created while `adx-dev` was ambient, snapshotted faithfully (exactly as
+designed), and the breakage was only discovered later via a confusing 403 — both times hand-fixed by editing
+`profile.env` to point at the known-working profile `digital-foundations-nonprod`. Owner requirement: `new --auth
+bedrock` must work out of the box — no new flag, no new env var to remember to set — by detecting a broken ambient
+profile and automatically recovering.
+
+Verified finding shaping this design: every AWS profile on the owner's machine shares one SSO session
+(`digital-foundations-nonprod`, in `~/.aws/config`'s `[sso-session digital-foundations-nonprod]`). Two profiles
+(`digital-foundations-nonprod`, `adx-dev`) use a custom `credential_process` script that, on any credential-export
+failure, unconditionally runs `aws sso login` — a browser popup — with no "is the cached token still fresh"
+pre-check; the rest reference `sso_session` directly and fail fast, non-interactively, on an expired token. The
+owner has explicitly accepted a browser login prompt occurring for whichever profile ends up actually adopted;
+repeated/unnecessary prompts across profiles never asked for should still be minimized where possible, not
+eliminated at the cost of not working.
+
+### What changes vs the 2026-10-27 design
+
+- The ambient `AWS_PROFILE` candidate is no longer snapshotted blindly. It is checked against a persistent health
+  cache (new file, one line per AWS profile) before being written: a cached `good` verdict is trusted with no live
+  call (fast path once a profile has been validated once); a cached `bad` verdict skips straight to a substitute
+  search, also with no re-test; no cache entry at all (the normal first-time case) triggers one live
+  `aws bedrock list-inference-profiles --profile <candidate> --region <region>` call, bounded by the AWS CLI's own
+  `--cli-connect-timeout`/`--cli-read-timeout` plus an outer `timeout`/`gtimeout` wall-clock bound when either is on
+  `PATH` (a browser SSO prompt during that call is accepted, never killed by the bound).
+- **Classification is the crux of correctness** and is owner-approved, literal-text matching, not exit-code-only:
+  `AccessDenied*` + `"explicit deny in a service control policy"` is the one signal that means "permanently broken
+  for Bedrock" (`bad`). `ExpiredToken`/`UnauthorizedSSOTokenError`/`"Unable to locate credentials"`, or any other
+  failure, means "needs a fresh login or could not be determined either way" (`inconclusive`) — routine, not a
+  verdict on the profile, and never cached (an inconclusive probe must not poison the cache). A declined or failed
+  login prompt is therefore never mistaken for a denied profile.
+- A `bad` verdict triggers a substitute search: the most-recently-checked cached-`good` profile, if one exists and
+  isn't the candidate itself; else `aws configure list-profiles`, with non-`credential_process` profiles tried
+  first (they fail fast with no popup risk if also broken, so trying them costs nothing before risking a popup on a
+  `credential_process` candidate), live-validating and caching each until the first `good`. A clear message names
+  the substitution and quotes the bad verdict's detail. If every candidate is exhausted with no `good` found, `new`
+  falls back to snapshotting the ambient candidate anyway, with an unmissable WARN summarizing what was tried.
+- `cprof doctor` gains the same live-validate-and-cache capability for every bedrock profile's recorded
+  `AWS_PROFILE` (after the existing `aws configure list-profiles` pre-check from the 2026-10-27 fix-up pass), so a
+  plain `doctor` run also keeps the cache warm for profiles a recent `new` never touched — catching drift (a
+  profile that worked yesterday and is SCP-denied today) without waiting for the next profile creation. Like `new`,
+  a cache hit (either verdict) is trusted with no re-probe.
+- `AWS_REGION`/`AWS_DEFAULT_REGION` and the Anthropic model vars are untouched by any of this — only which
+  `AWS_PROFILE` value ends up in `profile.env` can change.
+
+### Components
+
+- `tools/claude-profile/cprof-auth-health.zsh` (new file, sourced by `cprof.zsh`; kept separate from
+  `cprof-auth.zsh` purely to keep each file under hq's 200-line file-size guidance): the health cache file
+  `${CPROF_ROOT:-$HOME/claude-profiles}/.aws-profile-health`, one line per profile,
+  `profile\tstatus\tchecked_at\tdetail` (`status`: `good`|`bad`; `checked_at`: UTC `%Y%m%dT%H%M%SZ`, the same stamp
+  style as `cprof-link.zsh`'s `link-src`) — plain text, no JSON dependency, atomic tmp+mv write, `umask 077`,
+  upserting a profile's row in place rather than appending a duplicate. Functions: `_cprof_aws_health_read`/
+  `_cprof_aws_health_write` (cache I/O, `$reply`-convention reads matching `cprof.zsh`'s `_cprof_scalars`),
+  `_cprof_aws_health_latest_good`, `_cprof_aws_is_credential_process` (`aws configure get credential_process
+  --profile <p>`), `_cprof_aws_classify` (the text-matching rule above, isolated and independently testable),
+  `_cprof_aws_bedrock_probe` (the bounded live call; classifies and caches `good`/`bad`, never `inconclusive`), and
+  `_cprof_aws_find_substitute` (the search order above, shared by `new` and `doctor`).
+- `tools/claude-profile/cprof-auth.zsh`: `_cprof_bedrock_snapshot` now runs the `AWS_PROFILE` candidate through a
+  new orchestrator, `_cprof_aws_heal_profile` (cprof-auth-health.zsh), before writing it; `_cprof_doctor_bedrock_env`
+  consults the cache (and probes-and-caches on a miss) for each profile whose `AWS_PROFILE` already resolves in
+  `aws configure list-profiles`, WARNing when the cached/just-probed verdict is `bad`.
+- `tools/claude-profile/cprof.zsh`: one new `source` line for `cprof-auth-health.zsh`; no change to `_cprof_new`'s
+  call sequence (still calls `_cprof_bedrock_snapshot` right after writing `auth` = `bedrock`).
+
+### Interfaces (exact messages)
+
+- Substitution found: `cprof: WARN: ambient AWS_PROFILE '<bad>' is denied for Bedrock (<detail>); substituting
+  '<good>' instead -- pass a different AWS_PROFILE before 'cprof new' to override`.
+- Nothing found: `cprof: WARN: ambient AWS_PROFILE '<bad>' is denied for Bedrock (<detail>) and no working AWS
+  profile was found to substitute; snapshotting '<bad>' anyway -- fix its AWS access, or export a working
+  AWS_PROFILE, before 'cprof new <name> --auth bedrock'` (the profile is still created, exit 0 — a healing failure
+  is a WARN, never a `new` failure).
+- Inconclusive: `cprof: WARN: could not validate AWS profile '<name>' for Bedrock (<detail>); snapshotting it as-is
+  -- run 'cprof doctor' to re-check later`.
+- `doctor`, per bedrock profile whose cached/probed `AWS_PROFILE` verdict is `bad`: `WARN: <name>'s profile.env
+  AWS_PROFILE ('<value>') is cached bad for Bedrock (<detail>); see <root>/.aws-profile-health` (plain `print`, no
+  `cprof: ` prefix, matching the other `doctor` rows from the 2026-10-27 extension).
+
+### Non-goals
+
+1. No new flag or env var: healing is always-on for `--auth bedrock`, per the owner's "works out of the box"
+   requirement.
+2. No automated repair of a *stale cached* verdict beyond re-probing on a cache miss: a `good`/`bad` row is trusted
+   until something (a later `new` or `doctor` run for a profile with no entry yet) happens to re-probe it. There is
+   no TTL/expiry and no `cprof` subcommand to force-invalidate a row; deleting `.aws-profile-health` by hand clears
+   it.
+3. No change to oauth profiles, to the 2026-10-26 `_cprof_auth_apply` pass-through semantics, or to the tiered
+   render's region source.
+4. No attempt to suppress or pre-empt a `credential_process` profile's own `aws sso login` retry: a browser prompt
+   during the probe is accepted exactly as the owner ruled, never raced or killed by the outer timeout bound.
+
+### Verification
+
+`tools/claude-profile/test_cprof-auth.zsh`: hermetic cases (own isolated `CPROF_ROOT`, a mock `aws` on its own
+`PATH` entry answering `configure get credential_process`/`configure list-profiles`/`bedrock
+list-inference-profiles` purely from profile-name prefix and env vars, with a call log asserting both which
+profiles were live-probed and in what order) cover: a cached-`good` candidate snapshotting unchanged with no live
+call; a cached-`bad` candidate with a cached-`good` already available substituting straight from the cache, also
+with no live call; a cached-`bad` candidate with nothing cached `good` triggering a live search that tries
+non-`credential_process` profiles first and stops at the first `good`, caching every candidate it actually tried;
+every candidate exhausted with no `good` found falling back to the broken ambient profile with the unmissable WARN;
+an unknown candidate validated live and cached on success; `_cprof_aws_classify` in isolation (`AccessDenied` +
+SCP-deny text is `bad`; `ExpiredToken`/`UnauthorizedSSOTokenError`/no-credentials/anything else is `inconclusive`;
+exit 0 is `good`); an inconclusive probe writing no cache row; and `cprof doctor` live-validating and caching a
+bedrock profile's `AWS_PROFILE` that `cprof new` never touched, then trusting that cache (no re-probe) on a later
+run. The full existing suite (`test_cprof.zsh`, `test_cprof-link.zsh`, `test_cprof-checks.zsh`,
+`test_cprof-auth.zsh`) passes unchanged.
+
+A real end-to-end check against the owner's actual AWS setup (browser login explicitly authorized, though none was
+needed -- the cached SSO token was still usable) forced `AWS_PROFILE=adx-dev` ambient and ran `cprof new --auth
+bedrock` for a scratch profile: `adx-dev` was correctly classified `bad` (the real response was `AccessDeniedException
+... User: arn:...assumed-role/AWSReservedSSO_SGWS-SBX-PowerUser_.../Xavier.Thomas@sgws.com is not authorized to
+perform: bedrock:ListInferenceProfiles ... with an explicit deny in a service control policy: arn:...`, account
+`202533503908`; the classifier matched on the full response, the 220-char-truncated cached detail cuts off before
+the "explicit deny" phrase itself) and auto-substituted with `digital-foundations-nonprod-sso` (account
+`194872823696` -- the first non-`credential_process` profile in `aws configure list-profiles` order that validated
+good; see Known gap below), with `.aws-profile-health` afterward showing both verdicts. A second scratch profile
+created with `digital-foundations-nonprod-sso` already ambient and cached `good` confirmed the no-op path: `aws`
+was removed from `PATH` entirely for that run, and it still succeeded unchanged, proving no live call was made;
+`.aws-profile-health`'s `checked_at` for that row was unchanged afterward. Both scratch profiles were removed
+afterward; the two real cache rows were deliberately left in place (accurate, useful information, not test debris).
+
+**Known gap, found live, not fixed by this extension (out of the approved plan's scope):** the substitute search
+has no concept of a "primary" profile alias vs. the internal raw SSO profile it is layered on (here,
+`digital-foundations-nonprod` vs. `digital-foundations-nonprod-sso`, the latter commented `Do NOT use this profile
+directly in tools` in the owner's own `~/.aws/config`). Both are non-`credential_process` and both resolve
+Bedrock access for the same account, so the search -- which only groups by `credential_process` and otherwise
+takes `aws configure list-profiles`' order verbatim -- stops at whichever sorts first, which happened to be the
+internal one here. It works (same account, same access), but a profile-naming convention this specific is not
+something a generic search can or should infer; flagged for the owner to decide whether it is worth a future
+"aliases" allowlist.

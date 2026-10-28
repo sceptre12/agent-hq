@@ -159,6 +159,14 @@ that starts it.
    <path>/profile.env by hand` — the profile is still created; add `AWS_PROFILE` to `profile.env` by hand
    afterward, or re-run `new` in a shell that has it exported.
 
+   This step also self-heals a broken `AWS_PROFILE` automatically — no flag, no setup. If the ambient
+   profile turns out to be denied Bedrock access (e.g. an SCP-restricted sandbox account), `new` prints
+   a WARN naming the problem and substitutes a working AWS profile it finds live, so `profile.env` ends
+   up pointing at something that actually works instead of faithfully recording a broken one. A result
+   this validated is cached in `<root>/.aws-profile-health`, so repeat `cprof new`/`cprof doctor` runs
+   with the same profile are instant; a live check may pop a normal browser SSO login if that profile's
+   cached token is stale, same as any other AWS CLI call.
+
 4. Choose models. Claude Code's Bedrock defaults are not pinned, so set model ids in
    `~/claude-profiles/try-bedrock/profile.env`. Model ids and inference profiles are
    specific to your AWS account and region; check which ones yours has. Set all four of

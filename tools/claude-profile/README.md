@@ -99,6 +99,16 @@ or `AWS_REGION` as a default for that profile; see the Bedrock walkthrough in
   - `cprof token <name>`: `'<name>' uses --auth bedrock; it has no token`, exit 1. `ls` shows `[bedrock]` instead of `[token]`.
   - `doctor`: the tier row gains `; auth=bedrock`; with a bedrock profile active, `CLAUDE_CODE_USE_BEDROCK=1` is `ok` in the auth-vars section (WARN if not 1).
     A separate `-- bedrock profile.env rows --` section WARNs per legacy profile with no `profile.env`, or one missing `AWS_PROFILE`.
+  - **Self-heals a broken ambient AWS profile (Extension 2026-10-28), no flag needed.** Before snapshotting, the
+    ambient `AWS_PROFILE` is checked against a persistent health cache (`<root>/.aws-profile-health`, code in
+    `cprof-auth-health.zsh`): cached `good`/`bad` is trusted with no live call; no entry runs one bounded live
+    `aws bedrock list-inference-profiles` check (a browser SSO prompt may occur; accepted). `AccessDenied` + an
+    explicit SCP deny is the only `bad` signal — an expired/missing credential is `inconclusive` (needs a fresh
+    login, not a verdict) and is never cached. A `bad` profile triggers a substitute search (cached-good first,
+    else `aws configure list-profiles`, non-`credential_process` profiles tried first) with a WARN naming the
+    swap; exhausting every candidate falls back to the broken profile anyway, with an unmissable WARN. `cprof
+    doctor` runs the same live-validate-and-cache check for every bedrock profile's recorded `AWS_PROFILE`,
+    keeping the cache warm for profiles a recent `new` never touched.
 
 ## Tier verbs (permission-tiers P2; `architecture/permission-tiers.md` Components 3, D2, D3)
 

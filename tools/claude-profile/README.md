@@ -70,11 +70,18 @@ or `AWS_REGION` as a default for that profile; see the Bedrock walkthrough in
 
 - **oauth** (default): the token file, as above. `use`/`launch` export `CLAUDE_CODE_OAUTH_TOKEN` and unset the higher-precedence auth vars.
 - **bedrock**: `new` writes `auth` = `bedrock`, prompts for no token and writes no token file; it ends
-  `(auth: bedrock, no token; AWS credentials come from your shell)`.
+  `(auth: bedrock, no token; AWS credentials come from your shell)`. It also snapshots the CREATING shell's
+  `AWS_PROFILE`/`AWS_REGION`/`AWS_DEFAULT_REGION` and any `ANTHROPIC_DEFAULT_*_MODEL` vars into `profile.env`
+  (self-contained by default, Extension 2026-10-28), so the profile never has to rely on whatever a later shell
+  happens to have exported; no `AWS_PROFILE` to snapshot prints a WARN instead of a blank/wrong line, and the
+  profile is still created (add it to `profile.env` by hand afterward, or re-run `new` in a shell that has one).
   - `use` and `launch` unset `ANTHROPIC_AUTH_TOKEN ANTHROPIC_API_KEY CLAUDE_CODE_OAUTH_TOKEN CLAUDE_CODE_USE_VERTEX CLAUDE_CODE_USE_FOUNDRY`
     and export `CLAUDE_CODE_USE_BEDROCK=1` with the usual `CLAUDE_CONFIG_DIR` and DISABLE vars. `AWS_PROFILE`, `AWS_REGION`, the `AWS_*`
     keys and `AWS_BEARER_TOKEN_BEDROCK` pass through untouched (from the shell or `profile.env`); `launch` strips the Anthropic vars
     even if `profile.env` sets them. `off` restores everything (`CLAUDE_CODE_USE_BEDROCK` is tracked).
+  - **`profile.env` wins, not just fills a gap:** it is sourced with plain assignments, so a profile's own
+    `AWS_PROFILE`/`AWS_REGION`/`AWS_DEFAULT_REGION` overrides whatever a calling shell already has exported,
+    immunizing the profile against an unrelated already-running shell's AWS context (the bug this closes).
   - `use` honours `profile.env`, including auth vars; `launch` strips them. Do not put Anthropic keys in a bedrock profile's `profile.env`;
     `cprof doctor` warns when one is set.
   - No `AWS_REGION`/`AWS_DEFAULT_REGION`: `cprof: WARN: no AWS_REGION/AWS_DEFAULT_REGION in this shell; Claude Code falls back to the AWS profile's region, then us-east-1` (stderr, exit 0).
@@ -91,6 +98,7 @@ or `AWS_REGION` as a default for that profile; see the Bedrock walkthrough in
   - `launch --dry-run` shows `CLAUDE_CODE_USE_BEDROCK=1 AWS_REGION=<r|unset> AWS_PROFILE=<p|unset>`, never a token.
   - `cprof token <name>`: `'<name>' uses --auth bedrock; it has no token`, exit 1. `ls` shows `[bedrock]` instead of `[token]`.
   - `doctor`: the tier row gains `; auth=bedrock`; with a bedrock profile active, `CLAUDE_CODE_USE_BEDROCK=1` is `ok` in the auth-vars section (WARN if not 1).
+    A separate `-- bedrock profile.env rows --` section WARNs per legacy profile with no `profile.env`, or one missing `AWS_PROFILE`.
 
 ## Tier verbs (permission-tiers P2; `architecture/permission-tiers.md` Components 3, D2, D3)
 

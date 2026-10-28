@@ -108,6 +108,7 @@ _cprof_doctor() {
   (( hit )) || print -r -- "ok: no unexcluded ancestor files"
   _cprof_doctor_tiers
   _cprof_doctor_links
+  _cprof_doctor_bedrock_env
 
   if (( run_claude )); then
     if (( ${+commands[claude]} )); then

@@ -79,6 +79,17 @@ except Exception: sys.exit(1)
 [[ -x "$HOOK" ]] || die "hook script not executable"
 for v in ANTHROPIC_API_KEY ANTHROPIC_TOKEN OPENAI_API_KEY OPENROUTER_API_KEY GOOGLE_API_KEY GEMINI_API_KEY NOUS_API_KEY HF_TOKEN GITHUB_TOKEN GH_TOKEN; do unset $v; done
 export HERMES_HOME CLAUDE_CODE_OAUTH_TOKEN
+# Corporate TLS-inspecting proxy re-signs all outbound HTTPS with its own root CA, which
+# uv's bundled webpki-roots don't trust -> `pm install`/`uv sync` fail with UnknownIssuer.
+# Verified empirically (2026-10-29): SSL_CERT_FILE/REQUESTS_CA_BUNDLE are NOT read by uv
+# 0.13.5 unless system-certs mode is already on; `--system-certs`/UV_SYSTEM_CERTS IS read
+# and works unmodified, because this machine's macOS System keychain already trusts the
+# corporate root (security find-certificate confirms it), so no custom CA bundle is
+# needed. UV_NATIVE_TLS is the deprecated alias of UV_SYSTEM_CERTS and is already in
+# pm/index_config.py's PRISTINE FORWARDED_UV_SETTINGS allowlist (UV_SYSTEM_CERTS is not),
+# so exporting it here - scoped only to this script's own exec'd process tree, never the
+# caller's shell - needs zero changes to the pinned hermes-agent source.
+export UV_NATIVE_TLS=1
 if (( GW )); then
   # (1) config.yaml via Hermes's own loader (fail-closed; backup_config neutralised: the loader would otherwise write backups/ into HERMES_HOME)
   [[ -x "$GW_PY" ]] || die "code-dir interpreter missing"

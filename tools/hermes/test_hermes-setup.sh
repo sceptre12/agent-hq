@@ -134,7 +134,7 @@ else echo "SKIP (not counted): /bin/ps unusable here; the seed success path was 
 GH="$FX/gw"; GHH="$GH/claude-profiles/hermes"; GHOME="$GHH/h1-home"; CODE="$GHH/hermes-agent"; HKP="$GHH/bin/pre-tool-call.sh"
 mkdir -p "$GHH/bin" "$GHOME/work" "$CODE/hermes_cli" "$FX/gbin" "$GHOME/tools/python-3.14.7+20260901-darwin-arm64/bin"; chmod 700 "$GHOME"
 cp "$SETUP/pre-tool-call.sh" "$HKP"; chmod 555 "$HKP"
-printf '#!/bin/sh\nprintf "stub-hermes args=%%s host=%%s token_set=%%s\\n" "$*" "${API_SERVER_HOST:-}" "${CLAUDE_CODE_OAUTH_TOKEN:+1}"\n' >"$CODE/hermes"; chmod 755 "$CODE/hermes"
+printf '#!/bin/sh\nprintf "stub-hermes args=%%s host=%%s token_set=%%s uv_native_tls=%%s\\n" "$*" "${API_SERVER_HOST:-}" "${CLAUDE_CODE_OAUTH_TOKEN:+1}" "${UV_NATIVE_TLS:-}"\n' >"$CODE/hermes"; chmod 755 "$CODE/hermes"
 : >"$CODE/hermes_cli/__init__.py"
 printf 'import os\ndef backup_config(*a, **k):\n    open(os.path.join(os.path.dirname(__file__), "..", "BACKUP_RAN"), "w").write("x")\n' >"$CODE/hermes_cli/config_backups.py"
 printf 'import json\nimport hermes_cli.config_backups as b\ndef load_user_config_effective(path, fail_closed=False):\n    b.backup_config()\n    return json.load(open(path))\n' >"$CODE/hermes_cli/config_effective.py"
@@ -156,6 +156,7 @@ reset_gw() { cfg 127.0.0.1; allow; envf "API_SERVER_KEY=dummy-not-a-credential";
 TOKV=CLAUDE_CODE_OAUTH_TOKEN=dummy-not-a-credential
 reset_gw; gup $TOKV "$SETUP/hermes-up" gateway run
 eq "gw branch: all checks pass: rc 0" "$rc" 0; has "gw branch: execs the stub hermes with 'gateway run' and API_SERVER_HOST=127.0.0.1" "$out" "stub-hermes args=gateway run host=127.0.0.1 token_set=1"
+has "gw branch: UV_NATIVE_TLS=1 reaches the exec'd hermes process (corporate-proxy cert fix, scoped to this exec only)" "$out" "uv_native_tls=1"
 [ ! -e "$CODE/BACKUP_RAN" ] && pass "gw branch: the loader's backup_config is neutralised" || fail "gw branch: backup_config ran"
 hasnt "gw branch: the token value is never printed" "$out" "dummy-not-a-credential"
 reset_gw; cfg 0.0.0.0; gup $TOKV "$SETUP/hermes-up" gateway run
@@ -177,6 +178,7 @@ reset_gw; gup $TOKV HERMES_YOLO_MODE=1 "$SETUP/hermes-up" gateway run; has "gw: 
 reset_gw; gup "$SETUP/hermes-up" gateway run; has "gw: missing token refused" "$out" "CLAUDE_CODE_OAUTH_TOKEN missing from env"
 # CLI mode: the argument whitelist (refusals are rc 1; accepted forms exec the stub)
 reset_gw; gup $TOKV "$SETUP/hermes-up" chat -q hello; eq "cli: chat -q <text> accepted: rc 0" "$rc" 0; has "cli: stub gets exactly the whitelisted args" "$out" "stub-hermes args=chat -q hello"
+has "cli: UV_NATIVE_TLS=1 reaches the exec'd hermes process on the CLI branch too" "$out" "uv_native_tls=1"
 gup $TOKV "$SETUP/hermes-up" --yolo; eq "cli: unknown arg refused: rc 1" "$rc" 1; has "cli: unknown arg reason" "$out" "arg not whitelisted: --yolo"
 gup $TOKV "$SETUP/hermes-up" gateway start; eq "cli: 'gateway start' is not the gateway form: refused" "$rc" 1; has "cli: gateway start reason" "$out" "arg not whitelisted: gateway"
 gup $TOKV "$SETUP/hermes-up" chat -q; has "cli: -q without a value refused" "$out" "-q needs a value"

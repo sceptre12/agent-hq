@@ -13,7 +13,7 @@ BUMP: major
 JUSTIFICATION: MAJOR — change to which projects are gated (path filter /
   apps-only-scope / examples-e2e exclusion change), matching the rubric's
   "any change to which projects are gated" clause.
-RUBRIC SOURCE: context-docs-worktrees/foundation-semver/projects/FoundationSemver/decisions/dft-deployment-check.md
+RUBRIC SOURCE: ~/projects/context-docs/projects/FoundationSemver/decisions/dft-deployment-check.md
 ```
 
 **Scenario 2 — Minor bump: additive, backward-compatible change**
@@ -26,7 +26,7 @@ RUBRIC SOURCE: context-docs-worktrees/foundation-semver/projects/FoundationSemve
 BUMP: minor
 JUSTIFICATION: MINOR — new optional executor schema option that defaults to
   today's behavior, matching the rubric's additive-surface-growth clause.
-RUBRIC SOURCE: context-docs-worktrees/foundation-semver/projects/FoundationSemver/decisions/dft-deployment-check.md
+RUBRIC SOURCE: ~/projects/context-docs/projects/FoundationSemver/decisions/dft-deployment-check.md
 ```
 
 **Scenario 3 — Patch bump: non-behavioral fix**
@@ -40,7 +40,7 @@ BUMP: patch
 JUSTIFICATION: PATCH — bug fix restores documented behavior (parsed-version
   comparison instead of string grep), matching the rubric's named PATCH
   example verbatim.
-RUBRIC SOURCE: context-docs-worktrees/foundation-semver/projects/FoundationSemver/decisions/dft-deployment-check.md
+RUBRIC SOURCE: ~/projects/context-docs/projects/FoundationSemver/decisions/dft-deployment-check.md
 ```
 
 **Scenario 4 — Ambiguous change: no confident match**

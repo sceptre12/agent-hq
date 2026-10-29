@@ -11,22 +11,28 @@
 # Usage: hermes-remember "<content to remember>"
 #        echo "<content>" | hermes-remember        (stdin fallback, for longer content)
 #
-# Residual risk, by design (not over-engineered away): curl -H "Authorization: Bearer $KEY" puts
-# the key in this script's own argv, which is visible to `ps aux` for the life of the curl call.
-# We accept this: the call is to 127.0.0.1 only, on a single-user dev machine, for the lifetime of
-# one short-lived curl process -- not materially different from any other localhost CLI tool using
-# -H for auth. The alternative (curl --header @- piping the header from stdin) adds real
-# complexity (an extra fd dance, harder error handling) for a residual risk that doesn't change
-# the actual exposure surface this script is meant to close, which is the CALLING AGENT's own
-# transcript/context -- not root/ps access on the local box. If this script is ever wrapped to
-# run on a shared or remote host, revisit this tradeoff.
+# The Authorization header is written to a 0600 temp file and passed to curl via -H @"$file"
+# instead of a literal -H "Authorization: Bearer $KEY" argv string, so the key never appears in
+# `ps aux` output for the life of the curl call. This is the same recipe this file's own
+# manual-fallback recipe (SKILL.md) prescribes for the identical exposure. All temp files
+# (header, response, stderr) are created 0600 and cleaned up via an EXIT/INT/TERM trap, so a
+# killed script never leaves them behind.
 set -u
+umask 077   # every file this script creates below (header, response, stderr) comes out 0600
 
 HERMES_HOME="${HERMES_HOME:-$HOME/claude-profiles/hermes/h1-home}"
 ENVFILE="$HERMES_HOME/.env"
 GW_URL="http://127.0.0.1:8642/v1/chat/completions"
 
 err() { print -u2 -r -- "hermes-remember: $1"; exit 1; }
+
+# Temp files for this run only. Declared before anything is written to them so the trap is
+# live for the whole script.
+RESP_FILE="/tmp/.hermes-remember-resp.$$"
+ERR_FILE="/tmp/.hermes-remember-err.$$"
+HDR_FILE="/tmp/.hermes-remember-hdr.$$"
+cleanup() { rm -f "$RESP_FILE" "$ERR_FILE" "$HDR_FILE"; }
+trap cleanup EXIT INT TERM
 
 [[ -f "$ENVFILE" ]] || err "HERMES_HOME .env not found at $ENVFILE (is Hermes installed on this machine?)"
 [[ -r "$ENVFILE" ]] || err "HERMES_HOME .env not readable: $ENVFILE"
@@ -52,29 +58,29 @@ msg = "remember this: " + os.environ["CONTENT"]
 sys.stdout.write(json.dumps({"model": "hermes-agent", "messages": [{"role": "user", "content": msg}]}))
 ')
 
-HTTP_STATUS=$(curl -sS -o /tmp/.hermes-remember-resp.$$ -w '%{http_code}' \
-  -H "Authorization: Bearer $API_KEY" \
+# Write the header to a 0600 temp file -- never a literal "Authorization: Bearer $KEY" on curl's
+# own argv, which `ps aux` could see for the life of the call.
+printf 'Authorization: Bearer %s\n' "$API_KEY" > "$HDR_FILE"
+unset API_KEY
+
+HTTP_STATUS=$(curl -sS -o "$RESP_FILE" -w '%{http_code}' \
+  -H @"$HDR_FILE" \
   -H 'Content-Type: application/json' \
   -H 'X-Hermes-Session-Id: hermes-remember-wrapper' \
   -d "$PAYLOAD" \
   --max-time 30 \
-  "$GW_URL" 2>/tmp/.hermes-remember-err.$$)
+  "$GW_URL" 2>"$ERR_FILE")
 CURL_RC=$?
-unset API_KEY
 
 if (( CURL_RC != 0 )); then
-  ERRMSG="$(cat /tmp/.hermes-remember-err.$$ 2>/dev/null)"
-  rm -f /tmp/.hermes-remember-resp.$$ /tmp/.hermes-remember-err.$$
+  ERRMSG="$(cat "$ERR_FILE" 2>/dev/null)"
   err "connection error (curl exit $CURL_RC): ${ERRMSG:-gateway unreachable at $GW_URL}"
 fi
-rm -f /tmp/.hermes-remember-err.$$
 
 if [[ "$HTTP_STATUS" != "200" ]]; then
-  BODY="$(cat /tmp/.hermes-remember-resp.$$ 2>/dev/null)"
-  rm -f /tmp/.hermes-remember-resp.$$
+  BODY="$(cat "$RESP_FILE" 2>/dev/null)"
   err "gateway returned HTTP $HTTP_STATUS (not retrying): ${BODY:0:200}"
 fi
 
-rm -f /tmp/.hermes-remember-resp.$$
 print -r -- "hermes-remember: stored (HTTP 200)"
 exit 0

@@ -8,16 +8,27 @@
 # Usage: hermes-recall "<query>"
 #        echo "<query>" | hermes-recall        (stdin fallback, for longer queries)
 #
-# Same residual-risk note as hermes-remember: curl -H puts the key on this script's own argv,
-# visible to `ps aux` for the life of the curl call to 127.0.0.1 on a single-user dev machine.
-# Accepted tradeoff; see hermes-remember's header comment for the full reasoning.
+# Same header-file approach as hermes-remember: the Authorization header is written to a 0600
+# temp file and passed to curl via -H @"$file" instead of a literal argv string, so the key never
+# appears in `ps aux` output for the life of the curl call. See hermes-remember's header comment
+# for the full reasoning. All temp files (header, response, stderr) are created 0600 and cleaned
+# up via an EXIT/INT/TERM trap, so a killed script never leaves them behind.
 set -u
+umask 077   # every file this script creates below (header, response, stderr) comes out 0600
 
 HERMES_HOME="${HERMES_HOME:-$HOME/claude-profiles/hermes/h1-home}"
 ENVFILE="$HERMES_HOME/.env"
 GW_URL="http://127.0.0.1:8642/v1/chat/completions"
 
 err() { print -u2 -r -- "hermes-recall: $1"; exit 1; }
+
+# Temp files for this run only. Declared before anything is written to them so the trap is
+# live for the whole script.
+RESP_FILE="/tmp/.hermes-recall-resp.$$"
+ERR_FILE="/tmp/.hermes-recall-err.$$"
+HDR_FILE="/tmp/.hermes-recall-hdr.$$"
+cleanup() { rm -f "$RESP_FILE" "$ERR_FILE" "$HDR_FILE"; }
+trap cleanup EXIT INT TERM
 
 [[ -f "$ENVFILE" ]] || err "HERMES_HOME .env not found at $ENVFILE (is Hermes installed on this machine?)"
 [[ -r "$ENVFILE" ]] || err "HERMES_HOME .env not readable: $ENVFILE"
@@ -41,26 +52,27 @@ msg = "what do we know about " + os.environ["QUERY"]
 sys.stdout.write(json.dumps({"model": "hermes-agent", "messages": [{"role": "user", "content": msg}]}))
 ')
 
-HTTP_STATUS=$(curl -sS -o /tmp/.hermes-recall-resp.$$ -w '%{http_code}' \
-  -H "Authorization: Bearer $API_KEY" \
+# Write the header to a 0600 temp file -- never a literal "Authorization: Bearer $KEY" on curl's
+# own argv, which `ps aux` could see for the life of the call.
+printf 'Authorization: Bearer %s\n' "$API_KEY" > "$HDR_FILE"
+unset API_KEY
+
+HTTP_STATUS=$(curl -sS -o "$RESP_FILE" -w '%{http_code}' \
+  -H @"$HDR_FILE" \
   -H 'Content-Type: application/json' \
   -H 'X-Hermes-Session-Id: hermes-recall-wrapper' \
   -d "$PAYLOAD" \
   --max-time 30 \
-  "$GW_URL" 2>/tmp/.hermes-recall-err.$$)
+  "$GW_URL" 2>"$ERR_FILE")
 CURL_RC=$?
-unset API_KEY
 
 if (( CURL_RC != 0 )); then
-  ERRMSG="$(cat /tmp/.hermes-recall-err.$$ 2>/dev/null)"
-  rm -f /tmp/.hermes-recall-resp.$$ /tmp/.hermes-recall-err.$$
+  ERRMSG="$(cat "$ERR_FILE" 2>/dev/null)"
   err "connection error (curl exit $CURL_RC): ${ERRMSG:-gateway unreachable at $GW_URL}"
 fi
-rm -f /tmp/.hermes-recall-err.$$
 
 if [[ "$HTTP_STATUS" != "200" ]]; then
-  BODY="$(cat /tmp/.hermes-recall-resp.$$ 2>/dev/null)"
-  rm -f /tmp/.hermes-recall-resp.$$
+  BODY="$(cat "$RESP_FILE" 2>/dev/null)"
   err "gateway returned HTTP $HTTP_STATUS (not retrying): ${BODY:0:200}"
 fi
 
@@ -74,7 +86,5 @@ try:
 except Exception as e:
     print("hermes-recall: could not parse gateway response: %s" % e, file=sys.stderr)
     sys.exit(1)
-' /tmp/.hermes-recall-resp.$$
-RC=$?
-rm -f /tmp/.hermes-recall-resp.$$
-exit $RC
+' "$RESP_FILE"
+exit $?

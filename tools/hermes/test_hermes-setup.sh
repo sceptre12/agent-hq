@@ -71,6 +71,13 @@ mkdir -p "$HH"; chmod 755 "$HH"; up HERMES_HOME="$HH" "$SETUP/hermes-up"; has "u
 chmod 700 "$HH"; up HERMES_HOME="$HH" "$SETUP/hermes-up"; eq "up: no token in env: rc 1" "$rc" 1; has "up: no token: reason" "$out" "CLAUDE_CODE_OAUTH_TOKEN missing from env"
 up HERMES_HOME="$HH" CLAUDE_CODE_OAUTH_TOKEN=dummy-not-a-credential "$SETUP/hermes-up"; eq "up: no code dir: rc 1, stops before hermes" "$rc" 1; has "up: no code dir: reason" "$out" "cannot read code sha"
 
+# --- 5b. hermes-up: model.provider: bedrock skips the OAuth check (anthropic/unset/absent unchanged, proven above)
+printf 'model:\n  provider: bedrock\nbedrock:\n  region: us-east-1\n' >"$HH/config.yaml"
+up HERMES_HOME="$HH" "$SETUP/hermes-up"; eq "up bedrock: no CLAUDE_CODE_OAUTH_TOKEN needed: rc 1, stops at the next check" "$rc" 1
+has "up bedrock: next refusal is code sha, not the token" "$out" "cannot read code sha"
+hasnt "up bedrock: never mentions CLAUDE_CODE_OAUTH_TOKEN" "$out" "CLAUDE_CODE_OAUTH_TOKEN"
+rm -f "$HH/config.yaml"
+
 # --- 6. hermes-gw: refusals exit 0; the token reaches hermes-up through the environment only
 mkdir -p "$H/bin" "$FH/claude-profiles/<auth-profile>"; TOK="$FH/claude-profiles/<auth-profile>/token"
 printf '#!/bin/sh\nprintf "stub-up args=%%s token_set=%%s\\n" "$*" "${CLAUDE_CODE_OAUTH_TOKEN:+1}"\n' >"$H/bin/hermes-up"; chmod 755 "$H/bin/hermes-up"
@@ -82,6 +89,17 @@ printf 'dummy-not-a-credential\n' >"$TOK"; chmod 644 "$TOK"; up HERMES_HOME="$HH
 printf 'dummy-not-a-credential\n' >"$TOK"; chmod 600 "$TOK"; up HERMES_HOME="$HH" "$SETUP/hermes-gw"
 eq "gw: valid token file: rc 0" "$rc" 0; has "gw: execs hermes-up with exactly 'gateway run' and the token in env" "$out" "stub-up args=gateway run token_set=1"
 hasnt "gw: the token value is never printed" "$out" "dummy-not-a-credential"
+
+# --- 6b. hermes-gw: model.provider: bedrock never touches TOKFILE; execs hermes-up with no OAuth token in env
+rm -f "$TOK"   # prove TOKFILE presence/absence is irrelevant on the bedrock path
+printf 'model:\n  provider: bedrock\nbedrock:\n  region: us-east-1\n' >"$HH/config.yaml"
+up HERMES_HOME="$HH" "$SETUP/hermes-gw"
+eq "gw bedrock: rc 0" "$rc" 0
+eq "gw bedrock: execs hermes-up with 'gateway run' and no token in env" "$out" "stub-up args=gateway run token_set="
+printf 'model:\n  provider: bedrock\nbedrock:\n  region: ""\n' >"$HH/config.yaml"
+up HERMES_HOME="$HH" "$SETUP/hermes-gw"; eq "gw bedrock: empty region refused: rc 0" "$rc" 0
+has "gw bedrock: empty region reason" "$out" "bedrock.region missing or empty in config.yaml"
+rm -f "$HH/config.yaml"
 
 # --- 7. pre-tool-call.sh decisions (python3 -I, fixture HERMES_HOME only)
 HK="$FX/hook"; mkdir -p "$HK/hh/work" "$HK/home"; chmod 700 "$HK/hh"

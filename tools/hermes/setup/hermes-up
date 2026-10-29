@@ -27,7 +27,24 @@ GW_CHAT_KEYS="TELEGRAM_BOT_TOKEN DISCORD_BOT_TOKEN SLACK_BOT_TOKEN WHATSAPP_ENAB
 [[ "$HERMES_HOME" == "$H/h1-home" ]] || die "HERMES_HOME is not $H/h1-home"
 [[ -d "$HERMES_HOME" ]] || die "HERMES_HOME dir missing"
 [[ "$(stat -f %Lp "$HERMES_HOME")" == 700 ]] || die "HERMES_HOME mode not 700"
-[[ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]] || die "CLAUDE_CODE_OAUTH_TOKEN missing from env"
+# Bedrock path (T-bedrock-tokfile): model.provider: bedrock uses AWS credentials (the aws SDK's
+# own chain: IMDS, SSO, env keys), not the Anthropic OAuth token, so CLAUDE_CODE_OAUTH_TOKEN is not
+# required. Detected read-only from config.yaml; anthropic, unset or unparseable falls straight
+# through, unchanged, to the original OAuth check below. Mirrors hermes-gw's parallel check -
+# hermes-up is also invoked directly (chat mode), without going through hermes-gw, so it needs its
+# own detection. architecture/hermes-agent.md section 6.
+BPROVIDER=""
+[[ -f "$HERMES_HOME/config.yaml" ]] && BPROVIDER=$(awk '
+  /^model:[[:space:]]*$/ { inm=1; next }
+  /^[^[:space:]]/ { inm=0 }
+  inm && /^[[:space:]]+provider:/ {
+    sub(/^[[:space:]]+provider:[[:space:]]*/, ""); sub(/[[:space:]]*#.*$/, "")
+    gsub(/^["\x27]|["\x27]$/, ""); print; exit
+  }
+' "$HERMES_HOME/config.yaml" 2>/dev/null)
+if [[ "$BPROVIDER" != "bedrock" ]]; then
+  [[ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]] || die "CLAUDE_CODE_OAUTH_TOKEN missing from env"
+fi
 sha=$(git -C "$CODE" rev-parse HEAD 2>/dev/null) || die "cannot read code sha"
 [[ "$sha" == ${PIN}* ]] || die "code sha ${sha[1,7]} != pin $PIN"
 [[ -z "$(git -C "$CODE" status --porcelain 2>/dev/null)" ]] || die "code dir dirty"

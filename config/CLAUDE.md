@@ -90,3 +90,8 @@
 - Every skill carries kind (standard|fact|default|question), status (proposed|verified|adopted|retired), topic and provenance (source path@sha or ledger id, date, verified-by). Agents write facts, defaults and questions; only the owner's quoted words make a standard or adopt one.
 - A learning is captured after a different agent has verified it, as one skill per topic: update the existing skill, never add a near-duplicate; door down, queue it and capture at the next window. Verifiers read the capture back before PASS and record `capture: <slug|none>`.
 - A finding marked "owner to decide" becomes a parked owner question in the same tick; a change that depends on it does not merge before the question is parked.
+## Rule 14 — rm Commands Name Every Target by Full Path (owner 2026-10-28)
+- Owner, 2026-10-28 (chat, verbatim): "Moving forward any commands that have rm inside of it must spell out the full paths for all the things that are being removed."
+- Owner, 2026-10-28 (chat, verbatim): "ADd that as a global rule for all agents that rm commands names the full path of everything it removes, with no variables, wildcards or bash -c scripts hiding the target"
+- Every command containing rm names the full path of everything it removes, with no variables, wildcards or bash -c scripts hiding the target.
+- Scope: all agents.

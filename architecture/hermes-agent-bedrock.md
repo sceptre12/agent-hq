@@ -9,8 +9,8 @@ its own file rather than growing `hermes-agent.md` (already 262 lines) further �
 ## 18. Extension (2026-10-29): Hermes on AWS Bedrock — consolidated record
 
 **Status: session record, not a Proposed line pending ratification** except where a specific fix
-below is itself flagged as needing one (none did; see Fix 4). Covers four fixes made the same
-evening, in order, plus one new finding reported — not fixed — at the end.
+below is itself flagged as needing one (none did; see Fix 4). Covers five fixes made across two
+sessions, in order, plus one finding that is only half-closed — see Fix 5.
 
 ### The original problem
 
@@ -119,9 +119,45 @@ one-shot CLI/chat smoke test earlier this session succeeded because it ran insid
 shell carrying a then-valid `AWS_PROFILE`/SSO session; the persistent daemon has neither. Deciding
 how to scope AWS credential delivery into an always-on background process (which `AWS_PROFILE`,
 whether to accept SSO's periodic-reauth requirement or move to another credential source) is a
-security-relevant, owner-level call — not made here. **Flagged for the owner, not fixed.**
+security-relevant, owner-level call — not made here. **Flagged for the owner, not fixed** at the
+time this paragraph was written; see Fix 5 below for the plist half of the fix. The SSO-refresh
+half is, by deliberate design, still not automated.
 
 **First-verified note:** this is the first time agent-hq's tooling has gotten the Hermes gateway
 process itself genuinely running and HTTP-reachable on AWS Bedrock, closing the "unmeasured" gap
 INSTALL.md §1 flags for the Bedrock backend — with the one caveat above still open on the live
 AWS-credential path for the daemon specifically (CLI/chat mode's Bedrock path was already clean).
+
+### Fix 5 — plist carries `AWS_PROFILE`/`AWS_REGION`; SSO refresh stays manual (this commit)
+
+Closes the plist half of the gap the previous paragraph flagged: the launchd job's
+`EnvironmentVariables` dict carried `HERMES_HOME`, `PATH`, and `HOME` only — no AWS identity, so
+even a valid SSO session would never reach the daemon's boto3/botocore session. Added
+`AWS_PROFILE=digital-foundations-nonprod` and `AWS_REGION=us-east-1` to the dict, in both the repo
+template (`tools/hermes/setup/hermes-up.plist.example`) and the real installed plist
+(`~/Library/LaunchAgents/local.Xavier.Thomas.hermes-up.plist`), so a future re-install doesn't
+reintroduce this gap the same way Fix 4 handled the stale `GW_PY`/`PATH` string. `plutil -lint` on
+the installed copy: OK.
+
+Reloaded the LaunchAgent (`launchctl bootout` + `bootstrap`) to pick up the change.
+`launchctl print` confirmed `state = running` with a stable PID (no respawn loop), and its own
+`environment` block lists `AWS_PROFILE => digital-foundations-nonprod` and
+`AWS_REGION => us-east-1` directly — independently reconfirmed against the live process with
+`ps eww <pid>`, which showed both vars actually set in the launchd-spawned process's real
+environment, not just in the plist source. That is the fix: proven mechanically correct and
+independent of whether AWS itself can authenticate at any given moment.
+
+**SSO status at verification time, and why that's a separate axis:** this session's
+`aws sts get-caller-identity --profile digital-foundations-nonprod` succeeded — the SSO session
+was valid, not expired as it had been ~4h earlier when the previous paragraph was written. SSO
+session validity is time-bounded and intermittent by design (that's the whole point of SSO
+expiry); it does not retroactively make the prior paragraph wrong, and it does not make this
+plist fix any less necessary — without the env vars present, the daemon would still fail even
+with a valid session, since `AWS_PROFILE` wouldn't be selected at all. Whenever the session is
+expired again (expected, routine, not a bug), the daemon will fail the same
+`could not resolve credentials from session` way until a human runs
+`aws sso login --profile digital-foundations-nonprod` in an interactive browser flow. **This is
+intentional, not an oversight:** per the design stance already set by the previous paragraph, a
+background daemon should not silently handle its own credential refresh — SSO re-auth is left as
+a manual, human-initiated step, consistent with treating credential delivery into an always-on
+process as a security-relevant decision rather than something to automate away quietly.

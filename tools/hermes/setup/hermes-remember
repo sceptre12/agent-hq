@@ -1,0 +1,80 @@
+#!/bin/zsh
+# hermes-remember: write-direction wrapper for the Hermes shared-memory gateway
+# (http://127.0.0.1:8642). Added after an incident where multiple calling agents built the
+# Authorization header themselves (per the hermes-memory skill's old documented recipe), got a
+# correct Bash sandbox denial reading the key into a header, then fell back to the Read tool on
+# $HERMES_HOME/.env directly -- which succeeded and exposed the real API_SERVER_KEY in plaintext
+# across several subagent transcripts. This script exists so the calling agent never sees the
+# raw key at all: it runs entirely inside this process, passes content only, and returns
+# success/failure.
+#
+# Usage: hermes-remember "<content to remember>"
+#        echo "<content>" | hermes-remember        (stdin fallback, for longer content)
+#
+# Residual risk, by design (not over-engineered away): curl -H "Authorization: Bearer $KEY" puts
+# the key in this script's own argv, which is visible to `ps aux` for the life of the curl call.
+# We accept this: the call is to 127.0.0.1 only, on a single-user dev machine, for the lifetime of
+# one short-lived curl process -- not materially different from any other localhost CLI tool using
+# -H for auth. The alternative (curl --header @- piping the header from stdin) adds real
+# complexity (an extra fd dance, harder error handling) for a residual risk that doesn't change
+# the actual exposure surface this script is meant to close, which is the CALLING AGENT's own
+# transcript/context -- not root/ps access on the local box. If this script is ever wrapped to
+# run on a shared or remote host, revisit this tradeoff.
+set -u
+
+HERMES_HOME="${HERMES_HOME:-$HOME/claude-profiles/hermes/h1-home}"
+ENVFILE="$HERMES_HOME/.env"
+GW_URL="http://127.0.0.1:8642/v1/chat/completions"
+
+err() { print -u2 -r -- "hermes-remember: $1"; exit 1; }
+
+[[ -f "$ENVFILE" ]] || err "HERMES_HOME .env not found at $ENVFILE (is Hermes installed on this machine?)"
+[[ -r "$ENVFILE" ]] || err "HERMES_HOME .env not readable: $ENVFILE"
+
+# Content: positional arg first, stdin fallback for longer content. Never echoed back.
+if [[ $# -ge 1 ]]; then
+  CONTENT="$1"
+elif [[ ! -t 0 ]]; then
+  CONTENT="$(cat -)"
+else
+  err 'usage: hermes-remember "<content>"  (or pipe content via stdin)'
+fi
+[[ -n "$CONTENT" ]] || err "empty content: nothing to remember"
+
+# Read the key into a local var used only inside this process. Never echoed, never written to a
+# file, never logged. Scoped with `local`-style discipline via a subshell-free single read.
+API_KEY="$(grep '^API_SERVER_KEY=' "$ENVFILE" | head -1 | cut -d= -f2-)"
+[[ -n "$API_KEY" ]] || err "API_SERVER_KEY not found or empty in $ENVFILE"
+
+PAYLOAD=$(API_KEY="$API_KEY" CONTENT="$CONTENT" /usr/bin/python3 -I -c '
+import json, os, sys
+msg = "remember this: " + os.environ["CONTENT"]
+sys.stdout.write(json.dumps({"model": "hermes-agent", "messages": [{"role": "user", "content": msg}]}))
+')
+
+HTTP_STATUS=$(curl -sS -o /tmp/.hermes-remember-resp.$$ -w '%{http_code}' \
+  -H "Authorization: Bearer $API_KEY" \
+  -H 'Content-Type: application/json' \
+  -H 'X-Hermes-Session-Id: hermes-remember-wrapper' \
+  -d "$PAYLOAD" \
+  --max-time 30 \
+  "$GW_URL" 2>/tmp/.hermes-remember-err.$$)
+CURL_RC=$?
+unset API_KEY
+
+if (( CURL_RC != 0 )); then
+  ERRMSG="$(cat /tmp/.hermes-remember-err.$$ 2>/dev/null)"
+  rm -f /tmp/.hermes-remember-resp.$$ /tmp/.hermes-remember-err.$$
+  err "connection error (curl exit $CURL_RC): ${ERRMSG:-gateway unreachable at $GW_URL}"
+fi
+rm -f /tmp/.hermes-remember-err.$$
+
+if [[ "$HTTP_STATUS" != "200" ]]; then
+  BODY="$(cat /tmp/.hermes-remember-resp.$$ 2>/dev/null)"
+  rm -f /tmp/.hermes-remember-resp.$$
+  err "gateway returned HTTP $HTTP_STATUS (not retrying): ${BODY:0:200}"
+fi
+
+rm -f /tmp/.hermes-remember-resp.$$
+print -r -- "hermes-remember: stored (HTTP 200)"
+exit 0

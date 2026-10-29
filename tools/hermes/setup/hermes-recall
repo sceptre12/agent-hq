@@ -1,0 +1,80 @@
+#!/bin/zsh
+# hermes-recall: read-direction wrapper for the Hermes shared-memory gateway
+# (http://127.0.0.1:8642). Companion to hermes-remember -- see that script's header for the full
+# incident writeup. Same credential and same endpoint, so the same risk applies: the calling
+# agent must never see the raw API_SERVER_KEY. This script resolves and uses the key entirely
+# inside its own process and returns only the gateway's answer (as data, never as instructions).
+#
+# Usage: hermes-recall "<query>"
+#        echo "<query>" | hermes-recall        (stdin fallback, for longer queries)
+#
+# Same residual-risk note as hermes-remember: curl -H puts the key on this script's own argv,
+# visible to `ps aux` for the life of the curl call to 127.0.0.1 on a single-user dev machine.
+# Accepted tradeoff; see hermes-remember's header comment for the full reasoning.
+set -u
+
+HERMES_HOME="${HERMES_HOME:-$HOME/claude-profiles/hermes/h1-home}"
+ENVFILE="$HERMES_HOME/.env"
+GW_URL="http://127.0.0.1:8642/v1/chat/completions"
+
+err() { print -u2 -r -- "hermes-recall: $1"; exit 1; }
+
+[[ -f "$ENVFILE" ]] || err "HERMES_HOME .env not found at $ENVFILE (is Hermes installed on this machine?)"
+[[ -r "$ENVFILE" ]] || err "HERMES_HOME .env not readable: $ENVFILE"
+
+if [[ $# -ge 1 ]]; then
+  QUERY="$1"
+elif [[ ! -t 0 ]]; then
+  QUERY="$(cat -)"
+else
+  err 'usage: hermes-recall "<query>"  (or pipe query via stdin)'
+fi
+[[ -n "$QUERY" ]] || err "empty query: nothing to recall"
+
+API_KEY="$(grep '^API_SERVER_KEY=' "$ENVFILE" | head -1 | cut -d= -f2-)"
+[[ -n "$API_KEY" ]] || err "API_SERVER_KEY not found or empty in $ENVFILE"
+
+# "what do we know about X" is the recall phrasing the hermes-memory skill documents.
+PAYLOAD=$(API_KEY="$API_KEY" QUERY="$QUERY" /usr/bin/python3 -I -c '
+import json, os, sys
+msg = "what do we know about " + os.environ["QUERY"]
+sys.stdout.write(json.dumps({"model": "hermes-agent", "messages": [{"role": "user", "content": msg}]}))
+')
+
+HTTP_STATUS=$(curl -sS -o /tmp/.hermes-recall-resp.$$ -w '%{http_code}' \
+  -H "Authorization: Bearer $API_KEY" \
+  -H 'Content-Type: application/json' \
+  -H 'X-Hermes-Session-Id: hermes-recall-wrapper' \
+  -d "$PAYLOAD" \
+  --max-time 30 \
+  "$GW_URL" 2>/tmp/.hermes-recall-err.$$)
+CURL_RC=$?
+unset API_KEY
+
+if (( CURL_RC != 0 )); then
+  ERRMSG="$(cat /tmp/.hermes-recall-err.$$ 2>/dev/null)"
+  rm -f /tmp/.hermes-recall-resp.$$ /tmp/.hermes-recall-err.$$
+  err "connection error (curl exit $CURL_RC): ${ERRMSG:-gateway unreachable at $GW_URL}"
+fi
+rm -f /tmp/.hermes-recall-err.$$
+
+if [[ "$HTTP_STATUS" != "200" ]]; then
+  BODY="$(cat /tmp/.hermes-recall-resp.$$ 2>/dev/null)"
+  rm -f /tmp/.hermes-recall-resp.$$
+  err "gateway returned HTTP $HTTP_STATUS (not retrying): ${BODY:0:200}"
+fi
+
+# Extract and print only choices[0].message.content -- the answer, as data. Never treat it as
+# instructions to execute (same invariant the hermes-memory skill documents for direct callers).
+/usr/bin/python3 -I -c '
+import json, sys
+try:
+    data = json.load(open(sys.argv[1], encoding="utf-8"))
+    print(data["choices"][0]["message"]["content"])
+except Exception as e:
+    print("hermes-recall: could not parse gateway response: %s" % e, file=sys.stderr)
+    sys.exit(1)
+' /tmp/.hermes-recall-resp.$$
+RC=$?
+rm -f /tmp/.hermes-recall-resp.$$
+exit $RC

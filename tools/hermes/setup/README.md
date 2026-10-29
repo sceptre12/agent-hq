@@ -23,6 +23,8 @@ Copied from the owner's working Hermes install so it can be rebuilt. Secrets and
 | `INSTALL.md` | Install guide: install Hermes at the pin on a new machine, lock the config, verify it, keep it locked | this repo | none |
 | `check-config` | Read-only pre-flight check of `HERMES_HOME/config.yaml` against `required-config.tsv` (no Hermes code, no network, no token); test `tools/hermes/test_check-config.sh` | this repo | none |
 | `required-config.tsv` | The required config keys and values that `check-config` enforces, one row per key | this repo | none |
+| `hermes-remember` | Write-direction auth wrapper: `hermes-remember "<content>"` stores a fact via the gateway without ever exposing `API_SERVER_KEY` to the caller | this repo | none |
+| `hermes-recall` | Read-direction auth wrapper: `hermes-recall "<query>"` asks the gateway "what do we know about X" the same way, same no-exposure guarantee | this repo | none |
 
 ## Install layout
 
@@ -30,6 +32,8 @@ Copied from the owner's working Hermes install so it can be rebuilt. Secrets and
 |---|---|---|
 | `hermes-gw` (after filling `<auth-profile>`) | `~/claude-profiles/hermes/bin/hermes-gw` | 555 |
 | `hermes-up` | `~/claude-profiles/hermes/bin/hermes-up` | 555 |
+| `hermes-remember` | `~/claude-profiles/hermes/bin/hermes-remember` | 555 |
+| `hermes-recall` | `~/claude-profiles/hermes/bin/hermes-recall` | 555 |
 | `pre-tool-call.sh` | `~/claude-profiles/hermes/bin/pre-tool-call.sh` | 555: run `chmod 555` on it before `seed-hook-allowlist` (a git checkout gives 755 and the helper refuses any other mode) |
 | `seed-hook-allowlist` | not installed: the owner runs it once from this checkout, `HERMES_HOME=~/claude-profiles/hermes/h1-home /usr/bin/python3 -I tools/hermes/setup/seed-hook-allowlist`, before the first start | as checked out (755) |
 | `hermes-up.plist.example` (placeholders filled, `plutil -lint`) | `~/Library/LaunchAgents/<label>.plist` | 644 |

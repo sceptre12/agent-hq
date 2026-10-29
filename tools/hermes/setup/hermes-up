@@ -4,7 +4,7 @@
 # Gateway mode (`gateway run`): every refusal prints `hermes-up: gateway refused: <reason>` and exits 0 (launchd KeepAlive SuccessfulExit=false then parks the job, no respawn storm). CLI-mode refusals: rc 1, unchanged.
 set -u
 setopt extendedglob
-PIN=908e4a4            # owner-confirmed 2026-10-12 (installed HEAD 908e4a4b44480912ae3571833492c1aeac2d0eda, verified by rev-parse)
+PIN=bf0203a            # re-pinned 2026-10-28, owner-decided (architecture/hermes-agent.md §17; was 908e4a4b44480912ae3571833492c1aeac2d0eda); installed HEAD bf0203a794a07aac3ff764972ab9087baa4e4f4e, verified by rev-parse
 H="$HOME/claude-profiles/hermes"; CODE="$H/hermes-agent"
 HOOK="$H/bin/pre-tool-call.sh"
 GW=0; [[ $# -eq 2 && "$1" == gateway && "$2" == run ]] && GW=1

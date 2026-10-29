@@ -31,7 +31,12 @@ is the expected, healthy result of this skill not applying there, not a bug. See
 1. **Locate the key.** The gateway's shared secret lives in `API_SERVER_KEY` inside the
    Hermes profile's `.env` (on this machine: `~/claude-profiles/hermes/h1-home/.env`). Never
    put the raw key on a command line's argv or in shell history — always route it through a
-   header file as in step 3.
+   header file as in step 3. **Deviation from the member pattern:** this reads the key
+   directly from HERMES_HOME's `.env` rather than the established member-pattern's separate
+   custody copy at `~/claude-profiles/<auth-profile>/api-key` (`tools/brain/templates/
+   member-CLAUDE.md` line ~54; `architecture/hermes-agent-memory.md` §5.D line ~117), which
+   exists so other sessions don't need direct access into Hermes's own HERMES_HOME. Both work;
+   prefer the custody copy when a session has one available.
 2. **Pick a model id.** Default is `hermes-agent`. If unsure, confirm with:
    ```
    KEY=$(grep '^API_SERVER_KEY=' ~/claude-profiles/hermes/h1-home/.env | cut -d= -f2-)
@@ -85,7 +90,12 @@ is the expected, healthy result of this skill not applying there, not a bug. See
 ## Provenance
 Provenance: `architecture/hermes-agent.md` §10 ("API surface", decision D9 — "Access for
 other sessions through the API door, as data only") and `architecture/hermes-agent-memory.md`
-§5.D ("The door for other sessions") — this skill operationalizes that already-ratified door
-for sessions beyond agent-hq's own brain-group members, including non-cprof-linked sessions.
+§5.D ("The door for other sessions") document the design this skill operationalizes for
+sessions beyond agent-hq's own brain-group members, including non-cprof-linked sessions —
+cited here as design references, not as proof of ratification. Both source docs' own header
+reads "Status: DRAFT (T-462). Not ratified... plan-check PC-H3 pending," and D9 itself carries
+no owner-ruling citation (unlike D7, which cites one). As of this writing PC-H3 is still open —
+no newer reference in this repo marks it closed. The door's live behavior is verified to work;
+its formal ratification is not yet complete.
 Recipe cross-checked against `tools/brain/templates/member-CLAUDE.md` (Memory section) so the
 header name/format matches what brain-group members already use.

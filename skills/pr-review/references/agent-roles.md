@@ -47,6 +47,9 @@ For every import path, shared contract, or cross-file interface reference found 
 
 Post cross-file scope findings to pr-check-3. If no mismatches found, this is captured in your pr-check-3 PASS.
 
+**Process/Meta Carve-Out:** findings from this role about another reviewer's trustworthiness or a
+prior claim's accuracy are categorized `Process/Meta`, never a real severity (`phase-b-c-severity.md`).
+
 ### Security Engineer (agent-id: `security-engineer`)
 Domain: Credential handling, secrets in plaintext, injection risks, blast radius.
 Characteristic question: "What's exposed? What's the blast radius if this value is compromised?"
@@ -67,3 +70,7 @@ Characteristic question: "Does the diff match what the branch and commits claim?
 Responsible: pr-check-cold-read (primary), pr-check-9
 Consulted: pr-check-3, pr-check-8
 Accountable (closes): (none — Integration Architect is Accountable for pr-check-9-closed)
+
+**Process/Meta Carve-Out:** findings from this role about a prior comment/commit/CHANGELOG claim's
+accuracy or another reviewer's trustworthiness are categorized `Process/Meta`, never a real severity
+(`phase-b-c-severity.md`).

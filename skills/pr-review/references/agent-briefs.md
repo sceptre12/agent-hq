@@ -20,7 +20,10 @@
 Phase 1 agents run independently. Do NOT read peer findings. Post findings, signal done, exit.
 
 ---
-Scope: lint and typecheck out of scope, gates attached. Do not report lint or typecheck findings; the gate results are attached to the review.
+Scope: lint and typecheck out of scope, gates attached. Do not report lint or typecheck findings; the
+gate results are attached to the review. This excludes only mechanical `tsc` compiler diagnostics —
+semantic type-accuracy review (overly-loose `any`/`unknown` usage, mismatched type narrowing) remains
+in scope for Full Stack Engineer.
 
 You are **[ROLE NAME]** on a 7-member code review panel — Phase 1 (Independent Analysis).
 
@@ -29,9 +32,13 @@ data_dir: [DATA_DIR]
 diff_path: [DIFF_PATH]
 repo: [REPO]
 pr_number: [PR_NUMBER]
-# local-diff mode: replace the two lines above with
+full_diff_path: [FULL_DIFF_PATH — pr mode only; consult only to judge whether changes in diff_path fit the existing surrounding code; do not raise findings about code outside diff_path that it doesn't touch. Not present in local-diff mode.]
+jira_context: [JIRA_CONTEXT — pr mode only, optional; if present, use as background for your existing checks (e.g. does the diff implement what the ticket describes) — it does not create a new check or severity rule. Omitted if no ticket was detected, or in local-diff mode.]
+# local-diff mode: replace repo/pr_number/full_diff_path/jira_context above with
 #   repo_dir: [REPO_DIR]   base_ref: [BASE_REF]   head_ref: [HEAD_REF]   head_sha: [HEAD_SHA]
-#   and read files only via `git -C "$REPO_DIR" show "$HEAD_SHA:<path>"` (never the working tree, never a write)
+#   and read files only via `git -C "$REPO_DIR" show "$HEAD_SHA:<path>"` (never the working tree, never a write).
+#   Never read .env*, *hermesAuth*, or any credential/token/key file this way even if the path exists
+#   at HEAD_SHA; if such a path is needed for context, PASS the check and note the gap instead.
 artifact_paths:
   - [DIFF_PATH]
 reference_paths:
@@ -65,7 +72,11 @@ curl -s -X POST http://localhost:${PORT}/mcp \
   -d "{\"jsonrpc\":\"2.0\",\"method\":\"tools/call\",\"params\":{\"name\":\"broadcast\",\"arguments\":{\"from_agent\":\"[your-agent-id]\",\"topic\":\"pr-check-N\",\"content\":\"${CONTENT}\",\"session_id\":\"[SESSION_ID]\"}},\"id\":N}"
 ```
 
-Content format: `FINDING | pr-check-N | [Blocking/Medium/Advisory] | [description] | Fix: [recommendation]`
+Content format: `FINDING | pr-check-N | [Blocking/Medium/Advisory/Process-Meta] | [description] | Fix: [recommendation]`
+
+Use `Process-Meta` — never a real severity — for findings about the accuracy of prior
+comments/commits/CHANGELOG entries or another reviewer's trustworthiness, not for findings about the
+code under review itself (severity definition and handling: `phase-b-c-severity.md`).
 
 If no issues found: `PASS | pr-check-N | No issues found`
 
@@ -120,7 +131,10 @@ Phase 2 agents run after all Phase 1 agents complete. The bus is fully populated
 Read peer findings and deliberate. Accountable agents close their checks.
 
 ---
-Scope: lint and typecheck out of scope, gates attached. Do not report lint or typecheck findings; the gate results are attached to the review.
+Scope: lint and typecheck out of scope, gates attached. Do not report lint or typecheck findings; the
+gate results are attached to the review. This excludes only mechanical `tsc` compiler diagnostics —
+semantic type-accuracy review (overly-loose `any`/`unknown` usage, mismatched type narrowing) remains
+in scope for Full Stack Engineer.
 
 You are **[ROLE NAME]** on a 7-member code review panel — Phase 2 (Deliberation).
 
@@ -129,9 +143,13 @@ data_dir: [DATA_DIR]
 diff_path: [DIFF_PATH]
 repo: [REPO]
 pr_number: [PR_NUMBER]
-# local-diff mode: replace the two lines above with
+full_diff_path: [FULL_DIFF_PATH — pr mode only; consult only to judge whether changes in diff_path fit the existing surrounding code; do not raise findings about code outside diff_path that it doesn't touch. Not present in local-diff mode.]
+jira_context: [JIRA_CONTEXT — pr mode only, optional; if present, use as background for your existing checks (e.g. does the diff implement what the ticket describes) — it does not create a new check or severity rule. Omitted if no ticket was detected, or in local-diff mode.]
+# local-diff mode: replace repo/pr_number/full_diff_path/jira_context above with
 #   repo_dir: [REPO_DIR]   base_ref: [BASE_REF]   head_ref: [HEAD_REF]   head_sha: [HEAD_SHA]
-#   and read files only via `git -C "$REPO_DIR" show "$HEAD_SHA:<path>"` (never the working tree, never a write)
+#   and read files only via `git -C "$REPO_DIR" show "$HEAD_SHA:<path>"` (never the working tree, never a write).
+#   Never read .env*, *hermesAuth*, or any credential/token/key file this way even if the path exists
+#   at HEAD_SHA; if such a path is needed for context, PASS the check and note the gap instead.
 artifact_paths:
   - [DIFF_PATH]
 reference_paths:

@@ -22,6 +22,11 @@ dispatch prompt; an empty value is a set value and is validated like any other.
 | `SEAT_ID`, `MEMBER_SESSION_NAME` | local-diff (record line 2): `^[a-z0-9-]+$` (A.6) | `missing`, `format` |
 | `TASK_ID` | local-diff (record line 2): `^[A-Za-z0-9_-]+$` (A.6) | `missing`, `format` |
 
+**Migration note:** a caller written against the pre-1.1.0 contract (`REPO` + `PR_NUMBER` only, no
+`PR_REVIEW_MODE`) now silently resolves to `local-diff` here and fails this step on missing
+`REPO_DIR`/`RECORD_PATH`/etc. instead of getting the `pr`-mode review it previously got implicitly —
+it must now set `PR_REVIEW_MODE=pr` explicitly.
+
 `ROLES` derives from the seat table of `review-tailor-<slug>.md` (lines 2+, `seat-id<TAB>role<TAB>reason`).
 The D2.3 `pr-review` inputs (INTERFACES 1.5.0, AM-5 10-B2; `RUN_HOME` in a run, INTERFACES 1.9.0 AM-9 V15b) are `ROLES`, `SEAT_ID`, `RUN_HOME`, `RUN_ID`, `SUBTASK`,
 `BUS_PORT`, `SECURITY_AUDIT`, `PR_REVIEW_MODE`, `STACK_BASE`, `STACK_HEAD` and `RECORD_PATH`; `RUN_ID` and

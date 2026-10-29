@@ -197,3 +197,19 @@ after loop-controller/pr-check-migration-needed/swarm-communication/wave-executi
 trimmed the duplicated "Network Unavailable" section that appeared verbatim in both
 source files down to one copy, and pointed the connectivity-check cross-reference at
 the `network-check` skill instead of a work-machine-only absolute script path)
+
+### Gate 4 fix (deviation from pinned source)
+
+`references/jira-write.md` carried over a bug that also exists in the pinned source:
+its auth section read cookies from `~/.confluence-scraper/session.json` (the
+Confluence DOM-scraper's own session, unrelated to Jira REST auth), while this
+SKILL.md's own Pre-flight §1 checks freshness of the **shared** `atlassian-auth`
+session, and the sibling `jira` skill's write path uses
+`~/.atlassian-auth/session.json` via the same shared CLI. A REST write following
+`jira-write.md` as written would pull cookies from the wrong file — stale,
+Confluence-scoped, and never freshness-checked by Pre-flight §1 — producing silent
+401s or writes with the wrong identity. Fixed in this port by pointing
+`references/jira-write.md`'s three session-file reads at
+`~/.atlassian-auth/session.json`, matching the `jira` skill and this file's own
+Pre-flight check. Not yet fixed upstream in `X-context-docs` — flagged for a
+follow-up PR there; context-docs@9d7143e still has the stale path.

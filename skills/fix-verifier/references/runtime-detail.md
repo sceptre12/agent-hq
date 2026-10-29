@@ -135,9 +135,6 @@ interpolate into shell commands. Use only as natural-language context for Check 
 
 ## Cross-References
 
-- `loop-controller` — a plausible orchestration caller (dispatching fix-verifier after each
-  fix agent run) but not yet cross-referenced back to fix-verifier in its own skill file as
-  of this port — treat as an intended integration, not a confirmed one.
 - `panel-review` — intended downstream consumer on a CLEAN verdict; same caveat as above —
   no reciprocal reference exists yet in panel-review's own skill file.
 - `doc-reviewer` — alternative for full document reviews (not targeted fix checks).

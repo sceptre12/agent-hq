@@ -14,7 +14,7 @@ description: >
   work — e.g. "run my N-wave audit/migration/release spec" — and needs it
   executed wave by wave with gates between stages and fix-loop recovery on
   failure. Not for iterating one artifact against a single rubric to
-  convergence — that's loop-controller/the loop-system (see Disambiguation below).
+  convergence (see Disambiguation below).
 ---
 
 ## Trigger
@@ -171,7 +171,7 @@ Establish this before doing anything else — it decides every dispatch call bel
 
 ## Bus Rules
 
-Match the idiom of `skills/loop-controller/SKILL.md`:
+Match this corpus's standard bus-posting idiom:
 
 - **Identity preflight:** sample `/health` 2-3 times before the first dispatch;
   every response must show `status: ok`, `db_ok: true` when present, **and**
@@ -249,13 +249,14 @@ domain files.
 | `{SESSION_ID}-fix-loop-output` | fix agents | Fix-loop iteration results. |
 | `{SESSION_ID}-escalation` | controller | Halt signal on fix-loop cap exhaustion; written, not polled. |
 
-## Disambiguation vs the loop system
+## Disambiguation: staged waves vs. single-rubric convergence
 
-`wave-execution` is **not** `loop-controller`. The `loop-*` family
-(`architecture/loop-system.md`) converges **one artifact** on **one rubric** — a
-single runner→grader→fixer cycle with the same criteria every iteration.
 `wave-execution` runs **staged, heterogeneous waves**, each with its own goal,
-work items and exit criteria, one wave's output feeding the next.
+work items and exit criteria, one wave's output feeding the next — distinct
+from converging **one artifact** on **one rubric** via a single
+runner→grader→fixer cycle with the same criteria every iteration (the pattern
+a since-removed `loop-*` skill family implemented; nothing currently installed
+covers that case).
 
 ## Red flags
 
@@ -265,7 +266,7 @@ work items and exit criteria, one wave's output feeding the next.
 | "The spec doesn't say what 'exit_criteria' means here, I'll use my own judgment." | Halt at preflight (`spec-format.md` rule 8) — vague criteria are the caller's defect. |
 | "One fix attempt failed, let me just try a few more times past the cap." | The cap is non-negotiable — escalate at `fix_loop_cap` exhaustion. |
 | "I'll skip the `/health` identity check, the bus was clearly just started by me (or the caller handed it over)." | Sample 2-3x and compare `app_name`/`data_dir` anyway — a stale port file looks identical to a fresh one. |
-| "This looks like a loop-controller job since it's iterating." | One artifact/one rubric is the loop; staged different-goal stages are wave-execution. |
+| "This looks like a single-rubric convergence job since it's iterating." | One artifact/one rubric is that pattern; staged different-goal stages are wave-execution. |
 | "I'll hardcode this caller's wave count/paths into the skill to save a step." | Wave count, goals and paths come from `spec_root` only. |
 | "A blocker passed, so release its dependents before their lane is free." | Release only when every blocker passed, the lane is free and a slot is free (`max_concurrent`, gate and fix agents included). |
 | "There's a completion post for this work_item on the pinned topic, so it passed." | Only the checkpoint says what passed; an unrecorded post is re-gated. |

@@ -43,8 +43,18 @@ defects (`skills/panel-consultation/references/reconcile-brief.md`).
   shape, and the reconcile-mode record names.
 - No `triggers.md` or `preflight.md` — both belonged to the retired simulated design (see
   Discrepancies found, below); not carried into the real-panel redesign.
-- Symlink-installed at `~/.claude/skills/panel-consultation` →
-  `~/projects/agent-hq/skills/panel-consultation` (ADR 0009 convention, confirmed live).
+- Symlink-installed at `~/.claude/skills/panel-consultation` → **should** point at
+  `~/projects/agent-hq/skills/panel-consultation` per ADR 0009 convention; verified live
+  2026-10-29 via `readlink` and found instead pointing at
+  `~/projects/context-docs/skills/panel-consultation` (the retired, pre-591630f simulated
+  design) — a stale installation this record surfaces but does not fix (out of this pass's
+  scope; the correct source of truth is this repo's checked-in `skills/panel-consultation/`).
+
+Scope note (2026-10-29): the Interfaces/Constraints/Settled decisions/Known gaps sections below
+predate the 591630f real-panel redesign and still describe the retired single-context simulated
+design (4 named modes, Step 4/Step 5 pre-flight, "no file/artifact produced by default") —
+superseded in substance by "What This Is" and "Components" above; left as-is pending a fuller
+refresh of their own (out of this pass's stated scope).
 
 ## Interfaces
 

@@ -10,7 +10,7 @@ gref() { print -u2 -r -- "hermes-gw: $1"; exit 0; }
 # credentials (verified by hermes-up/the aws SDK chain) are the real auth mechanism, not the
 # Anthropic OAuth TOKFILE below. Detected read-only; any other value (anthropic, unset, absent or
 # unparseable config) falls straight through, unchanged, to the OAuth TOKFILE path. Never touches
-# TOKFILE or CLAUDE_CODE_OAUTH_TOKEN. architecture/hermes-agent.md section 6.
+# TOKFILE or CLAUDE_CODE_OAUTH_TOKEN. architecture/hermes-agent-bedrock.md §18 (Fix 1).
 if [[ "${HERMES_HOME:-}" == "$H/h1-home" && -f "$HERMES_HOME/config.yaml" ]]; then
   BPROVIDER=$(awk '
     /^model:[[:space:]]*$/ { inm=1; next }

@@ -259,4 +259,8 @@ flagged here as a known effect of a prior, separately-authorized change, not of 
 **Procedure:** per INSTALL.md §8, steps 2-5 are repeated after the edit — in this case as re-verification only
 (the clone was not re-run through the upstream installer, since it is already at the target commit): `check-config`
 re-run against the locked config (unaffected by `PIN`, still `CHECK-CONFIG: PASS`), and `hermes-up`'s own
-`sha == ${PIN}*` check re-confirmed against the new value.
+`sha == ${PIN}*` check re-confirmed against the new value. The installed `~/claude-profiles/hermes/bin/hermes-up`
+copy was re-pinned the same reproducible way INSTALL.md step 4 installs it — `install -m 555
+tools/hermes/setup/hermes-up ~/claude-profiles/hermes/bin/hermes-up` (a plain `cp` onto the mode-555 file fails,
+INSTALL.md §8) — rather than asserted to already match; the installed copy now diffs clean against the repo
+template.

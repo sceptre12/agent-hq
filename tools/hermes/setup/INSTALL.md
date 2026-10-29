@@ -39,7 +39,7 @@ Fixed layout:
 ## 1. Prerequisites
 
 - macOS on Apple silicon (arm64). `hermes-up` hard-codes the installer's bundled Python directory
-  `python-3.14.7+20260901-darwin-arm64` (`GW_PY`). Other platforms are not covered: see step 9.
+  `python-3.14.9+20261021-darwin-arm64` (`GW_PY`). Other platforms are not covered: see step 9.
 - zsh, git and `/usr/bin/python3` (the hook, `check-config` and `seed-hook-allowlist` run on it). On a fresh Mac
   `/usr/bin/python3` and `git` are stubs until the Xcode command line tools are installed (`xcode-select --install`).
 - A Claude OAuth token in a cprof profile. `cprof` is a zsh function: load it with
@@ -108,7 +108,7 @@ git -C ~/claude-profiles/hermes/hermes-agent rev-parse HEAD          # starts wi
 git -C ~/claude-profiles/hermes/hermes-agent status --porcelain      # empty (hermes-up refuses a dirty code dir)
 ls ~/claude-profiles/hermes/h1-home/config.yaml
 stat -f %Lp ~/claude-profiles/hermes/h1-home                          # 700 (re-run chmod 700 if not)
-ls -d ~/claude-profiles/hermes/h1-home/tools/python-3.14.7+20260901-darwin-arm64   # the dir hermes-up expects
+ls -d ~/claude-profiles/hermes/h1-home/tools/python-3.14.9+20261021-darwin-arm64   # the dir hermes-up expects
 ```
 
 Then verify that the installer started nothing, and turn off the update check before anything else runs. This is
@@ -406,7 +406,7 @@ From `setup/README.md` ("Known gaps", accepted 2026-10-25 by the owner), verbati
 
 Unmeasured on a new machine:
 
-- The bundled Python dir `python-3.14.7+20260901-darwin-arm64` is a constant in `hermes-up` (`GW_PY`) and in the
+- The bundled Python dir `python-3.14.9+20261021-darwin-arm64` is a constant in `hermes-up` (`GW_PY`) and in the
   plist `PATH`. If the installer at the pin creates a different dir, which is likely on another OS or CPU, the
   gateway refuses with `code-dir interpreter missing`. Changing the constant is a change to `hermes-up`.
 - The `--commit` flag syntax, and whether `config set` handles nested lists are not

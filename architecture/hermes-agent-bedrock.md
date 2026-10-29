@@ -6,8 +6,8 @@ of everything it took to run Hermes on AWS Bedrock instead of its documented Ant
 Split out as its own file rather than growing `hermes-agent.md` (already 262 lines) further — same
 precedent as `hermes-agent-memory.md`, `hermes-agent-ops.md` and `claude-profile-02.md`/`-03.md`.
 Fixes 5 and 6 (later sessions, closing the daemon's live AWS-credential path) continue in
-`hermes-agent-bedrock-2.md` — same §18, same precedent, split again once this file neared the
-200-line cap.
+`hermes-agent-bedrock-2.md` — same §18, same precedent, split again once this file neared ADR
+0021's ~500-line soft default for non-skill docs (not a hard cap).
 
 ## 18. Extension (2026-10-29): Hermes on AWS Bedrock — consolidated record, part 1
 

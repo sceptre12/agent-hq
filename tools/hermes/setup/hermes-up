@@ -12,7 +12,7 @@ die() { if (( GW )); then print -u2 -r -- "hermes-up: gateway refused: $1"; exit
 # H2c gateway-mode constants. The toolset list MUST match config-edits.md (agent.disabled_toolsets, 25 names).
 GW_TOOLSETS="terminal code_execution web browser browser-cdp browser-use computer_use vision image_gen video_gen video tts cronjob delegation x_search kanban project start_chat desktop_ui feishu_doc feishu_drive hermes-yuanbao connections discord discord_admin"
 # Code-dir interpreter = the one the installed launcher (hermes-agent/.hermes/bin/hermes line 2) execs.
-GW_PY="${HERMES_HOME:-/nonexistent}/tools/python-3.14.7+20260901-darwin-arm64/bin/python3"
+GW_PY="${HERMES_HOME:-/nonexistent}/tools/python-3.14.9+20261021-darwin-arm64/bin/python3"
 # Dependency-state root (the ONE location variable; tests point a patched copy elsewhere). The loader's third-party deps (ruamel,
 # hermes_yaml.py:10) are NOT in GW_PY's own site-packages; the real launcher adds the committed generation's site-packages in
 # hermes_bootstrap.py:613 activate_dependencies (pm/environments.py:448): <installs>/<install_key>/facts.json -> packages.venv.environment.

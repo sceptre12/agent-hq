@@ -132,13 +132,13 @@ else echo "SKIP (not counted): /bin/ps unusable here; the seed success path was 
 # reads JSON), a stub `git` on PATH (the only seam: it reports the README pin sha, clean tree), a python wrapper at the path hermes-up
 # expects, and a facts.json selector. hermes-up itself is run unmodified; no real HERMES_HOME, network or Hermes ever runs.
 GH="$FX/gw"; GHH="$GH/claude-profiles/hermes"; GHOME="$GHH/h1-home"; CODE="$GHH/hermes-agent"; HKP="$GHH/bin/pre-tool-call.sh"
-mkdir -p "$GHH/bin" "$GHOME/work" "$CODE/hermes_cli" "$FX/gbin" "$GHOME/tools/python-3.14.7+20260901-darwin-arm64/bin"; chmod 700 "$GHOME"
+mkdir -p "$GHH/bin" "$GHOME/work" "$CODE/hermes_cli" "$FX/gbin" "$GHOME/tools/python-3.14.9+20261021-darwin-arm64/bin"; chmod 700 "$GHOME"
 cp "$SETUP/pre-tool-call.sh" "$HKP"; chmod 555 "$HKP"
 printf '#!/bin/sh\nprintf "stub-hermes args=%%s host=%%s token_set=%%s uv_native_tls=%%s\\n" "$*" "${API_SERVER_HOST:-}" "${CLAUDE_CODE_OAUTH_TOKEN:+1}" "${UV_NATIVE_TLS:-}"\n' >"$CODE/hermes"; chmod 755 "$CODE/hermes"
 : >"$CODE/hermes_cli/__init__.py"
 printf 'import os\ndef backup_config(*a, **k):\n    open(os.path.join(os.path.dirname(__file__), "..", "BACKUP_RAN"), "w").write("x")\n' >"$CODE/hermes_cli/config_backups.py"
 printf 'import json\nimport hermes_cli.config_backups as b\ndef load_user_config_effective(path, fail_closed=False):\n    b.backup_config()\n    return json.load(open(path))\n' >"$CODE/hermes_cli/config_effective.py"
-printf '#!/bin/sh\nexec /usr/bin/python3 "$@"\n' >"$GHOME/tools/python-3.14.7+20260901-darwin-arm64/bin/python3"; chmod 755 "$GHOME/tools/python-3.14.7+20260901-darwin-arm64/bin/python3"
+printf '#!/bin/sh\nexec /usr/bin/python3 "$@"\n' >"$GHOME/tools/python-3.14.9+20261021-darwin-arm64/bin/python3"; chmod 755 "$GHOME/tools/python-3.14.9+20261021-darwin-arm64/bin/python3"
 printf '#!/bin/sh\ncase "$*" in\n *"rev-parse HEAD"*) echo "${STUB_GIT_SHA:-bf0203a794a07aac3ff764972ab9087baa4e4f4e}" ;;\n *"status --porcelain"*) [ -n "${STUB_GIT_DIRTY:-}" ] && echo " M x" ;;\n *) exit 1 ;;\nesac\n' >"$FX/gbin/git"; chmod 755 "$FX/gbin/git"
 h16="$(printf '%s' "$(cd "$CODE" && pwd -P)" | shasum -a 256 | cut -c1-16)"; ST="$GHOME/installs/$h16"; mkdir -p "$ST/environments/e1/lib/python3.12/site-packages"
 printf 'version = 3.12.0\n' >"$ST/environments/e1/pyvenv.cfg"; printf '{"packages":{"venv":{"environment":"%s"}}}' "$ST/environments/e1" >"$ST/facts.json"

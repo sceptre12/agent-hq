@@ -1,6 +1,6 @@
 # Jira REST Write Patterns — Jira Ticket Quality
 
-Auth uses cookie-based sessions from `~/.confluence-scraper/session.json`.
+Auth uses cookie-based sessions from `~/.atlassian-auth/session.json`.
 All writes target `https://sgwsagility.atlassian.net`.
 
 ---
@@ -12,7 +12,7 @@ Run this before any REST call to get the cookie string and XSRF token:
 ```bash
 COOKIE=$(python3 -c "
 import json
-with open('/Users/Xavier.Thomas/.confluence-scraper/session.json') as f:
+with open('/Users/Xavier.Thomas/.atlassian-auth/session.json') as f:
     s = json.load(f)
 cookies = s.get('cookies', [])
 print('; '.join(f\"{c['name']}={c['value']}\" for c in cookies))
@@ -20,7 +20,7 @@ print('; '.join(f\"{c['name']}={c['value']}\" for c in cookies))
 
 XSRF=$(python3 -c "
 import json
-with open('/Users/Xavier.Thomas/.confluence-scraper/session.json') as f:
+with open('/Users/Xavier.Thomas/.atlassian-auth/session.json') as f:
     s = json.load(f)
 cookies = s.get('cookies', [])
 token = next((c['value'] for c in cookies if 'xsrf' in c['name'].lower()), '')
@@ -76,7 +76,7 @@ import json, subprocess, sys
 
 KEY = "FOUND-XXXX"
 BASE = "https://sgwsagility.atlassian.net"
-SESSION_FILE = "/Users/Xavier.Thomas/.confluence-scraper/session.json"
+SESSION_FILE = "/Users/Xavier.Thomas/.atlassian-auth/session.json"
 
 with open(SESSION_FILE) as f:
     s = json.load(f)

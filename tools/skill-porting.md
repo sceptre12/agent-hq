@@ -28,6 +28,10 @@ for the duration of the port.
     close.
   - **SKIP** — work-specific; not ported.
   - **RULING-NEEDED** — ambiguous; the user decides.
+  - **RECONCILE** — the skill already has a divergent partial copy in hq from an earlier
+    porting pass (real independent edits on both sides, not just a stub). Route it
+    through `panel-consultation`'s `MODE=reconcile` before Gate 2, instead of
+    re-deriving a one-off reconciliation plan per occurrence.
 - Record a **dependency scan** per skill: does it call the bus (send/read/broadcast)?
   Does it assume a PM2-managed service? Does it call an external SaaS (Confluence,
   Harness, etc.)? Is it multi-file (`SKILL-02.md`, `SKILL-03.md`, …) rather than a single
@@ -37,8 +41,8 @@ for the duration of the port.
   the source text is the check. Where grep and a prior expectation disagree, record the
   disagreement — don't silently pick one.
 
-**Exit:** every skill in the snapshot has a triage class and a recorded dependency scan
-(even if the answer is "none").
+**Exit:** every skill in the snapshot has a triage class (including RECONCILE where it
+applies) and a recorded dependency scan (even if the answer is "none").
 
 ## 2. Gate 1 — Provenance & lineage
 

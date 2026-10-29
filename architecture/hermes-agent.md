@@ -3,7 +3,7 @@
 **Status: DRAFT (T-462). Not ratified. T6 ratified with changes (all folded); plan-check PC-H3 pending.**
 Changed 2026-10-13: Hermes now holds hq's learnings with memory ON; stale text was rewritten in place, git history keeps it. Owner: "Yes I agree there's no reason to keep around old context more importantly whenever compaction happens that only causes context rot the git history has the changes that were made".
 
-One Hermes Agent install on the owner's Mac: one `HERMES_HOME`, one profile, the profiles' OAuth token (R-z), memory and skills ON and unapproved, an always-on loopback gateway, a read-only digest of hq read through an index skill, and no web, terminal, cron, MCP or chat platforms. "Phase 1" in this doc means this current state; no later phases are planned. Companions: `hermes-agent-memory.md` (learnings design, deliverables, probes), `hermes-agent-ops.md` (§11 owner controls, §12 claims, §14 risks).
+One Hermes Agent install on the owner's Mac: one `HERMES_HOME`, one profile, the profiles' OAuth token (R-z), memory and skills ON and unapproved, an always-on loopback gateway, a read-only digest of hq read through an index skill, and no web, terminal, cron, MCP or chat platforms. "Phase 1" in this doc means this current state; no later phases are planned. Companions: `hermes-agent-memory.md` (learnings design, deliverables, probes), `hermes-agent-ops.md` (§11 owner controls, §12 claims, §14 risks), `hermes-agent-bedrock.md`/`hermes-agent-bedrock-2.md` (§18 parts 1-2, 2026-10-29: running Hermes on AWS Bedrock instead of Anthropic OAuth — consolidated record of every fix this took).
 Tags: DOC = page text fetched by WebFetch 2026-10-08; MEASURED = read at file:line (source @908e4a4 is `~/claude-profiles/hermes/hermes-agent`); UNMEASURED/UNVERIFIED = not read or run. Every "should/must" is Proposed pending owner ratification (Rule 9) unless it quotes an owner ruling or is labelled "brain default under R-q (owner may veto)". Project record: `projects/hermes-agent.md`. Author: <brain-profile>.
 
 ## 1. Goal
@@ -228,3 +228,39 @@ Moved to `hermes-agent-ops.md` (same section numbers).
 - **R-e** (2026-10-08): "Alright global rule for the brain. Any questions asked provide them one at time in a clear concise manner"
 - **2026-10-13** (memory ON, learnings in Hermes, no approval, no helper): verbatim in `hermes-agent-memory.md` §1.
 - Open owner question (one): is configuration-only egress limiting acceptable, or should Hermes run behind a default-deny proxy? (ops R8; the owner ruled "not in a container" in R-ab).
+
+## 17. Extension (2026-10-28): re-pin `PIN` to `bf0203a` (owner-decided)
+
+**Status: owner-decided (relayed to the executing session 2026-10-28); not a Proposed line pending ratification.**
+Required by `tools/hermes/setup/INSTALL.md` §8: "Moving the pin is a design change: edit `PIN` in `hermes-up`
+through an agent-hq design record, then repeat steps 2-5." This section is that record.
+
+**What changed:** `PIN` in `tools/hermes/setup/hermes-up` (and the installed copy, `~/claude-profiles/hermes/bin/hermes-up`)
+moves from `908e4a4b44480912ae3571833492c1aeac2d0eda` (owner-confirmed 2026-10-12, §0's "pinned to `908e4a4`") to
+`bf0203a794a07aac3ff764972ab9087baa4e4f4e`, confirmed by `git -C ~/claude-profiles/hermes/hermes-agent rev-parse HEAD`
+on 2026-10-28.
+
+**Why:** the installed clone at `~/claude-profiles/hermes/hermes-agent` was found to have drifted off the
+908e4a4 pin in the course of normal operation — 14 days of upstream commits landed on it, with no single
+re-pin decision behind the move. Rather than reset the clone back to 908e4a4, the owner explicitly decided to
+accept the newer commit as the new pin.
+
+**Two separate things on the clone, not to be conflated:** (1) the base commit `bf0203a794a07aac3ff764972ab9087baa4e4f4e`
+is what `PIN` now names — this is the upstream commit the clone's `HEAD` points at. (2) a one-line local edit to
+`pm/index_config.py` (adding `UV_SYSTEM_CERTS` to `FORWARDED_UV_SETTINGS`), from an earlier, separate session task,
+sits uncommitted on top of that `HEAD` — `git -C ~/claude-profiles/hermes/hermes-agent status --porcelain` shows it
+as a working-tree modification, not a commit; `rev-parse HEAD` is unaffected by it and still reads `bf0203a...`.
+`PIN` intentionally names the base commit, not a hash that would include this patch. Practical consequence,
+found while re-verifying this extension: `hermes-up`'s own startup check `[[ -z "$(git -C "$CODE" status
+--porcelain)" ]] || die "code dir dirty"` refuses to start — in chat **and** gateway mode — for as long as that
+one-line edit stays uncommitted, independently of the `PIN` value. This extension does not resolve that; it is
+flagged here as a known effect of a prior, separately-authorized change, not of the re-pin itself.
+
+**Procedure:** per INSTALL.md §8, steps 2-5 are repeated after the edit — in this case as re-verification only
+(the clone was not re-run through the upstream installer, since it is already at the target commit): `check-config`
+re-run against the locked config (unaffected by `PIN`, still `CHECK-CONFIG: PASS`), and `hermes-up`'s own
+`sha == ${PIN}*` check re-confirmed against the new value. The installed `~/claude-profiles/hermes/bin/hermes-up`
+copy was re-pinned the same reproducible way INSTALL.md step 4 installs it — `install -m 555
+tools/hermes/setup/hermes-up ~/claude-profiles/hermes/bin/hermes-up` (a plain `cp` onto the mode-555 file fails,
+INSTALL.md §8) — rather than asserted to already match; the installed copy now diffs clean against the repo
+template.

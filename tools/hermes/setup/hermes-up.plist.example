@@ -5,7 +5,7 @@
   replace every placeholder, then `plutil -lint` it:
     __LABEL__  launchd label, for example local.<owner>.hermes-up
     __HOME__   absolute path of the owner's home (launchd does not expand $HOME or ~)
-  The bundled Python directory in PATH (python-3.14.7+20260901-darwin-arm64) is the installer's interpreter for the
+  The bundled Python directory in PATH (python-3.14.9+20261021-darwin-arm64) is the installer's interpreter for the
   pinned Hermes commit; change it if the installer's directory name differs. Source and notes: tools/hermes/setup/README.md.
 -->
 <plist version="1.0">
@@ -19,8 +19,10 @@
   <key>EnvironmentVariables</key>
   <dict>
     <key>HERMES_HOME</key><string>__HOME__/claude-profiles/hermes/h1-home</string>
-    <key>PATH</key><string>__HOME__/claude-profiles/hermes/h1-home/tools/python-3.14.7+20260901-darwin-arm64/bin:/usr/bin:/bin</string>
+    <key>PATH</key><string>__HOME__/claude-profiles/hermes/h1-home/tools/python-3.14.9+20261021-darwin-arm64/bin:/opt/homebrew/bin:/usr/bin:/bin</string>
     <key>HOME</key><string>__HOME__</string>
+    <key>AWS_PROFILE</key><string>digital-foundations-nonprod</string>
+    <key>AWS_REGION</key><string>us-east-1</string>
   </dict>
   <key>StandardOutPath</key><string>__HOME__/claude-profiles/hermes/h1-home/logs/gateway.out.log</string>
   <key>StandardErrorPath</key><string>__HOME__/claude-profiles/hermes/h1-home/logs/gateway.err.log</string>

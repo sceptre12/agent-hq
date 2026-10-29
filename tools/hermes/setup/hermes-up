@@ -4,7 +4,7 @@
 # Gateway mode (`gateway run`): every refusal prints `hermes-up: gateway refused: <reason>` and exits 0 (launchd KeepAlive SuccessfulExit=false then parks the job, no respawn storm). CLI-mode refusals: rc 1, unchanged.
 set -u
 setopt extendedglob
-PIN=908e4a4            # owner-confirmed 2026-10-12 (installed HEAD 908e4a4b44480912ae3571833492c1aeac2d0eda, verified by rev-parse)
+PIN=bf0203a            # re-pinned 2026-10-28, owner-decided (architecture/hermes-agent.md §17; was 908e4a4b44480912ae3571833492c1aeac2d0eda); installed HEAD bf0203a794a07aac3ff764972ab9087baa4e4f4e, verified by rev-parse
 H="$HOME/claude-profiles/hermes"; CODE="$H/hermes-agent"
 HOOK="$H/bin/pre-tool-call.sh"
 GW=0; [[ $# -eq 2 && "$1" == gateway && "$2" == run ]] && GW=1
@@ -12,7 +12,7 @@ die() { if (( GW )); then print -u2 -r -- "hermes-up: gateway refused: $1"; exit
 # H2c gateway-mode constants. The toolset list MUST match config-edits.md (agent.disabled_toolsets, 25 names).
 GW_TOOLSETS="terminal code_execution web browser browser-cdp browser-use computer_use vision image_gen video_gen video tts cronjob delegation x_search kanban project start_chat desktop_ui feishu_doc feishu_drive hermes-yuanbao connections discord discord_admin"
 # Code-dir interpreter = the one the installed launcher (hermes-agent/.hermes/bin/hermes line 2) execs.
-GW_PY="${HERMES_HOME:-/nonexistent}/tools/python-3.14.7+20260901-darwin-arm64/bin/python3"
+GW_PY="${HERMES_HOME:-/nonexistent}/tools/python-3.14.9+20261021-darwin-arm64/bin/python3"
 # Dependency-state root (the ONE location variable; tests point a patched copy elsewhere). The loader's third-party deps (ruamel,
 # hermes_yaml.py:10) are NOT in GW_PY's own site-packages; the real launcher adds the committed generation's site-packages in
 # hermes_bootstrap.py:613 activate_dependencies (pm/environments.py:448): <installs>/<install_key>/facts.json -> packages.venv.environment.
@@ -27,7 +27,24 @@ GW_CHAT_KEYS="TELEGRAM_BOT_TOKEN DISCORD_BOT_TOKEN SLACK_BOT_TOKEN WHATSAPP_ENAB
 [[ "$HERMES_HOME" == "$H/h1-home" ]] || die "HERMES_HOME is not $H/h1-home"
 [[ -d "$HERMES_HOME" ]] || die "HERMES_HOME dir missing"
 [[ "$(stat -f %Lp "$HERMES_HOME")" == 700 ]] || die "HERMES_HOME mode not 700"
-[[ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]] || die "CLAUDE_CODE_OAUTH_TOKEN missing from env"
+# Bedrock path (T-bedrock-tokfile): model.provider: bedrock uses AWS credentials (the aws SDK's
+# own chain: IMDS, SSO, env keys), not the Anthropic OAuth token, so CLAUDE_CODE_OAUTH_TOKEN is not
+# required. Detected read-only from config.yaml; anthropic, unset or unparseable falls straight
+# through, unchanged, to the original OAuth check below. Mirrors hermes-gw's parallel check -
+# hermes-up is also invoked directly (chat mode), without going through hermes-gw, so it needs its
+# own detection. architecture/hermes-agent-bedrock.md §18 (Fix 1).
+BPROVIDER=""
+[[ -f "$HERMES_HOME/config.yaml" ]] && BPROVIDER=$(awk '
+  /^model:[[:space:]]*$/ { inm=1; next }
+  /^[^[:space:]]/ { inm=0 }
+  inm && /^[[:space:]]+provider:/ {
+    sub(/^[[:space:]]+provider:[[:space:]]*/, ""); sub(/[[:space:]]*#.*$/, "")
+    gsub(/^["\x27]|["\x27]$/, ""); print; exit
+  }
+' "$HERMES_HOME/config.yaml" 2>/dev/null)
+if [[ "$BPROVIDER" != "bedrock" ]]; then
+  [[ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]] || die "CLAUDE_CODE_OAUTH_TOKEN missing from env"
+fi
 sha=$(git -C "$CODE" rev-parse HEAD 2>/dev/null) || die "cannot read code sha"
 [[ "$sha" == ${PIN}* ]] || die "code sha ${sha[1,7]} != pin $PIN"
 [[ -z "$(git -C "$CODE" status --porcelain 2>/dev/null)" ]] || die "code dir dirty"
@@ -62,6 +79,17 @@ except Exception: sys.exit(1)
 [[ -x "$HOOK" ]] || die "hook script not executable"
 for v in ANTHROPIC_API_KEY ANTHROPIC_TOKEN OPENAI_API_KEY OPENROUTER_API_KEY GOOGLE_API_KEY GEMINI_API_KEY NOUS_API_KEY HF_TOKEN GITHUB_TOKEN GH_TOKEN; do unset $v; done
 export HERMES_HOME CLAUDE_CODE_OAUTH_TOKEN
+# Corporate TLS-inspecting proxy re-signs all outbound HTTPS with its own root CA, which
+# uv's bundled webpki-roots don't trust -> `pm install`/`uv sync` fail with UnknownIssuer.
+# Verified empirically (2026-10-29): SSL_CERT_FILE/REQUESTS_CA_BUNDLE are NOT read by uv
+# 0.13.5 unless system-certs mode is already on; `--system-certs`/UV_SYSTEM_CERTS IS read
+# and works unmodified, because this machine's macOS System keychain already trusts the
+# corporate root (security find-certificate confirms it), so no custom CA bundle is
+# needed. UV_NATIVE_TLS is the deprecated alias of UV_SYSTEM_CERTS and is already in
+# pm/index_config.py's PRISTINE FORWARDED_UV_SETTINGS allowlist (UV_SYSTEM_CERTS is not),
+# so exporting it here - scoped only to this script's own exec'd process tree, never the
+# caller's shell - needs zero changes to the pinned hermes-agent source.
+export UV_NATIVE_TLS=1
 if (( GW )); then
   # (1) config.yaml via Hermes's own loader (fail-closed; backup_config neutralised: the loader would otherwise write backups/ into HERMES_HOME)
   [[ -x "$GW_PY" ]] || die "code-dir interpreter missing"

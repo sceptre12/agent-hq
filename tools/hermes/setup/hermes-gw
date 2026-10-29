@@ -6,6 +6,33 @@ set -u
 # Refusals exit 0: with plist KeepAlive{SuccessfulExit:false} an exit 0 parks the job (no respawn storm); a crash/nonzero would be respawned.
 H="$HOME/claude-profiles/hermes"
 gref() { print -u2 -r -- "hermes-gw: $1"; exit 0; }
+# Bedrock path (T-bedrock-tokfile): when HERMES_HOME/config.yaml sets model.provider: bedrock, AWS
+# credentials (verified by hermes-up/the aws SDK chain) are the real auth mechanism, not the
+# Anthropic OAuth TOKFILE below. Detected read-only; any other value (anthropic, unset, absent or
+# unparseable config) falls straight through, unchanged, to the OAuth TOKFILE path. Never touches
+# TOKFILE or CLAUDE_CODE_OAUTH_TOKEN. architecture/hermes-agent-bedrock.md §18 (Fix 1).
+if [[ "${HERMES_HOME:-}" == "$H/h1-home" && -f "$HERMES_HOME/config.yaml" ]]; then
+  BPROVIDER=$(awk '
+    /^model:[[:space:]]*$/ { inm=1; next }
+    /^[^[:space:]]/ { inm=0 }
+    inm && /^[[:space:]]+provider:/ {
+      sub(/^[[:space:]]+provider:[[:space:]]*/, ""); sub(/[[:space:]]*#.*$/, "")
+      gsub(/^["\x27]|["\x27]$/, ""); print; exit
+    }
+  ' "$HERMES_HOME/config.yaml" 2>/dev/null)
+  if [[ "$BPROVIDER" == "bedrock" ]]; then
+    BREGION=$(awk '
+      /^bedrock:[[:space:]]*$/ { inb=1; next }
+      /^[^[:space:]]/ { inb=0 }
+      inb && /^[[:space:]]+region:/ {
+        sub(/^[[:space:]]+region:[[:space:]]*/, ""); sub(/[[:space:]]*#.*$/, "")
+        gsub(/^["\x27]|["\x27]$/, ""); print; exit
+      }
+    ' "$HERMES_HOME/config.yaml" 2>/dev/null)
+    [[ -n "$BREGION" ]] || gref "bedrock.region missing or empty in config.yaml"
+    exec "$H/bin/hermes-up" gateway run
+  fi
+fi
 [[ "$TOKFILE" == "$HOME/claude-profiles/<auth-profile>/token" ]] || gref "TOKFILE is not the <auth-profile> token"
 [[ "${HERMES_HOME:-}" == "$H/h1-home" ]] || gref "HERMES_HOME is not $H/h1-home"
 [[ -f "$TOKFILE" && ! -L "$TOKFILE" ]] || gref "TOKFILE missing or not a regular file"

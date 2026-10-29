@@ -8,3 +8,4 @@
 52322	127.0.0.1	-	OrbStack management	system	live	lsof capture 2026-09-04	2026-09-04	-
 11330	127.0.0.1	-	H1 CONNECT logging proxy (hermes)	agent-hq	released	tools/hermes/README.md (port not restated there; value from the Hermes port source)	2026-10-08	released 2026-10-09 (H1 proxy stopped)
 8642	127.0.0.1	-	Hermes gateway API	agent-hq	claimed	architecture/hermes-agent.md:94 (gateway default 127.0.0.1:8642; also :208)	2026-10-14	-
+8642	127.0.0.1	-	Hermes gateway API	agent-hq	live	f420c87+GW_PY fix (this commit); verified 2026-10-29 via launchd kickstart + HTTP 200 smoke test on /v1/chat/completions, PID 36853	2026-10-29	forced: verified 2026-10-29 by HTTP smoke test (200 OK, PID 36853)

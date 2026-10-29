@@ -71,6 +71,13 @@ mkdir -p "$HH"; chmod 755 "$HH"; up HERMES_HOME="$HH" "$SETUP/hermes-up"; has "u
 chmod 700 "$HH"; up HERMES_HOME="$HH" "$SETUP/hermes-up"; eq "up: no token in env: rc 1" "$rc" 1; has "up: no token: reason" "$out" "CLAUDE_CODE_OAUTH_TOKEN missing from env"
 up HERMES_HOME="$HH" CLAUDE_CODE_OAUTH_TOKEN=dummy-not-a-credential "$SETUP/hermes-up"; eq "up: no code dir: rc 1, stops before hermes" "$rc" 1; has "up: no code dir: reason" "$out" "cannot read code sha"
 
+# --- 5b. hermes-up: model.provider: bedrock skips the OAuth check (anthropic/unset/absent unchanged, proven above)
+printf 'model:\n  provider: bedrock\nbedrock:\n  region: us-east-1\n' >"$HH/config.yaml"
+up HERMES_HOME="$HH" "$SETUP/hermes-up"; eq "up bedrock: no CLAUDE_CODE_OAUTH_TOKEN needed: rc 1, stops at the next check" "$rc" 1
+has "up bedrock: next refusal is code sha, not the token" "$out" "cannot read code sha"
+hasnt "up bedrock: never mentions CLAUDE_CODE_OAUTH_TOKEN" "$out" "CLAUDE_CODE_OAUTH_TOKEN"
+rm -f "$HH/config.yaml"
+
 # --- 6. hermes-gw: refusals exit 0; the token reaches hermes-up through the environment only
 mkdir -p "$H/bin" "$FH/claude-profiles/<auth-profile>"; TOK="$FH/claude-profiles/<auth-profile>/token"
 printf '#!/bin/sh\nprintf "stub-up args=%%s token_set=%%s\\n" "$*" "${CLAUDE_CODE_OAUTH_TOKEN:+1}"\n' >"$H/bin/hermes-up"; chmod 755 "$H/bin/hermes-up"
@@ -82,6 +89,17 @@ printf 'dummy-not-a-credential\n' >"$TOK"; chmod 644 "$TOK"; up HERMES_HOME="$HH
 printf 'dummy-not-a-credential\n' >"$TOK"; chmod 600 "$TOK"; up HERMES_HOME="$HH" "$SETUP/hermes-gw"
 eq "gw: valid token file: rc 0" "$rc" 0; has "gw: execs hermes-up with exactly 'gateway run' and the token in env" "$out" "stub-up args=gateway run token_set=1"
 hasnt "gw: the token value is never printed" "$out" "dummy-not-a-credential"
+
+# --- 6b. hermes-gw: model.provider: bedrock never touches TOKFILE; execs hermes-up with no OAuth token in env
+rm -f "$TOK"   # prove TOKFILE presence/absence is irrelevant on the bedrock path
+printf 'model:\n  provider: bedrock\nbedrock:\n  region: us-east-1\n' >"$HH/config.yaml"
+up HERMES_HOME="$HH" "$SETUP/hermes-gw"
+eq "gw bedrock: rc 0" "$rc" 0
+eq "gw bedrock: execs hermes-up with 'gateway run' and no token in env" "$out" "stub-up args=gateway run token_set="
+printf 'model:\n  provider: bedrock\nbedrock:\n  region: ""\n' >"$HH/config.yaml"
+up HERMES_HOME="$HH" "$SETUP/hermes-gw"; eq "gw bedrock: empty region refused: rc 0" "$rc" 0
+has "gw bedrock: empty region reason" "$out" "bedrock.region missing or empty in config.yaml"
+rm -f "$HH/config.yaml"
 
 # --- 7. pre-tool-call.sh decisions (python3 -I, fixture HERMES_HOME only)
 HK="$FX/hook"; mkdir -p "$HK/hh/work" "$HK/home"; chmod 700 "$HK/hh"
@@ -114,14 +132,14 @@ else echo "SKIP (not counted): /bin/ps unusable here; the seed success path was 
 # reads JSON), a stub `git` on PATH (the only seam: it reports the README pin sha, clean tree), a python wrapper at the path hermes-up
 # expects, and a facts.json selector. hermes-up itself is run unmodified; no real HERMES_HOME, network or Hermes ever runs.
 GH="$FX/gw"; GHH="$GH/claude-profiles/hermes"; GHOME="$GHH/h1-home"; CODE="$GHH/hermes-agent"; HKP="$GHH/bin/pre-tool-call.sh"
-mkdir -p "$GHH/bin" "$GHOME/work" "$CODE/hermes_cli" "$FX/gbin" "$GHOME/tools/python-3.14.7+20260901-darwin-arm64/bin"; chmod 700 "$GHOME"
+mkdir -p "$GHH/bin" "$GHOME/work" "$CODE/hermes_cli" "$FX/gbin" "$GHOME/tools/python-3.14.9+20261021-darwin-arm64/bin"; chmod 700 "$GHOME"
 cp "$SETUP/pre-tool-call.sh" "$HKP"; chmod 555 "$HKP"
-printf '#!/bin/sh\nprintf "stub-hermes args=%%s host=%%s token_set=%%s\\n" "$*" "${API_SERVER_HOST:-}" "${CLAUDE_CODE_OAUTH_TOKEN:+1}"\n' >"$CODE/hermes"; chmod 755 "$CODE/hermes"
+printf '#!/bin/sh\nprintf "stub-hermes args=%%s host=%%s token_set=%%s uv_native_tls=%%s\\n" "$*" "${API_SERVER_HOST:-}" "${CLAUDE_CODE_OAUTH_TOKEN:+1}" "${UV_NATIVE_TLS:-}"\n' >"$CODE/hermes"; chmod 755 "$CODE/hermes"
 : >"$CODE/hermes_cli/__init__.py"
 printf 'import os\ndef backup_config(*a, **k):\n    open(os.path.join(os.path.dirname(__file__), "..", "BACKUP_RAN"), "w").write("x")\n' >"$CODE/hermes_cli/config_backups.py"
 printf 'import json\nimport hermes_cli.config_backups as b\ndef load_user_config_effective(path, fail_closed=False):\n    b.backup_config()\n    return json.load(open(path))\n' >"$CODE/hermes_cli/config_effective.py"
-printf '#!/bin/sh\nexec /usr/bin/python3 "$@"\n' >"$GHOME/tools/python-3.14.7+20260901-darwin-arm64/bin/python3"; chmod 755 "$GHOME/tools/python-3.14.7+20260901-darwin-arm64/bin/python3"
-printf '#!/bin/sh\ncase "$*" in\n *"rev-parse HEAD"*) echo "${STUB_GIT_SHA:-908e4a4b44480912ae3571833492c1aeac2d0eda}" ;;\n *"status --porcelain"*) [ -n "${STUB_GIT_DIRTY:-}" ] && echo " M x" ;;\n *) exit 1 ;;\nesac\n' >"$FX/gbin/git"; chmod 755 "$FX/gbin/git"
+printf '#!/bin/sh\nexec /usr/bin/python3 "$@"\n' >"$GHOME/tools/python-3.14.9+20261021-darwin-arm64/bin/python3"; chmod 755 "$GHOME/tools/python-3.14.9+20261021-darwin-arm64/bin/python3"
+printf '#!/bin/sh\ncase "$*" in\n *"rev-parse HEAD"*) echo "${STUB_GIT_SHA:-bf0203a794a07aac3ff764972ab9087baa4e4f4e}" ;;\n *"status --porcelain"*) [ -n "${STUB_GIT_DIRTY:-}" ] && echo " M x" ;;\n *) exit 1 ;;\nesac\n' >"$FX/gbin/git"; chmod 755 "$FX/gbin/git"
 h16="$(printf '%s' "$(cd "$CODE" && pwd -P)" | shasum -a 256 | cut -c1-16)"; ST="$GHOME/installs/$h16"; mkdir -p "$ST/environments/e1/lib/python3.12/site-packages"
 printf 'version = 3.12.0\n' >"$ST/environments/e1/pyvenv.cfg"; printf '{"packages":{"venv":{"environment":"%s"}}}' "$ST/environments/e1" >"$ST/facts.json"
 TS="$(sed -n 's/^GW_TOOLSETS="\(.*\)"$/\1/p' "$SETUP/hermes-up")"
@@ -138,6 +156,7 @@ reset_gw() { cfg 127.0.0.1; allow; envf "API_SERVER_KEY=dummy-not-a-credential";
 TOKV=CLAUDE_CODE_OAUTH_TOKEN=dummy-not-a-credential
 reset_gw; gup $TOKV "$SETUP/hermes-up" gateway run
 eq "gw branch: all checks pass: rc 0" "$rc" 0; has "gw branch: execs the stub hermes with 'gateway run' and API_SERVER_HOST=127.0.0.1" "$out" "stub-hermes args=gateway run host=127.0.0.1 token_set=1"
+has "gw branch: UV_NATIVE_TLS=1 reaches the exec'd hermes process (corporate-proxy cert fix, scoped to this exec only)" "$out" "uv_native_tls=1"
 [ ! -e "$CODE/BACKUP_RAN" ] && pass "gw branch: the loader's backup_config is neutralised" || fail "gw branch: backup_config ran"
 hasnt "gw branch: the token value is never printed" "$out" "dummy-not-a-credential"
 reset_gw; cfg 0.0.0.0; gup $TOKV "$SETUP/hermes-up" gateway run
@@ -153,12 +172,13 @@ reset_gw; envf "API_SERVER_KEY=x" "TELEGRAM_BOT_TOKEN=x"; gup $TOKV "$SETUP/herm
 reset_gw; envf "API_SERVER_KEY=x" "FOO=1"; gup $TOKV "$SETUP/hermes-up" gateway run; has "gw: .env with any other key refused" "$out" "unexpected key: FOO"
 reset_gw; envf "# no keys at all"; gup $TOKV "$SETUP/hermes-up" gateway run; has "gw: .env without API_SERVER_KEY refused" "$out" ".env lacks API_SERVER_KEY"
 reset_gw; rm -f "$GHOME/shell-hooks-allowlist.json"; gup $TOKV "$SETUP/hermes-up" gateway run; has "gw: hook consent missing refused" "$out" "hook not approved in shell-hooks-allowlist.json"
-reset_gw; gup $TOKV STUB_GIT_SHA=deadbeefdeadbeefdeadbeefdeadbeefdeadbeef "$SETUP/hermes-up" gateway run; has "gw: code sha other than the pin refused" "$out" "code sha deadbee != pin 908e4a4"
+reset_gw; gup $TOKV STUB_GIT_SHA=deadbeefdeadbeefdeadbeefdeadbeefdeadbeef "$SETUP/hermes-up" gateway run; has "gw: code sha other than the pin refused" "$out" "code sha deadbee != pin bf0203a"
 reset_gw; gup $TOKV STUB_GIT_DIRTY=1 "$SETUP/hermes-up" gateway run; has "gw: dirty code dir refused" "$out" "code dir dirty"
 reset_gw; gup $TOKV HERMES_YOLO_MODE=1 "$SETUP/hermes-up" gateway run; has "gw: HERMES_YOLO_MODE in env refused" "$out" "HERMES_YOLO_MODE set"
 reset_gw; gup "$SETUP/hermes-up" gateway run; has "gw: missing token refused" "$out" "CLAUDE_CODE_OAUTH_TOKEN missing from env"
 # CLI mode: the argument whitelist (refusals are rc 1; accepted forms exec the stub)
 reset_gw; gup $TOKV "$SETUP/hermes-up" chat -q hello; eq "cli: chat -q <text> accepted: rc 0" "$rc" 0; has "cli: stub gets exactly the whitelisted args" "$out" "stub-hermes args=chat -q hello"
+has "cli: UV_NATIVE_TLS=1 reaches the exec'd hermes process on the CLI branch too" "$out" "uv_native_tls=1"
 gup $TOKV "$SETUP/hermes-up" --yolo; eq "cli: unknown arg refused: rc 1" "$rc" 1; has "cli: unknown arg reason" "$out" "arg not whitelisted: --yolo"
 gup $TOKV "$SETUP/hermes-up" gateway start; eq "cli: 'gateway start' is not the gateway form: refused" "$rc" 1; has "cli: gateway start reason" "$out" "arg not whitelisted: gateway"
 gup $TOKV "$SETUP/hermes-up" chat -q; has "cli: -q without a value refused" "$out" "-q needs a value"

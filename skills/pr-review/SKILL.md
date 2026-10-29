@@ -21,6 +21,8 @@ A real 7-agent code review panel. Each agent reads the PR diff independently, ru
 domain-specific checks, and deliberates via the swarm communication bus. An 8th
 synthesizer compiles a findings table with RACI attribution and presents Phase B.
 
+<!-- CONFLICT: cold-reader-D5, see /tmp/pr-review-reconcile-scratch/records/pc-reconcile-pr-review-synth-2026-10-29.md section 2 for the owner decision needed -->
+
 ## Trigger
 
 Use when asked to review a PR, "run the panel," "check this PR," "review these changes,"
@@ -71,14 +73,31 @@ serialize all concurrent reviews through one writer.
 
 ## Pre-flight
 
+> **Pending pilot:** the 1.1.0 EXTEND surface — `ROLES` refusal, the local-diff-as-default mode
+> change, the port guard, stacked-diff support, and the security-audit seat — has no recorded live
+> pilot run yet (see Provenance at the end of this file). Treat this surface as reviewed-on-paper,
+> not field-verified, until a pilot run is logged.
+
 Mode: input `PR_REVIEW_MODE` — unset resolves to `local-diff` (every delivery session is sandboxed;
-no tier detector); `pr` only when set explicitly = the GitHub PR flow. Steps below say "In pr mode" or
-"In local-diff mode" where they differ.
+no tier detector); `pr` only when set explicitly = the GitHub PR flow. **Migration note:** a caller
+still using the pre-1.1.0 contract (`REPO` + `PR_NUMBER`, no `PR_REVIEW_MODE`) now silently resolves
+to local-diff mode and fails Step 0 on missing `REPO_DIR`/`RECORD_PATH`/etc. instead of running the PR
+review it asked for — such callers must now also pass `PR_REVIEW_MODE=pr` explicitly. Steps below say
+"In pr mode" or "In local-diff mode" where they differ.
 
 In pr mode, if the work unit has no GitHub PR (this workspace's default integration is worktree →
 local merge → push, Rule 6/ADR 0017), this skill does not apply — review the diff at Rung 1/2, or
 create a PR first if Rung 3 independence is genuinely warranted. All values must be substituted into
 the dispatch prompt before invoking the skill; the skill does not prompt for missing inputs.
+
+Optional, pr mode only: `DIFF_RANGE_BASE` — a base commit SHA. When present, this is an incremental
+re-review: Step 2 scopes `diff_path` to just the range since `DIFF_RANGE_BASE` instead of the full PR
+diff (the full PR diff is still fetched separately as `full_diff_path`, a fallback/context artifact —
+see `references/diff-fetch.md`). Omit it for a first-pass review of the whole PR. Not applicable in
+local-diff mode: there is no PR to incrementally re-review against.
+
+Scope: lint and typecheck are out of scope for all 7 roles — see the `Scope:` line in
+`references/agent-briefs.md`/`references/synthesizer-brief.md` for the exact wording.
 
 ### Step 0 — Validate inputs (D1)
 
@@ -101,12 +120,14 @@ comment (`references/local-diff-mode.md`: inputs, read-only `git show` rule, no 
 `git diff "$BASE_REF...$HEAD_REF"`, or for a stacked PR `git diff "$STACK_BASE..$STACK_HEAD"` (two dots,
 `HEAD_SHA` = `STACK_HEAD`); agents read files only via `git -C "$REPO_DIR" show "$HEAD_SHA:<path>"`.
 
-## Execution model — tier per dispatch (`tools/model-routing.md`)
+## Execution model — tier per dispatch
 
-Every dispatch below names a tier, not a literal model (design part-01 "Tiers", M19; the one model named, Sonnet for the synthesizer, is the owner rule D35); the tier is
-resolved to a model by `tools/model-routing.md` or `repo-profile.md`. Review seats and synthesis on
-`verify` (Sonnet: D35, an adopted owner rule, is 7 Sonnet seats → Sonnet synthesizer → Opus fixer →
-Sonnet fix-verifier; part-03 lists the synthesizer as verify), polling and scripts on `mechanical`:
+Every dispatch below names a tier, not a literal model (design part-01 "Tiers", M19; the one model
+named, Sonnet for the synthesizer, is a default pin, not a cited owner rule); the tier is resolved to
+a model solely via the inline Rationale column below — self-contained in this skill, no external
+cross-reference needed. Review seats and synthesis on `verify` (Sonnet default: 7 Sonnet seats →
+Sonnet synthesizer → Opus fixer → Sonnet fix-verifier; part-03 lists the synthesizer as verify),
+polling and scripts on `mechanical`:
 
 | Dispatch | Count | Tier | Rationale |
 |---|---|---|---|
@@ -116,7 +137,7 @@ Sonnet fix-verifier; part-03 lists the synthesizer as verify), polling and scrip
 | Step 5 — Gate 1 checker | 1 | mechanical | Mechanical: poll a bus topic, count distinct agent ids |
 | Step 6 — Phase 2 deliberation agents | 7 | verify | Judgment: evaluate peer findings, VALIDATE/CHALLENGE/ESCALATE/ADD |
 | Step 7 — Gate 2 checker | 1 | mechanical | Mechanical: same as Gate 1 |
-| Step 8 — synthesizer | 1 | verify (Sonnet, D35) | Judgment: compile findings table, deliberation trails, verdict |
+| Step 8 — synthesizer | 1 | verify (Sonnet, default) | Judgment: compile findings table, deliberation trails, verdict |
 | Step 9 — cleanup | 1 | mechanical | Mechanical: `end_session`, pm2 delete, remove scratch files |
 
 Each dispatch states a verifiable done condition and a stop-on-anomaly clause (`tools/model-routing.md`
@@ -152,6 +173,10 @@ Dispatch a `mechanical`-tier sub-agent to run the pr-mode or local-diff script o
 `RUN_HOME/review/<subtask>/`, never `/tmp`). Capture `DIFF_PATH` (and `HEAD_SHA` in local-diff mode).
 Halt if the file is empty, `gh` fails or a ref does not resolve.
 
+In pr mode, `diff-fetch.md`'s pr-mode script always also writes `FULL_DIFF_PATH` (the full PR diff,
+fetched as a fallback/context artifact); when `DIFF_RANGE_BASE` is set, `DIFF_PATH` is scoped to just
+the range since `DIFF_RANGE_BASE` instead. Capture both. Not applicable in local-diff mode.
+
 ### Step 3 — Start the swarm session
 
 Using the MCP server at `http://localhost:${PORT}/mcp`, call `start_session` with the
@@ -165,6 +190,11 @@ Each prompt includes:
 - `diff_path` (from Step 2); `artifact_paths`: same as `diff_path`
 - `repo` and `pr_number` (pr mode); in local-diff mode instead `repo_dir`, `base_ref`, `head_ref`,
   `head_sha` and the `git show` read-only rule (local-diff mode above)
+- In pr mode only: `full_diff_path` (from Step 2, always present in pr mode) — secondary; consult
+  only to judge whether code in `diff_path` fits its surrounding context, never to raise findings
+  about code outside `diff_path` that it doesn't touch. And `jira_context` (ticket summary/description,
+  best-effort detected from the caller's dispatch prompt) when provided — background only, it does
+  not create a new check or severity rule. Neither field applies in local-diff mode.
 - `agent-id`: the agent's own id from the list below
 - `reference_paths`: `~/.claude/skills/pr-review/references/` `agent-roles.md`, `agent-briefs.md`,
   `bus-schema.md`, `phase-b-c-severity.md`
@@ -214,7 +244,7 @@ gate2TimedOut agents. If `timedOut` is true and `found === 0`, proceed to the sy
 
 ### Step 8 — Dispatch the synthesizer
 
-Dispatch a single synthesizer agent (**verify** tier, Sonnet, D35) with:
+Dispatch a single synthesizer agent (**verify** tier, Sonnet default) with:
 - `session_id` and `data_dir` (session_id passed explicitly, per bus session rules above)
 - `repo`, `pr_number` (pr mode); in local-diff mode `repo_dir`, `base_ref`, `head_ref`, `head_sha`
 - `timed_out_checks`: `{ gate1: [...], gate2: [...] }` — agent IDs from gate1TimedOut and
@@ -283,6 +313,13 @@ network-check pre-check before any `gh` call and, when unreachable, skip as `ref
 - [ ] Local-diff mode: line 1 matches `^CODE-GATE-REVIEW: (PASS|FAIL) head=[0-9a-f]{40} blocking=[0-9]+ medium=[0-9]+$`
       and a PASS line matches A.6; line 2 matches A.6 (three non-empty fields); no `Verified-By:` written.
 - [ ] No fix is applied without explicit reviewer confirmation (Phase C gate).
+- [ ] If any finding was Process/Meta rather than a code defect, the synthesizer's report includes a
+      Process/Meta Notes subsection and those findings are excluded from the Blocking/Medium tally
+      driving the verdict (severity definition: `references/phase-b-c-severity.md`).
+- [ ] In pr mode, every Phase 1 and Phase 2 agent dispatch (Step 4, Step 6) actually included
+      `full_diff_path` in its payload, and `jira_context` when the caller provided it — and each
+      agent's findings honored the `diff_path`/`full_diff_path` scope boundary (no findings raised
+      about code outside `diff_path` that `diff_path` doesn't touch). Not applicable in local-diff mode.
 - [ ] Session cleaned up: `end_session` called, pm2 app deleted, diff file removed, scratch `DATA_DIR`
       removed (in a run only when this review created it).
 
@@ -290,4 +327,4 @@ network-check pre-check before any `gh` call and, when unreachable, skip as `ref
 
 Provenance: Hermes skill learnings/skill-sharing (imported from learnings/skill-sharing.md)
 Lineage: X-context-docs skills/pr-review@0e9281e
-Provenance: EXTEND 1.1.0 (2026-10-26), delivery-workflow item 10: peek/fresh-id/limit-200 reads, stacked diff, preamble, local-diff default, RACI-remap refusal (references/roles-subset.md), port guard (A.5.2; one checked or claimed `BUS_PORT + 10` retry, then stop, standalone and in a run, INTERFACES 1.5.0 A.5.2, AM-3 / owner OQ-2), security-audit guidance seat; scripts in references/. Post-D7 fix (2026-10-26): in-run bus at `RUN_HOME/review/<subtask>/<review-id>/bus/` with its own `bus.endpoint` (INTERFACES 1.5.0 A.1, D2.3, D5, AM-5 10-B2; spec 10 Q10-5), refusal pre-check removed; synthesizer back on Sonnet (D35). Pending pilot (no pilot run recorded).
+Provenance: EXTEND 1.1.0 (2026-10-26), delivery-workflow item 10: peek/fresh-id/limit-200 reads, stacked diff, preamble, local-diff default, RACI-remap refusal (references/roles-subset.md), port guard (A.5.2; one checked or claimed `BUS_PORT + 10` retry, then stop, standalone and in a run, INTERFACES 1.5.0 A.5.2, AM-3 / owner OQ-2), security-audit guidance seat; scripts in references/. Post-D7 fix (2026-10-26): in-run bus at `RUN_HOME/review/<subtask>/<review-id>/bus/` with its own `bus.endpoint` (INTERFACES 1.5.0 A.1, D2.3, D5, AM-5 10-B2; spec 10 Q10-5), refusal pre-check removed; synthesizer back on Sonnet (default). Pending pilot (no pilot run recorded).

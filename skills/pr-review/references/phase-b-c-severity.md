@@ -36,6 +36,24 @@ claims, unexplained deviations from established patterns.
 **Advisory (A)** — Does not block merge. Confusing but workable, minor doc gaps,
 unhandled edge cases not currently exercised.
 
+**Process/Meta (P)** — Not a code severity; never counted toward the Blocking/Medium
+tally that drives the Overall verdict (READY / NOT READY / READY WITH CONDITIONS). Covers:
+- the accuracy of a prior review comment, commit message, or CHANGELOG claim
+- whether another reviewer's (human or automated) approval, review, or finding was
+  trustworthy, well-founded, or should be reweighted ("trust-signal"/"quorum" findings)
+- process, governance, or review-hygiene observations that are NOT about whether the
+  current diff's code is correct
+
+Test question when unsure: "If every word of this finding is true, does the code in
+this diff still work correctly? If yes, it is Process/Meta, not a code severity."
+
+If a Phase 2 agent ESCALATEs a Process/Meta finding during deliberation, the ESCALATE
+may add detail or evidence but must NOT change its category — Process/Meta is not
+escalatable to Blocking, Medium, or Advisory.
+
+This is the canonical definition — `agent-roles.md`, `agent-briefs.md`, `synthesizer-brief.md`, and
+SKILL.md's exit criteria each cross-reference this section rather than restating it.
+
 ---
 
 ## Reference Files

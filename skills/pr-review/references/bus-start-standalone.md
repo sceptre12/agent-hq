@@ -1,12 +1,14 @@
 # PR Review — Step 1 and Step 9 standalone (`RUN_HOME` unset)
 
 Standalone use outside a run. Inside a run use `bus-start-run.md` instead. Compared with the 1.0.0
-script, the one change is the pre-bind port check of owner rule R-x as made binding by OQ-2 (INTERFACES
-1.5.0 A.5.2, D2.3 `BUS_PORT` "the same rule applies standalone"): check the candidate port, retry once
-at +10, then start the bus pinned to that port. Everything else (session id, `/tmp` data dir, pm2
-start, health, identity and loopback checks, outputs) is unchanged. This flow is for sessions where
-`/tmp` is writable (the unchanged 1.0.0 flow, spec Q10-5); a sandboxed session (executor tier) cannot
-write `/tmp`.
+script, the pre-bind port check of owner rule R-x as made binding by OQ-2 (INTERFACES 1.5.0 A.5.2,
+D2.3 `BUS_PORT` "the same rule applies standalone") is new: check the candidate port, retry once at
++10, then start the bus pinned to that port. The 1.0.0 EXIT leak-guard (trap-based auto-cleanup on any
+startup failure, disarmed only once every guard passes) is restored below — it was dropped in error
+during the port-check rewrite. Everything else (session id, `/tmp` data dir, pm2 start, health,
+identity and loopback checks, outputs) is unchanged. This flow is for sessions where `/tmp` is
+writable (the unchanged 1.0.0 flow, spec Q10-5); a sandboxed session (executor tier) cannot write
+`/tmp`.
 
 ## Step 1 — start the bus (dispatch a `mechanical`-tier sub-agent to run this script)
 
@@ -47,6 +49,12 @@ cd ~/projects/agent-hq/tools/swarm-communication-layer || { echo "ERROR: sibling
 export NVM_DIR="$HOME/.nvm"; [ -s "${NVM_DIR}/nvm.sh" ] && source "${NVM_DIR}/nvm.sh" && nvm use --lts > /dev/null 2>&1
 # Pinned: get-port cannot choose another port
 DATA_DIR="${DATA_DIR}" APP_NAME="${APP_NAME}" PORT_RANGE_START="${P}" PORT_RANGE_END="${P}" NODE_ENV=production "$PM2" start ecosystem.config.cjs
+# Leak guard — if any check below this line exits (port-file timeout, health-check, identity
+# mismatch, bind-address guard) before startup is fully validated, delete the just-started pm2 app
+# and its DATA_DIR instead of leaking them. Disarmed just before the final success output once
+# every guard has passed, so the app and DATA_DIR survive for the rest of this skill's steps —
+# Step 9's cleanup remains the steady-state teardown for a successful run.
+trap '"$PM2" delete "$APP_NAME" 2>/dev/null || true; [[ -n "$DATA_DIR" && "$DATA_DIR" == /tmp/* ]] && rm -rf "$DATA_DIR"' EXIT
 TRIES=0
 until [ -f "${DATA_DIR}/port" ] || [ $TRIES -ge 30 ]; do sleep 0.3; TRIES=$((TRIES + 1)); done
 if [ ! -f "${DATA_DIR}/port" ]; then echo "ERROR: port file not written after 9s"; exit 1; fi
@@ -68,6 +76,9 @@ if ! lsof -nP -iTCP:${PORT} -sTCP:LISTEN | grep -qE '127\.0\.0\.1|::1'; then
   echo "ERROR: MCP server not bound to loopback — aborting"
   exit 1
 fi
+# All guards passed — disarm the leak guard so the pm2 app and DATA_DIR are handed off live to
+# the rest of this skill instead of being deleted when this script exits.
+trap - EXIT
 echo "SESSION_ID=${SESSION_ID}"
 echo "DATA_DIR=${DATA_DIR}"
 echo "APP_NAME=${APP_NAME}"
@@ -89,12 +100,16 @@ bus-lifecycle reference so the copies do not drift.
 Call `end_session` with `SESSION_ID` via the MCP tool (`session_id` passed explicitly), then run:
 
 ```bash
-APP_NAME="${APP_NAME}" DATA_DIR="${DATA_DIR}" DIFF_PATH="${DIFF_PATH}" bash -c '
+APP_NAME="${APP_NAME}" DATA_DIR="${DATA_DIR}" DIFF_PATH="${DIFF_PATH}" FULL_DIFF_PATH="${FULL_DIFF_PATH:-}" bash -c '
   PM2=${PM2_BIN:-$(which pm2 2>/dev/null)}
   [ -n "$PM2" ] && [ -x "$PM2" ] && "$PM2" delete "$APP_NAME" 2>/dev/null || true
   [[ -n "$DATA_DIR" && "$DATA_DIR" == /tmp/* ]] && rm -rf "$DATA_DIR"
   [[ -n "$DIFF_PATH" && "$DIFF_PATH" == /tmp/* ]] && rm -f "$DIFF_PATH"
+  [[ -n "$FULL_DIFF_PATH" && "$FULL_DIFF_PATH" == /tmp/* ]] && rm -f "$FULL_DIFF_PATH"
 '
 ```
 
-The `/tmp/*` guard belongs to this standalone flow only; it never matches an in-run path.
+`FULL_DIFF_PATH` is set only in pr mode (`diff-fetch.md`); empty and skipped in local-diff mode. In
+the non-scoped pr-mode case (`DIFF_RANGE_BASE` not set) `DIFF_PATH` and `FULL_DIFF_PATH` are the same
+path — the second `rm -f` is a harmless no-op double-remove. The `/tmp/*` guard belongs to this
+standalone flow only; it never matches an in-run path.

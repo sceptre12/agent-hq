@@ -7,18 +7,44 @@ validated the inputs; the checks below repeat them before any shell interpolatio
 
 ## pr mode
 
+`DIFF_RANGE_BASE` (optional, Pre-flight) makes this an incremental re-review: when set, `DIFF_PATH` is
+scoped to just the range since `DIFF_RANGE_BASE` instead of the full PR diff; the full PR diff is
+always fetched too, as `FULL_DIFF_PATH`, a fallback/context artifact for Step 4/6 (SKILL.md Pre-flight,
+Step 4).
+
 ```bash
 : "${DIFF_PATH:?DIFF_PATH from Step 1}"
+FULL_DIFF_PATH="${DIFF_PATH%.diff}-full.diff"
 # Validate inputs before shell interpolation
 echo "$REPO" | grep -qE '^[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+$' || { echo "ERROR: invalid REPO format — expected owner/repo"; exit 1; }
 echo "$PR_NUMBER" | grep -qE '^[0-9]+$' || { echo "ERROR: invalid PR_NUMBER — must be an integer"; exit 1; }
-gh pr diff --repo "$REPO" "$PR_NUMBER" > "$DIFF_PATH" || { echo "ERROR: gh pr diff failed — check repo and PR number"; exit 1; }
-chmod 600 "$DIFF_PATH"
-[ -s "$DIFF_PATH" ] || { echo "ERROR: diff is empty — PR may have no changes or gh failed silently"; exit 1; }
-wc -c "${DIFF_PATH}"
+if [ -n "${DIFF_RANGE_BASE:-}" ]; then
+  echo "$DIFF_RANGE_BASE" | grep -qE '^[a-fA-F0-9]{7,40}$' || { echo "ERROR: invalid DIFF_RANGE_BASE — must be a git SHA"; exit 1; }
+fi
+
+# Always fetch the full PR diff — kept as a fallback/context artifact even when scoped.
+gh pr diff --repo "$REPO" "$PR_NUMBER" > "$FULL_DIFF_PATH" || { echo "ERROR: gh pr diff failed — check repo and PR number"; exit 1; }
+chmod 600 "$FULL_DIFF_PATH"
+[ -s "$FULL_DIFF_PATH" ] || { echo "ERROR: diff is empty — PR may have no changes or gh failed silently"; exit 1; }
+
+if [ -n "${DIFF_RANGE_BASE:-}" ]; then
+  # Incremental re-review — scope DIFF_PATH to the range since the previously-reviewed SHA.
+  HEAD_SHA=$(gh pr view --repo "$REPO" "$PR_NUMBER" --json headRefOid -q .headRefOid) || { echo "ERROR: could not resolve PR head SHA"; exit 1; }
+  gh api -H "Accept: application/vnd.github.v3.diff" "repos/${REPO}/compare/${DIFF_RANGE_BASE}...${HEAD_SHA}" > "$DIFF_PATH" || { echo "ERROR: gh api compare failed — check DIFF_RANGE_BASE and repo"; exit 1; }
+  chmod 600 "$DIFF_PATH"
+  [ -s "$DIFF_PATH" ] || { echo "ERROR: range diff is empty — no new commits since DIFF_RANGE_BASE, or gh api failed silently"; exit 1; }
+else
+  # No scoping requested — DIFF_PATH is just the full diff, no separate fallback file needed.
+  DIFF_PATH="$FULL_DIFF_PATH"
+fi
+wc -c "${DIFF_PATH}" "${FULL_DIFF_PATH}"
+echo "DIFF_PATH=${DIFF_PATH}"
+echo "FULL_DIFF_PATH=${FULL_DIFF_PATH}"
 ```
 
-Capture `DIFF_PATH`. Halt if the file is empty or `gh` fails.
+Capture `DIFF_PATH` (primary — the incremental diff when `DIFF_RANGE_BASE` was set, the full diff
+otherwise) and `FULL_DIFF_PATH` (secondary — always the full PR diff, for context). Halt if either
+required file is empty, `gh` fails, or `DIFF_RANGE_BASE` fails to resolve.
 
 ## local-diff mode (no `gh`, no network)
 

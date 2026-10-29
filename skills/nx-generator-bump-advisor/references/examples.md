@@ -11,7 +11,7 @@ Justification: Alters generated CDK output resource identity (naming/tagging/
 stack structure), risking CloudFormation replacement/teardown → matches "any
 change to generated CDK output that alters resource identity ... and can
 cause CloudFormation replacement/teardown."
-Rubric source: context-docs-worktrees/foundation-semver/projects/FoundationSemver/decisions/nx-generator.md
+Rubric source: ~/projects/context-docs/projects/FoundationSemver/decisions/nx-generator.md
 ```
 
 **Scenario 2 — minor bump, additive new export**
@@ -24,7 +24,7 @@ Justification: Adds a new optional schema option with a default (or an
 additive `./`/`./shared` export) with no change to existing behavior →
 matches "new optional schema option (with a default); additive new export in
 ./ or ./shared."
-Rubric source: context-docs-worktrees/foundation-semver/projects/FoundationSemver/decisions/nx-generator.md
+Rubric source: ~/projects/context-docs/projects/FoundationSemver/decisions/nx-generator.md
 ```
 
 **Scenario 3 — patch bump, non-breaking internal fix**
@@ -36,7 +36,7 @@ Recommended bump: patch
 Justification: Bug fix to a generator with no change to its schema or the
 shape of generated output → matches "bug fixes to a generator that don't
 change its schema or the shape of generated output."
-Rubric source: context-docs-worktrees/foundation-semver/projects/FoundationSemver/decisions/nx-generator.md
+Rubric source: ~/projects/context-docs/projects/FoundationSemver/decisions/nx-generator.md
 ```
 
 ## Validation against real history

@@ -181,3 +181,6 @@ Lineage: X-context-docs skills/nx-generator-bump-advisor@9d7143e (trimmed:
 canonicalized the stale `context-docs-worktrees/foundation-semver/...` rubric
 path, which no longer exists on disk, to the real `~/projects/context-docs/...`
 path)
+Gate-4 fix: references/examples.md's three worked examples still cited the stale
+`context-docs-worktrees/...` rubric path after the SKILL.md canonicalization above;
+updated them to match.

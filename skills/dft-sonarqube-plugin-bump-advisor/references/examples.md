@@ -79,3 +79,22 @@ PEER-PIN NOTE: This executor release falls outside the plugin's currently
 ```
 
 ## Validation against real history
+
+Cross-checked against `packages/dft-sonarqube-plugin/CHANGELOG.md`:
+
+- **1.1.0** (two bullets under the CHANGELOG's `### Fixed` header — an
+  ignore-path/watch-mode fix and a `.scannerwork` exclusion, implying
+  `fix:`-tagged commits per this project's conventional-commit release
+  mechanics — plus a peer bump from exact `1.0.1` to `^1.1.0` "to pick up
+  SonarQube server-existence check") shipped as **minor**. Under this
+  rubric: the two fixes alone would be patch-level, but the peer bump
+  description ("server-existence check") reads as new executor-side
+  capability being forwarded rather than a pure internal refactor —
+  consistent with a MINOR classification per the peer-major handling test,
+  matching what actually shipped.
+- **1.0.0** (CHANGELOG: "No code changes required," described as a stability
+  signal) would **not** be re-derived as major under this rubric — no
+  rubric criterion fired (no target/executor-reference/dependsOn/option
+  change). This is the documented case of a major that was "declared, not
+  earned"; flag such requests as a policy decision outside the rubric rather
+  than reclassifying history.

@@ -17,7 +17,7 @@ user's own phrase) is the recorded failure mode this standard exists to prevent.
 |---|---|---|---|---|---|
 | 0 | direct review | single reviewer instance, no skill | ~1 agent | trivial/mechanical changes, typo-level docs | anything with a design fork |
 | 1 | doc-reviewer skill | single-agent checklist review (10-step, 3-phase) | 1 agent | routine single-artifact review, consistency + auditability | multi-doc systems, contested decisions |
-| 2 | panel-consultation skill | SIMULATED multi-perspective panel — one agent roleplaying 9 members, no infrastructure | 1 agent | breadth of perspective on medium-stakes/medium-size artifacts without bus overhead | decisions where perspective independence actually matters (simulation shares one context — anchoring is structural) |
+| 2 | panel-consultation skill | real 9-seat RACI panel — nine independent agent instances read blind, RACI-closed, synthesized, fixed and fix-verified; no swarm bus | ~13-23 agents (one Opus orchestrator sub-agent) | breadth of perspective on medium-stakes/medium-size artifacts without bus overhead; also reconciles two diverged versions of one artifact (`MODE=reconcile`) | decisions needing bus-quorum deliberation or 11-agent scale (Rung 4) |
 | 3 | pr-review skill | 7 independent agents + bus deliberation | ~8 agents + live bus | substantial code diffs/PRs | prose/architecture docs |
 | 4 | panel-review skill | 11 independent agents, bus quorum deliberation | 26+ agents + bus + PM2 | large architecture docs, one-way-door decisions, high blast radius | anything a lower rung covers |
 

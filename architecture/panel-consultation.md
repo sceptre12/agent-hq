@@ -1,31 +1,48 @@
 # panel-consultation — design record (ADR 0011)
 
-One-line summary: single-agent roleplay of a 9-member expert panel that pressure-tests
-architecture decisions, contracts, task specs, and designs before a finished artifact
-exists to grade — Rung 2 on the review-escalation ladder (`tools/review-ladder.md`).
+One-line summary: a real 9-seat RACI panel — nine independent agent instances, blind dispatch,
+no shared context — that reviews architecture decisions, contracts, task specs and designs
+(`MODE=review`, default) or reconciles two independently-diverged versions of one artifact into a
+merged result (`MODE=reconcile`) — Rung 2 on the review-escalation ladder
+(`tools/review-ladder.md`).
 
 ## What This Is
 
-A **simulated** multi-perspective panel: one agent adopts 9 distinct expert lenses in
-sequence, inside one shared context — perspective breadth, not independent judgment (the
-skill's own frontmatter states this caveat explicitly). Distinct from `doc-reviewer`
-(Rung 1 — a fixed checklist against a *finished* artifact) and from `panel-review`
-(Rung 4 — real independent agents deliberating live over the swarm bus). This skill is for
-thinking through a problem *before* a
-finished artifact exists to grade.
+**As of 2026-10-29 (commit `591630f`), this is a real 9-seat RACI panel, not a simulation.**
+Nine independent Sonnet seat instances read the artifact blind, each Responsible for one of nine
+finding topics and Consulted on two others; a fixed R/A/C matrix (`references/seats-raci.md`)
+sends every topic with a finding to a fresh Accountable closer; a synthesizer compiles the
+closed topics into a findings table; a fixer applies the fix; `fix-verifier` confirms it; the
+loop repeats until a Full-tier round reads 0 Blocking / 0 Medium. One Opus sub-agent orchestrates
+the whole run — no swarm bus, no live deliberation (independence comes from blind dispatch and
+file-based records, not a shared channel). Distinct from `doc-reviewer` (Rung 1 — a fixed
+checklist, one agent, against a *finished* artifact) and from `panel-review` (Rung 4 — 11 agents,
+bus-quorum deliberation). As of the same commit the skill also supports a `reconcile` mode
+(`MODE=reconcile`) that reconciles two independently-diverged versions of one artifact into a
+merged best-of-both result, using the same nine seats to classify every delta instead of hunting
+defects (`skills/panel-consultation/references/reconcile-brief.md`).
 
 ## Components
 
-- `skills/panel-consultation/SKILL.md` (135 lines) — entrypoint: frontmatter
-  (name/description carrying the L1 ladder hints), Trigger, the 9-member panel table
-  (role/domain/characteristic question/strongest-on), Steps 1–5, 4 Modes, Documentation
-  lookup, Red flags table, Exit criteria, Provenance/Lineage footer.
-- `references/triggers.md` (182 lines) — which panel member has standing, organized by
-  phase: Cold Read, Contract Authoring, Task Spec Writing, Feedback Loop, L2 Review,
-  Retrospective.
-- `references/patterns.md` (164 lines) — 6 learned failure patterns (A–F) each member
-  checks a session against, plus guidance on using them.
-- No `preflight.md` — retired at port time (see Settled decisions).
+- `skills/panel-consultation/SKILL.md` — entrypoint: frontmatter (name/description carrying the
+  L1 ladder hints), Trigger, Inputs (including `MODE`), Roles and model pins, the orchestrator's
+  Steps runbook, Scaling, Reconcile mode, Loop, Independence and secrets, Red flags, Exit
+  criteria, Defaults and open questions, Provenance.
+- `references/seats-raci.md` — the nine seats (lens, lineage), the topic/RACI matrix and the
+  A-close rule, perspective fitting, one-line check definitions per topic.
+- `references/briefs.md` — the five dispatch brief templates (seat, A-close, synthesizer, fixer,
+  fix-verifier, pre-round check, Low pass) and their common block.
+- `references/scaling.md` — the Full/Focused tier mapping and the dispatch-count/concurrency math.
+- `references/severity-and-records.md` — severities, record-naming scheme, line shapes, the
+  hand-back form, the record-identity screening grep.
+- `references/preround-check.md` — the Haiku pre-round mechanical checklist (C1-C8) run before
+  every seat round and after every fix.
+- `references/patterns.md` — learned failure patterns seats check a session against.
+- `references/reconcile-brief.md` (new, 2026-10-29) — the reconcile-mode briefs, classification
+  taxonomy (`IMPROVEMENT`/`REGRESSION`/`NEUTRAL`/`CONFLICT`/`MISSING-FROM-BOTH`), `DELTA` line
+  shape, and the reconcile-mode record names.
+- No `triggers.md` or `preflight.md` — both belonged to the retired simulated design (see
+  Discrepancies found, below); not carried into the real-panel redesign.
 - Symlink-installed at `~/.claude/skills/panel-consultation` →
   `~/projects/agent-hq/skills/panel-consultation` (ADR 0009 convention, confirmed live).
 

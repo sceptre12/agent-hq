@@ -53,15 +53,19 @@ Caller inputs, in the dispatch prompt; the skill does not prompt for missing one
 
 | Input | Meaning |
 |---|---|
+| `MODE` | `review` (default; unchanged behaviour, every row below) or `reconcile` (new: `## Reconcile mode`) |
 | `ARTIFACT_PATHS` | one or more absolute paths inside a worktree, never on a default branch (global Rule 6) |
 | `REPO` + `PR_NUMBER`, or `REPO_DIR` + `BASE_REF` + `HEAD_REF` | the PR forms, instead of `ARTIFACT_PATHS` |
 | `KIND` | design, plan, spec, skill or pr-docs; selects the fitted-surface examples; `pr-docs` adds the diff, PR title and commits to every brief; changes no seat, row, tier or bar |
 | `RECORD_DIR` | absolute, outside the reviewed tree; default the caller's scratchpad `panel-consultation/<artifact-slug>/` |
 | `OWNER_DECISIONS` | binding quotes, each with date and channel |
 | `HISTORY` | prior records; goes to the orchestrator and the synthesizer only, never to a seat |
-| `BAR` | default 0 Blocking / 0 Medium |
+| `BAR` | default 0 Blocking / 0 Medium (`MODE=review` only; reconcile's own bar is in `## Reconcile mode`) |
 | `SOURCES` | paths seats may read, including any decisions or live docs the caller names (seats re-measure, they do not recall) |
 | `PUSH` | `REPO`+`PR_NUMBER` form only, `yes` or `no`, default `no` |
+| `VERSION_A_PATH`, `VERSION_B_PATH` | `MODE=reconcile` only; the two diverged versions, both read-only — nothing in this process ever writes to either |
+| `COMMON_ANCESTOR_PATH` | `MODE=reconcile` only; optional; a shared git ancestor, enabling a real 3-way diff |
+| `MERGE_TARGET_PATH` | `MODE=reconcile` only; where the Fixer writes the reconciled result |
 
 `HEAD_SHA` is the one name for "head" everywhere (briefs, `git show`, `git diff`, pre-round C7,
 the fix-verifier `diff`): the orchestrator worktree's HEAD after the latest fix commit, in every
@@ -88,6 +92,10 @@ is removed at hand-back (default; literal full path) after the records are writt
 | Fix-verifier | 1 per `a`/`b`/`l`/`m` fix commit | Sonnet (owner R-ck) |
 | Low pass + verifier | 1 + 1 after the bar | Sonnet, Sonnet (default) |
 
+`MODE=reconcile` variant of the Fixer row above (same role, same model pin): writes the merged
+content to `MERGE_TARGET_PATH` only, never to `VERSION_A_PATH` or `VERSION_B_PATH`; the existing
+`fix-verifier` skill then confirms the merge against the verdict, unchanged (`references/reconcile-brief.md` section 7).
+
 Owner words behind the pins and the loop (verbatim): 06:27:40Z, "The panel review can be
 orchestrated by opus but the work can be done by Sonnet"; S9, 2026-10-24 14:13:43Z, "Spawn a sub
 agent to be the orchestrator so that it handles all of the context coming in"; R-ck, 2026-10-12
@@ -98,6 +106,10 @@ Dispatch counts and concurrency: `references/scaling.md` section 7. Seats, matri
 `references/seats-raci.md`; brief templates: `references/briefs.md`.
 
 ## Steps (orchestrator runbook)
+
+This is the `MODE=review` runbook (default, unchanged by this pass). `MODE=reconcile` reuses the
+same roles and the same per-dispatch discipline below, with a classification brief instead of a
+defect-hunt brief and a verdict instead of a bar — its own runbook is `## Reconcile mode`.
 
 Run in order each round. Every dispatch pins its model (Rule 3), carries the common block of
 `references/briefs.md`, and states a done condition and a stop clause.
@@ -150,9 +162,40 @@ Run in order each round. Every dispatch pins its model (Rule 3), carries the com
     presents; the caller or owner decides anything beyond the artifact's own text. PR forms:
     remove the worktree (literal full path).
 
+## Reconcile mode
+
+`MODE=reconcile` (new; `review` above, including every Step, is unchanged). Produces a merged
+best-of-both result from two independently-diverged versions of one artifact, never a blind
+pick-one-side overwrite. Full mechanics — each seat's reading rule, the classification taxonomy,
+the `DELTA` line shape, all five briefs, record names — are in `references/reconcile-brief.md`;
+this section states only what differs from `review` mode's flow.
+
+- **Read-only on both versions.** The nine seats, A-close and synthesizer all read
+  `VERSION_A_PATH` and `VERSION_B_PATH` (plus a real 3-way diff when `COMMON_ANCESTOR_PATH` is
+  given); only the Fixer writes, and only to `MERGE_TARGET_PATH`.
+- **Classification, not defect-hunting.** Each seat runs its own topic's check
+  (`references/seats-raci.md` section 4) against both versions and classifies every delta in its
+  domain as exactly one of `IMPROVEMENT`, `REGRESSION`, `NEUTRAL`, `CONFLICT` (a genuine two-way
+  divergence with no mechanical winner), `MISSING-FROM-BOTH` (a gap neither version addresses,
+  surfaced as a bonus finding). A-close adjudicates each from source, the same close rule as
+  `review` mode (one `CLOSED` line per topic).
+- **One Full round, one fix point.** No Scaling tier, no `review` mode's bar-chasing Loop below:
+  nine seats, A-close, synthesizer, then the Fixer writes `MERGE_TARGET_PATH` and the existing
+  `fix-verifier` skill confirms it against the verdict; the existing fix-cycle and cap (Loop,
+  below) apply unchanged, scoped to that one fix point.
+- **Output: a reconciliation verdict**, not a findings table. The synthesizer writes one
+  disposition per delta (the winning version, or the specific merge instruction) plus an
+  explicitly named list of residual `CONFLICT` items that need the human owner's call — the panel
+  never invents authorial intent nobody stated. `MISSING-FROM-BOTH` items are a separate bonus
+  list, non-blocking.
+- **Done bar** (replaces 0 Blocking/0 Medium for this mode): every identified delta has a
+  disposition, and every residual `CONFLICT` is named in the hand-back. This mode never loops
+  trying to resolve a `CONFLICT` itself — an unresolved one is escalated by name.
+
 ## Scaling
 
-Defaults, never below what the risk needs (Q6; full text and tests in `references/scaling.md`):
+`MODE=review` only (`MODE=reconcile` is always one Full round; see above). Defaults, never below
+what the risk needs (Q6; full text and tests in `references/scaling.md`):
 
 | Round | Tier | Seats | Condition |
 |---|---|---|---|
@@ -165,6 +208,10 @@ tier go in the ledger. Smaller than Focused does not exist (default; owner, 2026
 changes always go through a doc reviewer."): a small doc is doc-reviewer's.
 
 ## Loop
+
+`MODE=review`'s bar-chasing loop (unchanged). `MODE=reconcile` reuses only the fix-cycle, cap and
+harness-outcome mechanics below for its one fix point; it has no round cap and no Scaling tier
+because it never iterates past one Full round (`## Reconcile mode`).
 
 - **Bar** (owner S1, 2026-10-24: "... another agent has fixed the issues and then another agent
   runs the fix validator and that loops runs till there's no blocking or medium issues then the
@@ -239,12 +286,14 @@ only the artifact under review (the fixer) or its own record; no agent decides a
 | "The verifier's count is good enough to freeze." | Re-measure; name the command and the count. |
 | "Let a finished seat peek at a peer record." | Independence is the point of nine instances; only the A-close sees a topic file. |
 | "The fix-verifier was CLEAN, skip the next full round." | Only a Full round at 0B/0M meets the bar (Hermes G39; Q6); CLEAN only decides the next round's tier. |
+| (`MODE=reconcile`) "This CONFLICT has an obvious right answer, just pick one and merge it." | A genuine two-way CONFLICT escalates by name to the human owner; the panel never invents authorial intent nobody stated (`## Reconcile mode`). |
 
-Rows 2-4 are carried from `skills/review-7-panel/SKILL.md:155-157@c057d0cf`; rows 1, 5 and 6 are
-design-specified (row 6: Hermes G39).
+Rows 2-4 are carried from `skills/review-7-panel/SKILL.md:155-157@c057d0cf`; rows 1, 5, 6 and 7 are
+design-specified (row 6: Hermes G39; row 7: `## Reconcile mode`).
 
 ## Exit criteria
 
+`MODE=review` (default):
 - [ ] The last round is Full-tier (default, Q6) and its synthesizer line 1 is `BAR MET 0/0/<A>`, with no
       UNRESOLVED topic in the ledger.
 - [ ] Every in-scope topic of every round has exactly one CLOSED line (UNRESOLVED has none).
@@ -252,6 +301,13 @@ design-specified (row 6: Hermes G39).
 - [ ] The Low cycle ran, had 0 Advisories, or was reverted and the Lows are listed open.
 - [ ] (default) No fix commit touched a path outside `ARTIFACT_PATHS`; every record screened (count 0).
 - [ ] The hand-back is at most 10 lines in the form of `references/severity-and-records.md` section 7.
+
+`MODE=reconcile`:
+- [ ] Every delta any seat or A-close surfaced has exactly one disposition row in the
+      synthesizer's reconciliation verdict; none silently dropped.
+- [ ] Every residual `CONFLICT` is named in the hand-back, none left unresolved-and-unlisted.
+- [ ] The Fixer wrote only `MERGE_TARGET_PATH`; `VERSION_A_PATH` and `VERSION_B_PATH` are
+      byte-identical to before the run; the `fix-verifier` record reads CLEAN.
 
 ## Defaults and open questions
 

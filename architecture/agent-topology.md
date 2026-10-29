@@ -64,7 +64,7 @@ cannot be extended into one without adding all of it.
 - **Overlapping (one edge):** `route_message` vs. the bus's `send_message`, and the spec's
   `messages` envelope vs. the bus's `messages` table. Both move a body from A to B.
 - **Neither replaces the other.** The bus is used today by `wave-execution`,
-  `loop-controller`, `panel-review`, `fix-verifier` (all reference the swarm-communication
+  `panel-review`, `fix-verifier` (all reference the swarm-communication
   skill). Nothing here should touch it.
 
 See **OQ5** — whether `route_message` should wrap the bus or own its own table is a real

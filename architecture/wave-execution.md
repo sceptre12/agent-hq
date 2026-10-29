@@ -100,7 +100,7 @@ else `wave-exec-$(date)-$(uuid)` minted per invocation.
 | `{SESSION_ID}-fix-loop-output` | fix agents | controller |
 | `{SESSION_ID}-escalation` | controller | the caller that dispatched wave-execution |
 
-Bus rules match `skills/loop-controller/SKILL.md`'s idiom exactly: identity
+Bus rules follow this corpus's standard bus-posting idiom exactly: identity
 preflight samples `/health` 2-3 times requiring both `status: ok` and
 `app_name`/`data_dir` matching this session's own `APP_NAME`/`DATA_DIR`; `pm2
 restart` is the only safe recovery verb (never `reload`); `session_id` is passed
@@ -114,8 +114,9 @@ an id assigned in this invocation — with `bus_endpoint`, registered in
 `agent_id, role, unit, persona, tier, backend, utc`). The skill never reads a
 caller's `status/<agent-id>.verdict` fallback file.
 The bus post to a wave's topic is the sole valid completion signal — the same
-Prohibited Side Channels list as `loop-controller` (no branching on stdout, exit
-code, env vars, task files, sibling files, or named pipes).
+Prohibited Side Channels discipline used across this corpus's bus-posting
+skills (no branching on stdout, exit code, env vars, task files, sibling
+files, or named pipes).
 
 ## Constraints
 
@@ -156,7 +157,7 @@ code, env vars, task files, sibling files, or named pipes).
   cross-file "read before proceeding" chaining) consolidated to one `SKILL.md`
   body + `references/`,** matching the Gate-2 restructuring expectation recorded
   in `plans/dev-workspace-base-skills.md`'s wave-execution row and the same
-  shape already used by `loop-controller`.
+  shape already used by sibling ports like `swarm-communication`.
 - **Two work-path examples scrubbed to generic placeholders** — source
   `SKILL.md`'s `spec_root` example and `SKILL-04.md`'s `PROJECT_ROOT` example
   each carried a literal work-machine path; both are now
@@ -169,17 +170,17 @@ code, env vars, task files, sibling files, or named pipes).
   `spec_root` may reintroduce equivalent per-wave brief fields if its domain
   needs them; this skill does not prescribe a fixed field set.
 - **Bus rules restated in this skill's own idiom rather than pointed-to only**
-  — matches `loop-controller`'s pattern of each bus-posting skill restating the
+  — matches this corpus's pattern of each bus-posting skill restating the
   identity-preflight/pm2-restart/explicit-session_id/port-discovery rules
   inline, not solely by reference.
-- **Disambiguation section against the loop system added** — did not exist in
-  source (source predates hq's loop-system entirely). See
-  `architecture/loop-system.md`: `loop-*` converges one artifact against one
-  rubric; `wave-execution` runs staged, heterogeneous waves each with its own
-  gate. The two systems share the bus idiom but not a controller.
+- **Disambiguation section added, since reworded** — did not exist in source
+  (source predates hq's since-removed loop-* skill family entirely). Explains
+  that `wave-execution` runs staged, heterogeneous waves each with its own
+  gate, as opposed to converging one artifact against one rubric (the pattern
+  that family implemented before its removal).
 - **Red flags / Exit criteria / Provenance sections added** — absent upstream,
   added per `tools/skill-authoring.md`'s required anatomy (same convention
-  already applied to sibling ports `loop-controller`, `swarm-communication`).
+  already applied to sibling port `swarm-communication`).
 
 ## Capabilities (ADR 0023 Workflow grafts; ADR 0054)
 
@@ -326,9 +327,9 @@ Recorded so a future reader does not re-litigate — full reasoning in ADR 0023:
   A5, within one wave, cancellation = non-release); a global barrier-free flag stays out.
 - **`parallel()` fan-out:** already equivalent to the existing per-wave
   one-agent-per-`work_item` dispatch with bus rendezvous as the barrier. Nothing to port.
-- **Loop-until-dry / count / budget iteration:** belongs to `loop-controller`
-  (`architecture/loop-system.md`) by wave-execution's own disambiguation; porting it would
-  blur a deliberate line.
+- **Loop-until-dry / count / budget iteration:** belongs to a single-artifact
+  convergence loop, not staged heterogeneous waves, by wave-execution's own
+  disambiguation; porting it would blur a deliberate line.
 - **Per-`agent()` model/effort override:** already equivalent — the `agents` field assigns
   per-task tiers and global Rule 3 forces explicit pinning regardless. Cosmetic.
 
@@ -339,5 +340,4 @@ for its generic orchestrator machinery only; the ~1,700 lines of employer-
 specific domain spec in a separate directory of that source repo were
 deliberately not read for domain content and are not reflected anywhere in this
 port). Bus design and its own decision record:
-`architecture/swarm-communication-layer.md`. Sibling ported skill for
-comparison of idiom: `architecture/loop-system.md` / `skills/loop-controller/`.
+`architecture/swarm-communication-layer.md`.

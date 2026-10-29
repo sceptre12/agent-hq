@@ -280,7 +280,7 @@ Examples: missing session_context, auto-discovery fallback used, timeout warning
 
 ### Cross-References
 
-`loop-controller`, `panel-review`, `doc-reviewer`, `review-validator`: see `references/runtime-detail.md`.
+`panel-review`, `doc-reviewer`, `review-validator`: see `references/runtime-detail.md`.
 
 ## Red flags
 

@@ -53,8 +53,6 @@ reading the verdict fix-verifier returns.
   - `doc-reviewer` — the alternative for first-pass/whole-document review.
   - `review-validator` — the alternative for validating existing panel-review PR comments.
   - `panel-review` — the intended downstream consumer on a `CLEAN` verdict.
-  - `loop-controller` — the plausible orchestration caller that re-dispatches on
-    `ISSUES_FOUND`.
   - `tools/skill-authoring.md` §3 — referenced only to disclaim overlap: that standard's
     ≤5,000-token/≤500-line **L2 skill-body** budget governs skill files themselves, not
     the 200-line cap Check 5 applies to arbitrary changed files. Confirmed independently:

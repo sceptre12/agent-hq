@@ -246,9 +246,9 @@ Rule 12 is the deferred `spec_ref` rule of ADR 0023; the gap in the numbering is
 Rules execute in the order 1–10, 13–15, then 11 last.
 
 Any failure is `VALIDATION_FAILED`, naming the specific failing check and wave
-number; halt before any dispatch — this mirrors loop-controller's pre-flight
-discipline (`skills/loop-controller/SKILL.md` Steps §2), generalized from one
-`loop.yaml` to a directory of N wave specs.
+number; halt before any dispatch — the same halt-before-dispatch discipline
+used across this corpus's validation-heavy skills, generalized from one spec
+file to a directory of N wave specs.
 
 ## Worked example
 

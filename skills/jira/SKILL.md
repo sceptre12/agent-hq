@@ -32,17 +32,21 @@ rather than assuming.
 
 ## Overview
 
-Always read from the local SQLite cache first. Use the Jira REST API for writes (create/update) and for tickets not in the DB. Auth for REST writes uses the **shared atlassian-auth session** — not an API token.
+Default to the live Jira REST API for both reads and writes. Auth uses the **shared
+atlassian-auth session** — not an API token. The local SQLite cache below exists but has
+not been refreshed in months — it is not queried by default; only fall back to it if the
+REST API is unreachable (see Network Unavailable), and treat anything read from it as
+potentially stale.
 
-**DB:** `~/.jira-scraper/data.db`
+**DB (stale, explicit-fallback only):** `~/.jira-scraper/data.db`
 **Scraper:** `~/projects/jira-scraper`
 **Jira scraper's own session (DOM scraping only):** `~/.jira-scraper/session.json`
-**Shared session (used for REST auth):** `~/.atlassian-auth/session.json` — see `~/projects/atlassian-auth`
-**Schema contract:** `~/projects/context-docs/projects/jira-scraper/contracts/schema.md`
+**Shared session (used for all REST auth):** `~/.atlassian-auth/session.json` — see `~/projects/atlassian-auth`
+**Schema contract (for the fallback DB):** `~/projects/context-docs/projects/jira-scraper/contracts/schema.md`
 
 ## Steps
 
-1. **Check session freshness** before any REST call or scrape — shell out to the shared
+1. **Check session freshness** before any REST call — shell out to the shared
    atlassian-auth CLI rather than decoding the session JWT inline:
 
    ```bash
@@ -58,35 +62,54 @@ Always read from the local SQLite cache first. Use the Jira REST API for writes 
    Do NOT proceed with REST calls on a stale session — they will silently return 401 or
    redirect to auth.
 
-2. **Reads: query the DB first.**
-
-   ```bash
-   sqlite3 ~/.jira-scraper/data.db \
-     "SELECT key, summary, status, priority, description, last_scraped_at FROM tickets WHERE key = 'FOUND-1234';"
-   ```
-   ```bash
-   sqlite3 ~/.jira-scraper/data.db \
-     "SELECT key, summary, status FROM tickets WHERE epic_id = 'FOUND-100' ORDER BY key;"
-   ```
-   ```bash
-   sqlite3 ~/.jira-scraper/data.db \
-     "SELECT key, summary FROM tickets WHERE summary LIKE '%migration%' LIMIT 10;"
-   ```
-
-   If the ticket is absent from the DB, scrape it first (requires a fresh session), then
-   re-query:
-   ```bash
-   cd ~/projects/jira-scraper && npm run scrape -- --ticket FOUND-1234
-   ```
-
-3. **Writes: get cookies, then call the REST API.**
+2. **Get cookies, then filter them — do not use the raw CLI output directly.**
 
    ```bash
    cd ~/projects/atlassian-auth && npm run --silent cli -- cookies
    ```
 
-   Prints a ready-to-use `Cookie: name=value; name2=value2...` header string — use its
-   output as `COOKIE_STRING_HERE` in the curl commands below.
+   This prints the full raw session cookie jar (~12KB — dozens of SSO/analytics cookies
+   picked up during the Playwright login). **Jira's REST API gateway rejects a Cookie
+   header that large with a bare HTTP 400 (an Apache/Tomcat error page, not a Jira JSON
+   error) — verified 2026-10-29 against both `GET /rest/api/3/issue/*` and
+   `POST /rest/api/3/search/jql`, and against a write (`PUT /rest/api/3/issue/*`).**
+   Jira only actually needs two of those cookies. Filter before using the output in any
+   curl call below:
+
+   ```bash
+   FULL_COOKIES=$(cd ~/projects/atlassian-auth && npm run --silent cli -- cookies)
+   COOKIE=$(echo "$FULL_COOKIES" | tr ';' '\n' | sed 's/^ //' \
+     | grep -E '^(cloud\.session\.token|tenant\.session\.token)=' | paste -sd';' -)
+   ```
+
+   Use `$COOKIE` (the filtered ~2KB pair), never the raw `$FULL_COOKIES`, as the `Cookie`
+   header value in every Jira REST call — reads and writes alike. (Confluence's REST API
+   does not have this problem — the `query-confluence`/`update-confluence` skills use the
+   unfiltered cookie string fine. This filtering requirement is specific to Jira's API
+   gateway.)
+
+3. **Reads: query the REST API directly.**
+
+   Single ticket:
+   ```bash
+   curl -s "https://sgwsagility.atlassian.net/rest/api/3/issue/FOUND-1234?fields=summary,status,priority,description" \
+     -H "Cookie: $COOKIE" -H "Accept: application/json"
+   ```
+
+   Epic children, keyword search, or any other list query — Jira Cloud retired the
+   classic `GET /rest/api/3/search` (returns `410 Gone`); use the current JQL endpoint:
+   ```bash
+   curl -s -X POST "https://sgwsagility.atlassian.net/rest/api/3/search/jql" \
+     -H "Cookie: $COOKIE" -H "Accept: application/json" -H "Content-Type: application/json" \
+     -d '{"jql": "parent = FOUND-100 ORDER BY key", "fields": ["summary","status"], "maxResults": 50}'
+   ```
+   Swap the `jql` value for the lookup needed (`summary ~ "migration"` for a keyword
+   search, `project = FOUND ORDER BY created DESC` for a recency scan, etc.).
+
+   If a response is empty or looks wrong, re-check step 2 — an unfiltered cookie silently
+   returns a non-JSON error page, not a clean failure.
+
+4. **Writes: call the REST API** (same `$COOKIE` from step 2).
 
    **Create a ticket.** If setting the Team field (FOUND project), always pair it with
    Team Validation — see Known Field Gotchas below. Omitting `customfield_11144` causes
@@ -95,7 +118,7 @@ Always read from the local SQLite cache first. Use the Jira REST API for writes 
    ```bash
    curl -s -X POST \
      "https://sgwsagility.atlassian.net/rest/api/3/issue" \
-     -H "Cookie: COOKIE_STRING_HERE" \
+     -H "Cookie: $COOKIE" \
      -H "X-Atlassian-Token: no-check" \
      -H "Content-Type: application/json" \
      -d '{
@@ -119,7 +142,7 @@ Always read from the local SQLite cache first. Use the Jira REST API for writes 
    ```bash
    curl -s -X PUT \
      "https://sgwsagility.atlassian.net/rest/api/3/issue/FOUND-1234" \
-     -H "Cookie: COOKIE_STRING_HERE" \
+     -H "Cookie: $COOKIE" \
      -H "X-Atlassian-Token: no-check" \
      -H "Content-Type: application/json" \
      -d '{
@@ -137,7 +160,7 @@ Always read from the local SQLite cache first. Use the Jira REST API for writes 
    ```bash
    curl -s -X PUT \
      "https://sgwsagility.atlassian.net/rest/api/3/issue/FOUND-1234" \
-     -H "Cookie: COOKIE_STRING_HERE" \
+     -H "Cookie: $COOKIE" \
      -H "X-Atlassian-Token: no-check" \
      -H "Content-Type: application/json" \
      -d '{
@@ -209,7 +232,8 @@ To verify connectivity before running: use the `network-check` skill.
 |---|---|
 | "I'll use an API token for auth." | Use the shared atlassian-auth session cookies instead — no API token is stored. |
 | "I'll skip the session check, it was fresh recently." | Always check session freshness before any REST call or scrape. |
-| "I'll query the REST API directly instead of the DB." | The DB is instant and offline — always check it first for reads. |
+| "I'll query the local DB instead of the REST API." | The DB hasn't been refreshed in months — default to the live REST API; only use the DB as an explicit, flagged-stale fallback. |
+| "I'll use the raw `cookies` CLI output as-is." | That's the full ~12KB cookie jar — Jira's gateway rejects it with a bare HTTP 400. Filter to `cloud.session.token` + `tenant.session.token` first (Step 2). |
 | "I'll just PUT the new description." | GET the current description first, merge, then PUT — a blind PUT overwrites it. |
 | "I'll set Team without Team Validation." | Always pair `customfield_10001` with `customfield_11144: {"id":"12551"}` or later transitions fail. |
 | "I'll wrap the Team field as `{"id": ...}` since GET renders it that way." | Writes require the bare string team-id — the object form is rejected with HTTP 400. |
@@ -217,9 +241,12 @@ To verify connectivity before running: use the `network-check` skill.
 
 ## Exit criteria
 
-- [ ] Session freshness was checked before any REST call or scrape; a STALE session
-  halted with the bootstrap instruction.
-- [ ] Reads queried the DB before any network call.
+- [ ] Session freshness was checked before any REST call; a STALE session halted with
+  the bootstrap instruction.
+- [ ] The cookie string was filtered to `cloud.session.token` + `tenant.session.token`
+  before use in any curl call — not the raw `cookies` CLI output.
+- [ ] Reads hit the live REST API by default; the local DB was only used if explicitly
+  asked for, with its staleness flagged.
 - [ ] A write that sets the Team field also sets Team Validation in the same request.
 - [ ] The REST response's HTTP status was checked (201/204 for success) — not just
   assumed.
@@ -233,4 +260,12 @@ now points at the `network-check` skill instead of a work-machine-only absolute 
 path; dropped the source's "Decision Flow" dot-graph diagram — its read-vs-write/
 session-fresh-vs-stale branching is fully restated as numbered Steps 1-3, so the
 diagram was redundant rather than additive, unlike query-confluence where the diagram
-covers branches the Steps prose doesn't fully spell out)
+covers branches the Steps prose doesn't fully spell out).
+2026-10-29: flipped reads from DB-first to REST-API-first (the DB cache hadn't been
+refreshed in months, per Xavier's request). While rebuilding the read path, found and
+fixed a live production bug uncovered in the process: the raw `cookies` CLI output
+(~12KB) gets silently rejected by Jira's REST API gateway with a bare HTTP 400 on both
+reads and writes (confirmed via a non-destructive invalid-field PUT test) — Confluence's
+API doesn't have this problem, only Jira's does. Fixed by filtering to the two cookies
+Jira actually needs; this also fixes the pre-existing write examples, which were silently
+exposed to the same failure mode.
